@@ -1,9 +1,15 @@
+#include <ctype.h>
+
 #include "picoc.h"
+
+
+#define isCidstart(c) (isalpha(c) || (c)=='_')
 
 #define LEXINC Lexer->Pos++
 #define NEXTIS(c,x,y) { if (NextChar == (c)) { LEXINC; return (x); } else return (y); }
 #define NEXTIS3(c,x,d,y,z) { if (NextChar == (c)) { LEXINC; return (x); } else NEXTIS(d,y,z) }
 #define NEXTIS4(c,x,d,y,e,z,a) { if (NextChar == (c)) { LEXINC; return (x); } else NEXTIS3(d,y,e,z,a) }
+
 
 struct ReservedWord
 {
@@ -11,7 +17,7 @@ struct ReservedWord
     enum LexToken Token;
 };
 
-static char *ReservedWords[] =
+static struct ReservedWord ReservedWords[] =
 {
     { "char", TokenCharType },
     { "do", TokenDo },
@@ -23,11 +29,12 @@ static char *ReservedWords[] =
     { "void", TokenVoidType }
 };
 
-void LexInit(struct LexState *Lexer, const Str *Source, int Line)
+void LexInit(struct LexState *Lexer, const Str *Source, const Str *FileName, int Line)
 {
     Lexer->Pos = Source->Str;
     Lexer->End = Source->Str + Source->Len;
     Lexer->Line = Line;
+    Lexer->FileName = FileName;
 }
 
 
@@ -37,8 +44,8 @@ enum LexToken LexCheckReservedWord(const Str *Word)
     
     for (Count = 0; Count < sizeof(ReservedWords) / sizeof(struct ReservedWord); Count++)
     {
-        if (StrEqualC(Word, ReservedWord[Count].Word))
-            return ReservedWord[Count].Token;
+        if (StrEqualC(Word, ReservedWords[Count].Word))
+            return ReservedWords[Count].Token;
     }
     
     return TokenNone;
@@ -47,13 +54,29 @@ enum LexToken LexCheckReservedWord(const Str *Word)
 
 enum LexToken LexGetNumber(struct LexState *Lexer)
 {
-    XXX
+    // XXX
+    return TokenIntegerConstant;
 }
 
 
 enum LexToken LexGetWord(struct LexState *Lexer)
 {
-    XXX
+    // XXX
+    return TokenIdentifier;
+}
+
+
+enum LexToken LexGetStringConstant(struct LexState *Lexer)
+{
+    // XXX
+    return TokenStringConstant;
+}
+
+
+enum LexToken LexGetCharacterConstant(struct LexState *Lexer)
+{
+    // XXX
+    return TokenCharacterConstant;
 }
 
 
@@ -83,14 +106,14 @@ enum LexToken LexGetToken(struct LexState *Lexer)
         case '\'': return LexGetCharacterConstant(Lexer);
         case '(': return TokenOpenBracket;
         case ')': return TokenCloseBracket;
-        case '=': NEXTIS('=', TokenEquality, TokenAssignment);
+        case '=': NEXTIS('=', TokenEquality, TokenAssign);
         case '+': NEXTIS3('=', TokenAddAssign, '+', TokenIncrement, TokenPlus);
         case '-': NEXTIS4('=', TokenSubtractAssign, '>', TokenArrow, '-', TokenDecrement, TokenMinus);
         case '*': return TokenAsterisk;
         case '/': return TokenSlash;
-        case '<': NEXTIS('=', TokenLessEqual, TokenLess);
-        case '>': NEXTIS('=', TokenGreaterEqual, TokenGreater);
-        case ';': return TokenSemiColon;
+        case '<': NEXTIS('=', TokenLessEqual, TokenLessThan);
+        case '>': NEXTIS('=', TokenGreaterEqual, TokenGreaterThan);
+        case ';': return TokenSemicolon;
         case '&': NEXTIS('&', TokenLogicalAnd, TokenAmpersand);
         case '|': NEXTIS('|', TokenLogicalOr, TokenArithmeticOr);
         case '{': return TokenLeftBrace;

@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -35,21 +36,35 @@ int StrEqualC(const Str *Str1, const char *Str2)
 }
 
 
-void StrPrintf(const str *Format, ...)
+void StrPrintf(const char *Format, ...)
 {
-    char FormatBuf[MAX_FORMAT];
     const char *FPos;
-    char *BPos;
     va_list Args;
+    Str *str;
     
     va_start(Args, Format);
-    for (FPos = Format, BPos = &FormatBuf[0]; *FPos != '\0'; FPos++, BPos++)
+    for (FPos = Format; *FPos != '\0'; FPos++)
     {
         if (*FPos == '%')
         {
-            XXX
+            FPos++;
+            switch (*FPos)
+            {
+            case 'S':
+                str = va_arg(Args, Str *);
+                fwrite(str->Str, 1, str->Len, stdout);
+                break;
+                
+            case 's': fputs(va_arg(Args, char *), stdout); break;
+            case 'd': printf("%d", va_arg(Args, int)); break;
+            case 'c': fputc(va_arg(Args, int), stdout); break;
+            case '%': fputc('%', stdout); break;
+            case '\0': FPos--; break;
+            }
         }
-        *BPos = *FPos;
+        else
+            putchar(*FPos);
     }
+    va_end(Args);
 }
 

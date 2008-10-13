@@ -111,6 +111,7 @@ struct LexState
     int Line;
     const char *Pos;
     const char *End;
+    const Str *FileName;
 };
 
 
@@ -119,7 +120,7 @@ void StrToC(char *Dest, int DestSize, const Str *Source);
 void StrFromC(Str *Dest, const char *Source);
 int StrEqual(const Str *Str1, const Str *Str2);
 int StrEqualC(const Str *Str1, const char *Str2);
-void StrPrintf(const str *Format, ...);
+void StrPrintf(const char *Format, ...);
 
 /* picoc.c */
 void Fail(const char *Message, ...);
@@ -132,8 +133,8 @@ void TableSet(struct Table *Tbl, const Str *Key, void *Value);
 void *TableLookup(struct Table *Tbl, const Str *Key);
 
 /* lex.c */
-void LexInit(const Str *Source);
-enum LexToken LexGetToken(void);
+void LexInit(struct LexState *Lexer, const Str *Source, const Str *FileName, int Line);
+enum LexToken LexGetToken(struct LexState *Lexer);
 
 /* parse.c */
 void ParseInit(void);

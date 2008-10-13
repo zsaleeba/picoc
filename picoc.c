@@ -22,7 +22,7 @@ void ProgramError(const Str *FileName, int Line, const char *Message, ...)
 {
     va_list Args;
 
-    StrPrintf("%S:%d: ", FileName, Line)    
+    StrPrintf("%S:%d: ", FileName, Line);   
     va_start(Args, Message);
     vprintf(Message, Args);
     printf("\n");
