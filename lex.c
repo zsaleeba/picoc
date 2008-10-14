@@ -1,9 +1,11 @@
+#include <stdlib.h>
 #include <ctype.h>
 
 #include "picoc.h"
 
 
 #define isCidstart(c) (isalpha(c) || (c)=='_')
+#define isCident(c) (isalnum(c) || (c)=='_')
 
 #define LEXINC Lexer->Pos++
 #define NEXTIS(c,x,y) { if (NextChar == (c)) { LEXINC; return (x); } else return (y); }
@@ -54,14 +56,27 @@ enum LexToken LexCheckReservedWord(const Str *Word)
 
 enum LexToken LexGetNumber(struct LexState *Lexer)
 {
-    // XXX
+    Lexer->Value.Integer = strtol(Lexer->Pos, &Lexer->Pos, 10);
     return TokenIntegerConstant;
 }
 
 
 enum LexToken LexGetWord(struct LexState *Lexer)
 {
-    // XXX
+    const char *Pos = Lexer->Pos + 1;
+    enum LexToken Token;
+    
+    while (Lexer->Pos != Lexer->End && isCident(*Pos))
+        Pos++;
+    
+    Lexer->Value.String.Str = Lexer->Pos;
+    Lexer->Value.String.Len = Pos - Lexer->Pos;
+    Lexer->Pos = Pos;
+    
+    Token = LexCheckReservedWord(&Lexer->Value.String);
+    if (Token != TokenNone)
+        return Token;
+    
     return TokenIdentifier;
 }
 
@@ -75,7 +90,11 @@ enum LexToken LexGetStringConstant(struct LexState *Lexer)
 
 enum LexToken LexGetCharacterConstant(struct LexState *Lexer)
 {
-    // XXX
+    Lexer->Value.Integer = Lexer->Pos[1];
+    if (Lexer->Pos[2] != '\'')
+        ProgramError(Lexer->FileName, Lexer->Line, "illegal character '%c'", Lexer->Pos[2]);
+        
+    Lexer->Pos += 3;
     return TokenCharacterConstant;
 }
 

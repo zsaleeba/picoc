@@ -107,6 +107,11 @@ struct FuncDef
     int StartLine;
 };
 
+union AnyValue
+{
+    int Integer;
+    Str String;
+};
 
 /* lexer state - so we can lex nested files */
 struct LexState
@@ -115,6 +120,7 @@ struct LexState
     const char *Pos;
     const char *End;
     const Str *FileName;
+    union AnyValue Value;
 };
 
 
