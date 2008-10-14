@@ -14,7 +14,7 @@ void Fail(const char *Message, ...)
     va_list Args;
     
     va_start(Args, Message);
-    vprintf(Message, Args);
+    vStrPrintf(Message, Args);
     exit(1);
 }
 
@@ -24,8 +24,8 @@ void ProgramError(const Str *FileName, int Line, const char *Message, ...)
 
     StrPrintf("%S:%d: ", FileName, Line);   
     va_start(Args, Message);
-    vprintf(Message, Args);
-    printf("\n");
+    vStrPrintf(Message, Args);
+    StrPrintf("\n");
     exit(1);
 }
 
@@ -72,8 +72,6 @@ int main(int argc, char **argv)
 {
     Str FileName;
     Str StartFunc;
-    
-    printf("picoc\n");
     
     if (argc < 2)
         Fail("Format: picoc <program.c> <args>...\n");

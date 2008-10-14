@@ -1,9 +1,12 @@
 #ifndef PICOC_H
 #define PICOC_H
 
+#include <stdarg.h>
+
 /* configurable options */
 #define USE_MALLOC
 #define GLOBAL_TABLE_SIZE 199
+#define LARGE_INT_POWER_OF_TEN 1000000000    /* the largest power of ten which fits in an int on this architecture */
 
 /* handy definitions */
 #ifndef TRUE
@@ -121,6 +124,7 @@ void StrFromC(Str *Dest, const char *Source);
 int StrEqual(const Str *Str1, const Str *Str2);
 int StrEqualC(const Str *Str1, const char *Str2);
 void StrPrintf(const char *Format, ...);
+void vStrPrintf(const char *Format, va_list Args);
 
 /* picoc.c */
 void Fail(const char *Message, ...);

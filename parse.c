@@ -25,7 +25,7 @@ void ParseScan(const Str *FileName, const Str *Source)
     while ( (Token = LexGetToken(&Lexer)) != TokenEOF)
     {
         /* do parsey things here */
-        printf("token %d\n", (int)Token);
+        StrPrintf("token %d\n", (int)Token);
     }
 }
 
