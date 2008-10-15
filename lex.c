@@ -1,4 +1,3 @@
-#include <stdlib.h>
 #include <ctype.h>
 
 #include "picoc.h"
@@ -39,7 +38,6 @@ void LexInit(struct LexState *Lexer, const Str *Source, const Str *FileName, int
     Lexer->FileName = FileName;
 }
 
-
 enum LexToken LexCheckReservedWord(const Str *Word)
 {
     int Count;
@@ -53,13 +51,16 @@ enum LexToken LexCheckReservedWord(const Str *Word)
     return TokenNone;
 }
 
-
 enum LexToken LexGetNumber(struct LexState *Lexer)
 {
-    Lexer->Value.Integer = strtol(Lexer->Pos, &Lexer->Pos, 10);
+    int Result = 0;
+    
+    while (Lexer->Pos != Lexer->End && isdigit(*Lexer->Pos))
+        Result = Result * 10 + (*Lexer->Pos - '0');
+
+    Lexer->Value.Integer = Result;
     return TokenIntegerConstant;
 }
-
 
 enum LexToken LexGetWord(struct LexState *Lexer)
 {
@@ -80,13 +81,25 @@ enum LexToken LexGetWord(struct LexState *Lexer)
     return TokenIdentifier;
 }
 
-
 enum LexToken LexGetStringConstant(struct LexState *Lexer)
 {
-    // XXX
+    int Escape = FALSE;
+    
+    Lexer->Pos++;
+    Lexer->Value.String.Str = Lexer->Pos;
+    while (Lexer->Pos != Lexer->End && !Escape && *Lexer->Pos != '"')
+    {
+        if (Escape)
+            Escape = FALSE;
+        else if (*Lexer->Pos == '\\')
+            Escape = TRUE;
+    }
+    Lexer->Value.String.Len = Lexer->Pos - Lexer->Value.String.Str;
+    if (*Lexer->Pos != '"')
+        Lexer->Pos++;
+    
     return TokenStringConstant;
 }
-
 
 enum LexToken LexGetCharacterConstant(struct LexState *Lexer)
 {
@@ -98,14 +111,18 @@ enum LexToken LexGetCharacterConstant(struct LexState *Lexer)
     return TokenCharacterConstant;
 }
 
-
 enum LexToken LexGetToken(struct LexState *Lexer)
 {
     char ThisChar;
     char NextChar;
     
     while (Lexer->Pos != Lexer->End && isspace(*Lexer->Pos))
+    {
+        if (*Lexer->Pos == '\n')
+            Lexer->Line++;
+            
         Lexer->Pos++;
+    }
     
     if (Lexer->Pos == Lexer->End)
         return TokenEOF;
