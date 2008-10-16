@@ -20,14 +20,19 @@ struct ReservedWord
 
 static struct ReservedWord ReservedWords[] =
 {
+    { "break", TokenBreak },
+    { "case", TokenCase },
     { "char", TokenCharType },
+    { "default", TokenDefault },
     { "do", TokenDo },
     { "else", TokenElse },
     { "for", TokenFor },
     { "if", TokenIf },
     { "int", TokenIntType },
-    { "while", TokenWhile },
-    { "void", TokenVoidType }
+    { "return", TokenReturn },
+    { "switch", TokenSwitch },
+    { "void", TokenVoidType },
+    { "while", TokenWhile }
 };
 
 void LexInit(struct LexState *Lexer, const Str *Source, const Str *FileName, int Line)
