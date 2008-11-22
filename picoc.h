@@ -60,6 +60,7 @@ enum LexToken
     TokenArithmeticOr,
     TokenArithmeticExor,
     TokenUnaryExor,
+    TokenUnaryNot,
     TokenComma,
     TokenDot,
     TokenAddAssign,
@@ -107,10 +108,22 @@ struct FuncDef
     int StartLine;
 };
 
+enum ValueType
+{
+    TypeInt,
+    TypeString
+};
+
 union AnyValue
 {
     int Integer;
     Str String;
+};
+
+struct Value
+{
+    enum ValueType Typ;
+    union AnyValue Val;
 };
 
 /* lexer state - so we can lex nested files */
@@ -135,6 +148,7 @@ void vStrPrintf(const char *Format, va_list Args);
 /* picoc.c */
 void Fail(const char *Message, ...);
 void ProgramError(const Str *FileName, int Line, const char *Message, ...);
+void ProgramFail(struct LexState *Lexer, const char *Message, ...);
 void ScanFile(const Str *FileName);
 
 /* table.c */
@@ -145,6 +159,7 @@ void *TableLookup(struct Table *Tbl, const Str *Key);
 /* lex.c */
 void LexInit(struct LexState *Lexer, const Str *Source, const Str *FileName, int Line);
 enum LexToken LexGetToken(struct LexState *Lexer);
+enum LexToken LexPeekToken(struct LexState *Lexer);
 
 /* parse.c */
 void ParseInit(void);

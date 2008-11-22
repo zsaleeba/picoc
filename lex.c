@@ -161,6 +161,7 @@ enum LexToken LexGetToken(struct LexState *Lexer)
         case '}': return TokenRightBrace;
         case '[': return TokenLeftAngleBracket;
         case ']': return TokenRightAngleBracket;
+        case '!': return TokenUnaryNot;
         case '^': return TokenArithmeticExor;
         case '~': return TokenUnaryExor;
         case ',': return TokenComma;
@@ -169,5 +170,12 @@ enum LexToken LexGetToken(struct LexState *Lexer)
 
     ProgramError(Lexer->FileName, Lexer->Line, "illegal character '%c'", ThisChar);
     return TokenEOF;
+}
+
+/* look at the next token without changing the lexer state */
+enum LexToken LexPeekToken(struct LexState *Lexer)
+{
+    struct LexToken LocalState = *Lexer;
+    return LexGetToken(&LocalState);
 }
 
