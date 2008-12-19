@@ -35,7 +35,8 @@ int StrEqualC(const Str *Str1, const char *Str2)
 void StrPrintInt(int Num, FILE *Stream)
 {
     int Div;
-    int Remainder;
+    int Remainder = 0;
+    int Printing = FALSE;
     
     if (Num < 0)
     {
@@ -51,7 +52,11 @@ void StrPrintInt(int Num, FILE *Stream)
         while (Div > 0)
         {
             Remainder = Num / Div;
-            fputc('0' + Remainder, Stream);
+            if (Printing || Remainder > 0)
+            {
+                fputc('0' + Remainder, Stream);
+                Printing = TRUE;
+            }
             Num -= Remainder * Div;
             Div /= 10;
         }
