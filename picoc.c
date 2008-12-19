@@ -18,11 +18,11 @@ void Fail(const char *Message, ...)
     exit(1);
 }
 
-void ProgramError(const Str *FileName, int Line, const char *Message, ...)
+void ProgramFail(struct LexState *Lexer, const char *Message, ...)
 {
     va_list Args;
 
-    StrPrintf("%S:%d: ", FileName, Line);   
+    StrPrintf("%S:%d: ", Lexer->FileName, Lexer->Line);   
     va_start(Args, Message);
     vStrPrintf(Message, Args);
     StrPrintf("\n");

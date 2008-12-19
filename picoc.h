@@ -74,7 +74,12 @@ enum LexToken
     TokenElse,
     TokenFor,
     TokenIf,
-    TokenWhile
+    TokenWhile,
+    TokenBreak,
+    TokenSwitch,
+    TokenCase,
+    TokenDefault,
+    TokenReturn
 };
 
 /* string type so we can use source file strings */
@@ -84,22 +89,6 @@ typedef struct _Str
     const char *Str;
 } Str;
 
-
-/* hash table data structure */
-struct TableEntry
-{
-    Str Key;
-    void *Value;
-};
-    
-struct Table
-{
-    const char *Name;
-    short Size;
-    struct TableEntry *HashTable;
-};
-
-
 /* function definition - really just where it is in the source file */
 struct FuncDef
 {
@@ -108,8 +97,10 @@ struct FuncDef
     int StartLine;
 };
 
+/* values */
 enum ValueType
 {
+    TypeVoid,
     TypeInt,
     TypeString
 };
@@ -124,6 +115,20 @@ struct Value
 {
     enum ValueType Typ;
     union AnyValue Val;
+};
+
+/* hash table data structure */
+struct TableEntry
+{
+    Str Key;
+    struct Value Val;
+};
+    
+struct Table
+{
+    const char *Name;
+    short Size;
+    struct TableEntry *HashTable;
 };
 
 /* lexer state - so we can lex nested files */
@@ -153,8 +158,8 @@ void ScanFile(const Str *FileName);
 
 /* table.c */
 void TableInit(struct Table *Tbl, struct TableEntry *HashTable, const char *Name, int Size);
-void TableSet(struct Table *Tbl, const Str *Key, void *Value);
-void *TableLookup(struct Table *Tbl, const Str *Key);
+int TableSet(struct Table *Tbl, const Str *Key, struct Value *Val, int Exists);
+int TableGet(struct Table *Tbl, const Str *Key, struct Value **Val);
 
 /* lex.c */
 void LexInit(struct LexState *Lexer, const Str *Source, const Str *FileName, int Line);

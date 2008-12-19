@@ -2,10 +2,6 @@
 
 #include "picoc.h"
 
-
-#ifdef USE_MALLOC
-#include <stdlib.h>
-
     
 static unsigned int TableHash(const Str *Key)
 {
@@ -81,15 +77,18 @@ static int TableSearch(struct Table *Tbl, const Str *Key, int *AddAt)
 }
 
 
-void TableSet(struct Table *Tbl, const Str *Key, void *Value)
+int TableSet(struct Table *Tbl, const Str *Key, struct Value *Val, int Exists)
 {
     int HashPos;
     int AddAt;
     
     HashPos = TableSearch(Tbl, Key, &AddAt);
 
+    if ( (HashPos != -1) != Exists)
+        return FALSE;
+    
     if (HashPos != -1)
-        Tbl->HashTable[HashPos].Value = Value; /* found - update value */
+        Tbl->HashTable[HashPos].Val = *Val; /* found - update value */
     else
     {
         if (AddAt == -1)
@@ -99,13 +98,15 @@ void TableSet(struct Table *Tbl, const Str *Key, void *Value)
         {   /* add it to the table */
             struct TableEntry *Entry = &Tbl->HashTable[AddAt];
             Entry->Key = *Key;
-            Entry->Value = Value;
+            Entry->Val = *Val;
         }
     }
+    
+    return TRUE;
 }
 
 
-void *TableLookup(struct Table *Tbl, const Str *Key)
+int TableGet(struct Table *Tbl, const Str *Key, struct Value **Val)
 {
     int HashPos;
     int AddAt;
@@ -113,10 +114,9 @@ void *TableLookup(struct Table *Tbl, const Str *Key)
     HashPos = TableSearch(Tbl, Key, &AddAt);
 
     if (HashPos == -1)
-        return NULL;
-    else
-        return Tbl->HashTable[HashPos].Value;
+        return FALSE;
+    
+    *Val = &Tbl->HashTable[HashPos].Val;
+    return TRUE;
 }
-
-#endif
 

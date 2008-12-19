@@ -110,7 +110,7 @@ enum LexToken LexGetCharacterConstant(struct LexState *Lexer)
 {
     Lexer->Value.Integer = Lexer->Pos[1];
     if (Lexer->Pos[2] != '\'')
-        ProgramError(Lexer->FileName, Lexer->Line, "illegal character '%c'", Lexer->Pos[2]);
+        ProgramFail(Lexer, "illegal character '%c'", Lexer->Pos[2]);
         
     Lexer->Pos += 3;
     return TokenCharacterConstant;
@@ -168,14 +168,14 @@ enum LexToken LexGetToken(struct LexState *Lexer)
         case '.': return TokenDot;
     }
 
-    ProgramError(Lexer->FileName, Lexer->Line, "illegal character '%c'", ThisChar);
+    ProgramFail(Lexer, "illegal character '%c'", ThisChar);
     return TokenEOF;
 }
 
 /* look at the next token without changing the lexer state */
 enum LexToken LexPeekToken(struct LexState *Lexer)
 {
-    struct LexToken LocalState = *Lexer;
+    struct LexState LocalState = *Lexer;
     return LexGetToken(&LocalState);
 }
 
