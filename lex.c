@@ -90,17 +90,18 @@ enum LexToken LexGetStringConstant(struct LexState *Lexer)
 {
     int Escape = FALSE;
     
-    Lexer->Pos++;
     Lexer->Value.String.Str = Lexer->Pos;
-    while (Lexer->Pos != Lexer->End && !Escape && *Lexer->Pos != '"')
+    while (Lexer->Pos != Lexer->End && (*Lexer->Pos != '"' || Escape))
     {
         if (Escape)
             Escape = FALSE;
         else if (*Lexer->Pos == '\\')
             Escape = TRUE;
+            
+        Lexer->Pos++;
     }
     Lexer->Value.String.Len = Lexer->Pos - Lexer->Value.String.Str;
-    if (*Lexer->Pos != '"')
+    if (*Lexer->Pos == '"')
         Lexer->Pos++;
     
     return TokenStringConstant;
