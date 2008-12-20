@@ -65,7 +65,7 @@ void ScanFile(const Str *FileName)
     
     Source = ReadFile(FileName);
     StrFromC(&SourceStr, Source);
-    ParseScan(FileName, &SourceStr);
+    Parse(FileName, &SourceStr, TRUE);
 }
 
 int main(int argc, char **argv)
@@ -80,9 +80,6 @@ int main(int argc, char **argv)
     
     StrFromC(&FileName, argv[1]);
     ScanFile(&FileName);
-    
-    StrFromC(&StartFunc, "main");
-    ParseCallFunction(&StartFunc, argc-1, &argv[1]);
     
     return 0;
 }

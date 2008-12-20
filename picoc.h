@@ -152,7 +152,6 @@ void vStrPrintf(const char *Format, va_list Args);
 
 /* picoc.c */
 void Fail(const char *Message, ...);
-void ProgramError(const Str *FileName, int Line, const char *Message, ...);
 void ProgramFail(struct LexState *Lexer, const char *Message, ...);
 void ScanFile(const Str *FileName);
 
@@ -168,8 +167,7 @@ enum LexToken LexPeekToken(struct LexState *Lexer);
 
 /* parse.c */
 void ParseInit(void);
-void ParseScan(const Str *FileName, const Str *Source);
-void ParseCallFunction(const Str *FuncIdent, int argc, char **argv);
+void Parse(const Str *FileName, const Str *Source, int RunIt);
 
 #endif /* PICOC_H */
 

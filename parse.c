@@ -38,21 +38,20 @@ void VariableSet(struct LexState *Lexer, Str *Ident, struct Value *Val)
 }
 
 /* get the value of a variable. must be defined */
-void VariableGet(struct LexState *Lexer, Str *Ident, struct Value *Val)
+void VariableGet(struct LexState *Lexer, Str *Ident, struct Value *Val, struct Value **LVal)
 {
-    struct Value *ValPos;
-    
-    if (!TableGet(&GlobalTable, Ident, &ValPos))
+    if (!TableGet(&GlobalTable, Ident, LVal))
         ProgramFail(Lexer, "'%S' is undefined", Ident);
 
-    *Val = *ValPos;
+    *Val = **LVal;
 }
 
 /* parse a single value */
-int ParseValue(struct LexState *Lexer, struct Value *Result)
+int ParseValue(struct LexState *Lexer, struct Value *Result, struct Value **LValue)
 {
     struct LexState PreState = *Lexer;
     enum LexToken Token = LexGetToken(Lexer);
+    *LValue = NULL;
     
     switch (Token)
     {
@@ -88,12 +87,12 @@ int ParseValue(struct LexState *Lexer, struct Value *Result)
             ProgramFail(Lexer, "not implemented");
 
         case TokenIdentifier:
-            VariableGet(Lexer, &Lexer->Value.String, Result);
+            VariableGet(Lexer, &Lexer->Value.String, Result, LValue);
             break;
             
         default:
             *Lexer = PreState;
-            break;
+            return FALSE;
     }
     
     return TRUE;
@@ -103,9 +102,11 @@ int ParseValue(struct LexState *Lexer, struct Value *Result)
 int ParseExpression(struct LexState *Lexer, struct Value *Result)
 {
     struct Value CurrentValue;
+    struct Value *CurrentLValue;
     struct Value TotalValue;
+    struct Value *TotalLValue;
     
-    if (!ParseValue(Lexer, &TotalValue))
+    if (!ParseValue(Lexer, &TotalValue, &TotalLValue))
         return FALSE;
     
     while (TRUE)
@@ -116,19 +117,36 @@ int ParseExpression(struct LexState *Lexer, struct Value *Result)
             case TokenPlus: case TokenMinus: case TokenAsterisk: case TokenSlash:
             case TokenEquality: case TokenLessThan: case TokenGreaterThan:
             case TokenLessEqual: case TokenGreaterEqual: case TokenLogicalAnd:
-            case TokenLogicalOr: case TokenArithmeticOr: case TokenArithmeticExor:
-            case TokenDot:
+            case TokenLogicalOr: case TokenAmpersand: case TokenArithmeticOr: 
+            case TokenArithmeticExor: case TokenDot:
                 LexGetToken(Lexer);
                 break;
+                        
+            case TokenAssign: case TokenAddAssign: case TokenSubtractAssign:
+                LexGetToken(Lexer);
+                if (!ParseExpression(Lexer, &CurrentValue))
+                    ProgramFail(Lexer, "expression expected");
+                
+                if (CurrentValue.Typ != TypeInt || TotalValue.Typ != TypeInt)
+                    ProgramFail(Lexer, "can't assign");
+
+                switch (Token)
+                {
+                    case TokenAddAssign: TotalValue.Val.Integer += CurrentValue.Val.Integer; break;
+                    case TokenSubtractAssign: TotalValue.Val.Integer -= CurrentValue.Val.Integer; break;
+                    case TokenAssign: TotalValue.Val.Integer += CurrentValue.Val.Integer; break;
+                    default: break;
+                }
+                // fallthrough
             
             default:
                 *Result = TotalValue;
                 return TRUE;
         }
         
-        if (!ParseValue(Lexer, &CurrentValue))
+        if (!ParseValue(Lexer, &CurrentValue, &CurrentLValue))
             return FALSE;
-        
+
         if (CurrentValue.Typ != TypeInt || TotalValue.Typ != TypeInt)
             ProgramFail(Lexer, "bad operand types");
             
@@ -166,13 +184,6 @@ void ParseIntExpression(struct LexState *Lexer, struct Value *Result)
         ProgramFail(Lexer, "integer value expected");
 }
 
-/* parse a statement which starts with an identifier - either an function or an assignment */
-int ParseIdentStatement(struct LexState *Lexer, int RunIt)
-{
-    /* XXX */
-    return FALSE;
-}
-
 /* parse a statement */
 int ParseStatement(struct LexState *Lexer, int RunIt)
 {
@@ -180,10 +191,15 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
     struct LexState PreState = *Lexer;
     enum LexToken Token = LexGetToken(Lexer);
     
+    printf("Token=%d\n", (int)Token);
+    
     switch (Token)
     {
+        case TokenEOF:
+            return FALSE;
+            
         case TokenIdentifier: 
-            ParseIdentStatement(&PreState, RunIt);
+            ParseExpression(&PreState, &Conditional);
             break;
             
         case TokenLeftBrace:
@@ -296,6 +312,8 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
             if (LexGetToken(Lexer) != TokenIdentifier)
                 ProgramFail(Lexer, "identifier expected");
                 
+            /* XXX - need to handle function definitions here too */
+                
             VariableDefine(Lexer, &Lexer->Value.String, (Token == TokenVoidType) ? TypeVoid : TypeInt);
             break;
             
@@ -307,35 +325,17 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
     return TRUE;
 }
 
-/* parse and run some code */
-void ParseRun(const Str *FileName, const Str *Source, int LineNo)
-{
-    struct LexState Lexer;
-    
-    LexInit(&Lexer, Source, FileName, 1);
-
-    while (ParseStatement(&Lexer, TRUE))
-    {}
-}
-
 /* quick scan a source file for definitions */
-void ParseScan(const Str *FileName, const Str *Source)
+void Parse(const Str *FileName, const Str *Source, int RunIt)
 {
-    enum LexToken Token;
     struct LexState Lexer;
     
     LexInit(&Lexer, Source, FileName, 1);
     
-    while ( (Token = LexGetToken(&Lexer)) != TokenEOF)
-    {
-        /* do parsey things here */
-        StrPrintf("token %d\n", (int)Token);
-    }
+    while (ParseStatement(&Lexer, RunIt))
+    {}
+    
+    if (Lexer.Pos != Lexer.End)
+        ProgramFail(&Lexer, "parse error");
 }
-
-void ParseCallFunction(const Str *FuncIdent, int argc, char **argv)
-{
-}
-
-
 

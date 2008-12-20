@@ -1,6 +1,3 @@
-int main()
-{
-    printf("Hello world\n");
-}
+int a;
+a = 4;
 
-main();
