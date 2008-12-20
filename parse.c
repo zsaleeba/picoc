@@ -134,9 +134,9 @@ int ParseExpression(struct LexState *Lexer, struct Value *Result)
                 {
                     case TokenAddAssign: TotalValue.Val.Integer += CurrentValue.Val.Integer; break;
                     case TokenSubtractAssign: TotalValue.Val.Integer -= CurrentValue.Val.Integer; break;
-                    case TokenAssign: TotalValue.Val.Integer += CurrentValue.Val.Integer; break;
-                    default: break;
+                    default: TotalValue.Val.Integer = CurrentValue.Val.Integer; break;
                 }
+                *TotalLValue = TotalValue;
                 // fallthrough
             
             default:
@@ -184,12 +184,21 @@ void ParseIntExpression(struct LexState *Lexer, struct Value *Result)
         ProgramFail(Lexer, "integer value expected");
 }
 
+/* parse a function definition */
+void ParseFunctionDefinition(struct LexState *Lexer)
+{
+    LexGetToken(Lexer);
+    /* XXX - finish this */
+}
+
 /* parse a statement */
 int ParseStatement(struct LexState *Lexer, int RunIt)
 {
     struct Value Conditional;
     struct LexState PreState = *Lexer;
     enum LexToken Token = LexGetToken(Lexer);
+    enum LexToken AfterToken;
+    Str Identifier;
     
     printf("Token=%d\n", (int)Token);
     
@@ -199,7 +208,8 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
             return FALSE;
             
         case TokenIdentifier: 
-            ParseExpression(&PreState, &Conditional);
+            *Lexer = PreState;
+            ParseExpression(Lexer, &Conditional);
             break;
             
         case TokenLeftBrace:
@@ -312,9 +322,13 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
             if (LexGetToken(Lexer) != TokenIdentifier)
                 ProgramFail(Lexer, "identifier expected");
                 
-            /* XXX - need to handle function definitions here too */
-                
-            VariableDefine(Lexer, &Lexer->Value.String, (Token == TokenVoidType) ? TypeVoid : TypeInt);
+            /* handle function definitions */
+            Identifier = Lexer->Value.String;
+            AfterToken = LexPeekToken(Lexer);
+            if (AfterToken == TokenOpenBracket)
+                ParseFunctionDefinition(Lexer);
+            else
+                VariableDefine(Lexer, &Identifier, (Token == TokenVoidType) ? TypeVoid : TypeInt);
             break;
             
         default:

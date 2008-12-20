@@ -61,7 +61,10 @@ enum LexToken LexGetNumber(struct LexState *Lexer)
     int Result = 0;
     
     while (Lexer->Pos != Lexer->End && isdigit(*Lexer->Pos))
-        Result = Result * 10 + (*Lexer->Pos - '0');
+    {
+        Result = Result * 10 + (*Lexer->Pos - '0');   
+        Lexer->Pos++;
+    }
 
     Lexer->Value.Integer = Result;
     return TokenIntegerConstant;

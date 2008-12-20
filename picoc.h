@@ -102,7 +102,8 @@ enum ValueType
 {
     TypeVoid,
     TypeInt,
-    TypeString
+    TypeString,
+    TypeFunction
 };
 
 union AnyValue
