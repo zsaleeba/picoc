@@ -56,7 +56,7 @@ enum LexToken LexCheckReservedWord(const Str *Word)
     return TokenNone;
 }
 
-enum LexToken LexGetNumber(struct LexState *Lexer)
+enum LexToken LexGetNumber(struct LexState *Lexer, union AnyValue *Value)
 {
     int Result = 0;
     
@@ -66,11 +66,11 @@ enum LexToken LexGetNumber(struct LexState *Lexer)
         Lexer->Pos++;
     }
 
-    Lexer->Value.Integer = Result;
+    Value->Integer = Result;
     return TokenIntegerConstant;
 }
 
-enum LexToken LexGetWord(struct LexState *Lexer)
+enum LexToken LexGetWord(struct LexState *Lexer, union AnyValue *Value)
 {
     const char *Pos = Lexer->Pos + 1;
     enum LexToken Token;
@@ -78,22 +78,22 @@ enum LexToken LexGetWord(struct LexState *Lexer)
     while (Lexer->Pos != Lexer->End && isCident(*Pos))
         Pos++;
     
-    Lexer->Value.String.Str = Lexer->Pos;
-    Lexer->Value.String.Len = Pos - Lexer->Pos;
+    Value->String.Str = Lexer->Pos;
+    Value->String.Len = Pos - Lexer->Pos;
     Lexer->Pos = Pos;
     
-    Token = LexCheckReservedWord(&Lexer->Value.String);
+    Token = LexCheckReservedWord(&Value->String);
     if (Token != TokenNone)
         return Token;
     
     return TokenIdentifier;
 }
 
-enum LexToken LexGetStringConstant(struct LexState *Lexer)
+enum LexToken LexGetStringConstant(struct LexState *Lexer, union AnyValue *Value)
 {
     int Escape = FALSE;
     
-    Lexer->Value.String.Str = Lexer->Pos;
+    Value->String.Str = Lexer->Pos;
     while (Lexer->Pos != Lexer->End && (*Lexer->Pos != '"' || Escape))
     {
         if (Escape)
@@ -103,16 +103,16 @@ enum LexToken LexGetStringConstant(struct LexState *Lexer)
             
         Lexer->Pos++;
     }
-    Lexer->Value.String.Len = Lexer->Pos - Lexer->Value.String.Str;
+    Value->String.Len = Lexer->Pos - Value->String.Str;
     if (*Lexer->Pos == '"')
         Lexer->Pos++;
     
     return TokenStringConstant;
 }
 
-enum LexToken LexGetCharacterConstant(struct LexState *Lexer)
+enum LexToken LexGetCharacterConstant(struct LexState *Lexer, union AnyValue *Value)
 {
-    Lexer->Value.Integer = Lexer->Pos[1];
+    Value->Integer = Lexer->Pos[1];
     if (Lexer->Pos[2] != '\'')
         ProgramFail(Lexer, "illegal character '%c'", Lexer->Pos[2]);
         
@@ -120,7 +120,7 @@ enum LexToken LexGetCharacterConstant(struct LexState *Lexer)
     return TokenCharacterConstant;
 }
 
-enum LexToken LexGetToken(struct LexState *Lexer)
+enum LexToken LexGetToken(struct LexState *Lexer, union AnyValue *Value)
 {
     char ThisChar;
     char NextChar;
@@ -138,17 +138,17 @@ enum LexToken LexGetToken(struct LexState *Lexer)
 
     ThisChar = *Lexer->Pos;
     if (isCidstart(ThisChar))
-        return LexGetWord(Lexer);
+        return LexGetWord(Lexer, Value);
     
     if (isdigit(ThisChar))
-        return LexGetNumber(Lexer);
+        return LexGetNumber(Lexer, Value);
     
     NextChar = (Lexer->Pos+1 != Lexer->End) ? *(Lexer->Pos+1) : 0;
     LEXINC;
     switch (ThisChar)
     {
-        case '"': return LexGetStringConstant(Lexer);
-        case '\'': return LexGetCharacterConstant(Lexer);
+        case '"': return LexGetStringConstant(Lexer, Value);
+        case '\'': return LexGetCharacterConstant(Lexer, Value);
         case '(': return TokenOpenBracket;
         case ')': return TokenCloseBracket;
         case '=': NEXTIS('=', TokenEquality, TokenAssign);
@@ -177,9 +177,9 @@ enum LexToken LexGetToken(struct LexState *Lexer)
 }
 
 /* look at the next token without changing the lexer state */
-enum LexToken LexPeekToken(struct LexState *Lexer)
+enum LexToken LexPeekToken(struct LexState *Lexer, union AnyValue *Value)
 {
     struct LexState LocalState = *Lexer;
-    return LexGetToken(&LocalState);
+    return LexGetToken(&LocalState, Value);
 }
 

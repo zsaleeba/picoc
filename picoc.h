@@ -5,8 +5,9 @@
 
 /* configurable options */
 #define USE_MALLOC
-#define GLOBAL_TABLE_SIZE 199
-#define LARGE_INT_POWER_OF_TEN 1000000000    /* the largest power of ten which fits in an int on this architecture */
+#define GLOBAL_TABLE_SIZE 199               /* global variable table */
+#define FUNCTION_STORE_MAX 50               /* maximum number of used-defined functions */
+#define LARGE_INT_POWER_OF_TEN 1000000000   /* the largest power of ten which fits in an int on this architecture */
 
 /* handy definitions */
 #ifndef TRUE
@@ -139,7 +140,6 @@ struct LexState
     const char *Pos;
     const char *End;
     const Str *FileName;
-    union AnyValue Value;
 };
 
 
@@ -163,8 +163,8 @@ int TableGet(struct Table *Tbl, const Str *Key, struct Value **Val);
 
 /* lex.c */
 void LexInit(struct LexState *Lexer, const Str *Source, const Str *FileName, int Line);
-enum LexToken LexGetToken(struct LexState *Lexer);
-enum LexToken LexPeekToken(struct LexState *Lexer);
+enum LexToken LexGetToken(struct LexState *Lexer, union AnyValue *Value);
+enum LexToken LexPeekToken(struct LexState *Lexer, union AnyValue *Value);
 
 /* parse.c */
 void ParseInit(void);
