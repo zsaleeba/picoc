@@ -30,15 +30,8 @@ void VariableDefine(struct LexState *Lexer, const Str *Ident, enum ValueType Typ
     
     memset(&NewValue, '\0', sizeof(NewValue));
     NewValue.Typ = Typ;
-    if (!TableSet(&GlobalTable, Ident, &NewValue, FALSE))
+    if (!TableSet(&GlobalTable, Ident, &NewValue))
         ProgramFail(Lexer, "'%S' is already defined", Ident);
-}
-
-/* set the value of a variable */
-void VariableSet(struct LexState *Lexer, Str *Ident, struct Value *Val)
-{
-    if (!TableSet(&GlobalTable, Ident, Val, TRUE))
-        ProgramFail(Lexer, "'%S' is undefined", Ident);
 }
 
 /* get the value of a variable. must be defined */
@@ -208,7 +201,7 @@ void ParseFunctionDefinition(struct LexState *Lexer, Str *Identifier, struct Lex
     FuncValue.Val.Integer = FunctionStoreUsed;
     FunctionStoreUsed++;
     
-    if (!TableSet(&GlobalTable, Identifier, &FuncValue, FALSE))
+    if (!TableSet(&GlobalTable, Identifier, &FuncValue))
         ProgramFail(Lexer, "'%S' is already defined", Identifier);
 }
 

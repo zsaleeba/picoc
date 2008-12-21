@@ -158,7 +158,7 @@ void ScanFile(const Str *FileName);
 
 /* table.c */
 void TableInit(struct Table *Tbl, struct TableEntry *HashTable, const char *Name, int Size);
-int TableSet(struct Table *Tbl, const Str *Key, struct Value *Val, int Exists);
+int TableSet(struct Table *Tbl, const Str *Key, struct Value *Val);
 int TableGet(struct Table *Tbl, const Str *Key, struct Value **Val);
 
 /* lex.c */

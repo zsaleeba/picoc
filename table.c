@@ -77,19 +77,14 @@ static int TableSearch(struct Table *Tbl, const Str *Key, int *AddAt)
 }
 
 
-int TableSet(struct Table *Tbl, const Str *Key, struct Value *Val, int Exists)
+int TableSet(struct Table *Tbl, const Str *Key, struct Value *Val)
 {
     int HashPos;
     int AddAt;
     
     HashPos = TableSearch(Tbl, Key, &AddAt);
 
-    if ( (HashPos != -1) != Exists)
-        return FALSE;
-    
-    if (HashPos != -1)
-        Tbl->HashTable[HashPos].Val = *Val; /* found - update value */
-    else
+    if (HashPos == -1)
     {
         if (AddAt == -1)
             Fail("table '%s' is full\n", Tbl->Name);
