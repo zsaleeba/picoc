@@ -12,8 +12,8 @@ struct LexState FunctionStore[FUNCTION_STORE_MAX];
 int FunctionStoreUsed = 0;
 
 /* local prototypes */
-int ParseExpression(struct LexState *Lexer, struct Value *Result);
-void ParseIntExpression(struct LexState *Lexer, struct Value *Result);
+int ParseExpression(struct LexState *Lexer, struct Value *Result, int RunIt);
+void ParseIntExpression(struct LexState *Lexer, struct Value *Result, int RunIt);
 int ParseStatement(struct LexState *Lexer, int RunIt);
 
 
@@ -44,7 +44,7 @@ void VariableGet(struct LexState *Lexer, Str *Ident, struct Value *Val, struct V
 }
 
 /* parse a single value */
-int ParseValue(struct LexState *Lexer, struct Value *Result, struct Value **LValue)
+int ParseValue(struct LexState *Lexer, struct Value *Result, struct Value **LValue, int RunIt)
 {
     struct LexState PreState = *Lexer;
     enum LexToken Token = LexGetToken(Lexer, &Result->Val);
@@ -59,19 +59,22 @@ int ParseValue(struct LexState *Lexer, struct Value *Result, struct Value **LVal
             break;
         
         case TokenMinus:  case TokenUnaryExor: case TokenUnaryNot:
-            ParseIntExpression(Lexer, Result);
+            ParseIntExpression(Lexer, Result, RunIt);
                 
-            switch(Token)
+            if (RunIt)
             {
-                case TokenMinus: Result->Val.Integer = -(Result->Val.Integer); break;
-                case TokenUnaryExor: Result->Val.Integer = ~(Result->Val.Integer); break;
-                case TokenUnaryNot: Result->Val.Integer = !(Result->Val.Integer); break;
-                default: break;
+                switch(Token)
+                {
+                    case TokenMinus: Result->Val.Integer = -(Result->Val.Integer); break;
+                    case TokenUnaryExor: Result->Val.Integer = ~(Result->Val.Integer); break;
+                    case TokenUnaryNot: Result->Val.Integer = !(Result->Val.Integer); break;
+                    default: break;
+                }
             }
             break;
 
         case TokenOpenBracket:
-            if (!ParseExpression(Lexer, Result))
+            if (!ParseExpression(Lexer, Result, RunIt))
                 ProgramFail(Lexer, "invalid expression");
             
             if (LexGetToken(Lexer, &Result->Val) != TokenCloseBracket)
@@ -83,7 +86,8 @@ int ParseValue(struct LexState *Lexer, struct Value *Result, struct Value **LVal
             ProgramFail(Lexer, "not implemented");
 
         case TokenIdentifier:
-            VariableGet(Lexer, &Result->Val.String, Result, LValue);
+            if (RunIt)
+                VariableGet(Lexer, &Result->Val.String, Result, LValue);
             break;
             
         default:
@@ -95,14 +99,14 @@ int ParseValue(struct LexState *Lexer, struct Value *Result, struct Value **LVal
 }
 
 /* parse an expression. operator precedence is not supported */
-int ParseExpression(struct LexState *Lexer, struct Value *Result)
+int ParseExpression(struct LexState *Lexer, struct Value *Result, int RunIt)
 {
     struct Value CurrentValue;
     struct Value *CurrentLValue;
     struct Value TotalValue;
     struct Value *TotalLValue;
     
-    if (!ParseValue(Lexer, &TotalValue, &TotalLValue))
+    if (!ParseValue(Lexer, &TotalValue, &TotalLValue, RunIt))
         return FALSE;
     
     while (TRUE)
@@ -120,50 +124,57 @@ int ParseExpression(struct LexState *Lexer, struct Value *Result)
                         
             case TokenAssign: case TokenAddAssign: case TokenSubtractAssign:
                 LexGetToken(Lexer, &CurrentValue.Val);
-                if (!ParseExpression(Lexer, &CurrentValue))
+                if (!ParseExpression(Lexer, &CurrentValue, RunIt))
                     ProgramFail(Lexer, "expression expected");
                 
-                if (CurrentValue.Typ != TypeInt || TotalValue.Typ != TypeInt)
-                    ProgramFail(Lexer, "can't assign");
-
-                switch (Token)
+                if (RunIt)
                 {
-                    case TokenAddAssign: TotalValue.Val.Integer += CurrentValue.Val.Integer; break;
-                    case TokenSubtractAssign: TotalValue.Val.Integer -= CurrentValue.Val.Integer; break;
-                    default: TotalValue.Val.Integer = CurrentValue.Val.Integer; break;
+                    if (CurrentValue.Typ != TypeInt || TotalValue.Typ != TypeInt)
+                        ProgramFail(Lexer, "can't assign");
+
+                    switch (Token)
+                    {
+                        case TokenAddAssign: TotalValue.Val.Integer += CurrentValue.Val.Integer; break;
+                        case TokenSubtractAssign: TotalValue.Val.Integer -= CurrentValue.Val.Integer; break;
+                        default: TotalValue.Val.Integer = CurrentValue.Val.Integer; printf("---> %d\n", TotalValue.Val.Integer); break;
+                    }
+                    *TotalLValue = TotalValue;
                 }
-                *TotalLValue = TotalValue;
                 // fallthrough
             
             default:
-                *Result = TotalValue;
+                if (RunIt)
+                    *Result = TotalValue;
                 return TRUE;
         }
         
-        if (!ParseValue(Lexer, &CurrentValue, &CurrentLValue))
+        if (!ParseValue(Lexer, &CurrentValue, &CurrentLValue, RunIt))
             return FALSE;
 
-        if (CurrentValue.Typ != TypeInt || TotalValue.Typ != TypeInt)
-            ProgramFail(Lexer, "bad operand types");
-            
-        switch (Token)
+        if (RunIt)
         {
-            case TokenPlus: TotalValue.Val.Integer += CurrentValue.Val.Integer; break;
-            case TokenMinus: TotalValue.Val.Integer -= CurrentValue.Val.Integer; break;
-            case TokenAsterisk: TotalValue.Val.Integer *= CurrentValue.Val.Integer; break;
-            case TokenSlash: TotalValue.Val.Integer /= CurrentValue.Val.Integer; break;
-            case TokenEquality: TotalValue.Val.Integer = TotalValue.Val.Integer == CurrentValue.Val.Integer; break;
-            case TokenLessThan: TotalValue.Val.Integer = TotalValue.Val.Integer < CurrentValue.Val.Integer; break;
-            case TokenGreaterThan: TotalValue.Val.Integer = TotalValue.Val.Integer > CurrentValue.Val.Integer; break;
-            case TokenLessEqual: TotalValue.Val.Integer = TotalValue.Val.Integer <= CurrentValue.Val.Integer; break;
-            case TokenGreaterEqual: TotalValue.Val.Integer = TotalValue.Val.Integer >= CurrentValue.Val.Integer; break;
-            case TokenLogicalAnd: TotalValue.Val.Integer = TotalValue.Val.Integer && CurrentValue.Val.Integer; break;
-            case TokenLogicalOr: TotalValue.Val.Integer = TotalValue.Val.Integer || CurrentValue.Val.Integer; break;
-            case TokenAmpersand: TotalValue.Val.Integer = TotalValue.Val.Integer & CurrentValue.Val.Integer; break;
-            case TokenArithmeticOr: TotalValue.Val.Integer = TotalValue.Val.Integer | CurrentValue.Val.Integer; break;
-            case TokenArithmeticExor: TotalValue.Val.Integer = TotalValue.Val.Integer ^ CurrentValue.Val.Integer; break;
-            case TokenDot: ProgramFail(Lexer, "operator not supported"); break;
-            default: break;
+            if (CurrentValue.Typ != TypeInt || TotalValue.Typ != TypeInt)
+                ProgramFail(Lexer, "bad operand types");
+        
+            switch (Token)
+            {
+                case TokenPlus: TotalValue.Val.Integer += CurrentValue.Val.Integer; break;
+                case TokenMinus: TotalValue.Val.Integer -= CurrentValue.Val.Integer; break;
+                case TokenAsterisk: TotalValue.Val.Integer *= CurrentValue.Val.Integer; break;
+                case TokenSlash: TotalValue.Val.Integer /= CurrentValue.Val.Integer; break;
+                case TokenEquality: TotalValue.Val.Integer = TotalValue.Val.Integer == CurrentValue.Val.Integer; break;
+                case TokenLessThan: TotalValue.Val.Integer = TotalValue.Val.Integer < CurrentValue.Val.Integer; break;
+                case TokenGreaterThan: TotalValue.Val.Integer = TotalValue.Val.Integer > CurrentValue.Val.Integer; break;
+                case TokenLessEqual: printf("compare %d <= %d\n", TotalValue.Val.Integer, CurrentValue.Val.Integer); TotalValue.Val.Integer = TotalValue.Val.Integer <= CurrentValue.Val.Integer; break;
+                case TokenGreaterEqual: TotalValue.Val.Integer = TotalValue.Val.Integer >= CurrentValue.Val.Integer; break;
+                case TokenLogicalAnd: TotalValue.Val.Integer = TotalValue.Val.Integer && CurrentValue.Val.Integer; break;
+                case TokenLogicalOr: TotalValue.Val.Integer = TotalValue.Val.Integer || CurrentValue.Val.Integer; break;
+                case TokenAmpersand: TotalValue.Val.Integer = TotalValue.Val.Integer & CurrentValue.Val.Integer; break;
+                case TokenArithmeticOr: TotalValue.Val.Integer = TotalValue.Val.Integer | CurrentValue.Val.Integer; break;
+                case TokenArithmeticExor: TotalValue.Val.Integer = TotalValue.Val.Integer ^ CurrentValue.Val.Integer; break;
+                case TokenDot: ProgramFail(Lexer, "operator not supported"); break;
+                default: break;
+            }
         }
     }
     
@@ -171,12 +182,12 @@ int ParseExpression(struct LexState *Lexer, struct Value *Result)
 }
 
 /* parse an expression. operator precedence is not supported */
-void ParseIntExpression(struct LexState *Lexer, struct Value *Result)
+void ParseIntExpression(struct LexState *Lexer, struct Value *Result, int RunIt)
 {
-    if (!ParseExpression(Lexer, Result))
+    if (!ParseExpression(Lexer, Result, RunIt))
         ProgramFail(Lexer, "expression expected");
     
-    if (Result->Typ != TypeInt)
+    if (RunIt && Result->Typ != TypeInt)
         ProgramFail(Lexer, "integer value expected");
 }
 
@@ -222,7 +233,7 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
             
         case TokenIdentifier: 
             *Lexer = PreState;
-            ParseExpression(Lexer, &Conditional);
+            ParseExpression(Lexer, &Conditional, RunIt);
             break;
             
         case TokenLeftBrace:
@@ -234,7 +245,7 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
             break;
             
         case TokenIf:
-            ParseIntExpression(Lexer, &Conditional);
+            ParseIntExpression(Lexer, &Conditional, RunIt);
             
             if (!ParseStatement(Lexer, RunIt && Conditional.Val.Integer))
                 ProgramFail(Lexer, "statement expected");
@@ -253,12 +264,12 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
                 do
                 {
                     *Lexer = PreConditional;
-                    ParseIntExpression(Lexer, &Conditional);
+                    ParseIntExpression(Lexer, &Conditional, RunIt);
                 
                     if (!ParseStatement(Lexer, RunIt && Conditional.Val.Integer))
                         ProgramFail(Lexer, "statement expected");
                         
-                } while (Conditional.Val.Integer && RunIt);                
+                } while (RunIt && Conditional.Val.Integer);                
             }
             break;
                 
@@ -271,7 +282,7 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
                     if (!ParseStatement(Lexer, RunIt))
                         ProgramFail(Lexer, "statement expected");
                         
-                    ParseIntExpression(Lexer, &Conditional);
+                    ParseIntExpression(Lexer, &Conditional, RunIt);
                 
                 } while (Conditional.Val.Integer && RunIt);           
             }
@@ -291,7 +302,7 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
                     ProgramFail(Lexer, "statement expected");
                 
                 PreConditional = *Lexer;
-                ParseIntExpression(Lexer, &Conditional);
+                ParseIntExpression(Lexer, &Conditional, RunIt);
                 
                 if (LexGetToken(Lexer, &LexerValue) != TokenSemicolon)
                     ProgramFail(Lexer, "';' expected");
@@ -303,7 +314,7 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
                     ProgramFail(Lexer, "')' expected");
                 
                 PreStatement = *Lexer;
-                if (!ParseStatement(Lexer, Conditional.Val.Integer && RunIt))
+                if (!ParseStatement(Lexer, RunIt && Conditional.Val.Integer))
                     ProgramFail(Lexer, "statement expected");
                 
                 After = *Lexer;
@@ -314,7 +325,7 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
                     ParseStatement(Lexer, TRUE);
                                     
                     *Lexer = PreConditional;
-                    ParseIntExpression(Lexer, &Conditional);
+                    ParseIntExpression(Lexer, &Conditional, RunIt);
                     
                     if (Conditional.Val.Integer)
                     {
