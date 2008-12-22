@@ -173,7 +173,9 @@ int TableGet(struct Table *Tbl, const Str *Key, struct Value **Val);
 /* lex.c */
 void LexInit(struct LexState *Lexer, const Str *Source, const Str *FileName, int Line);
 enum LexToken LexGetToken(struct LexState *Lexer, union AnyValue *Value);
+enum LexToken LexGetPlainToken(struct LexState *Lexer);
 enum LexToken LexPeekToken(struct LexState *Lexer, union AnyValue *Value);
+enum LexToken LexPeekPlainToken(struct LexState *Lexer);
 
 /* parse.c */
 void ParseInit(void);

@@ -176,10 +176,23 @@ enum LexToken LexGetToken(struct LexState *Lexer, union AnyValue *Value)
     return TokenEOF;
 }
 
+enum LexToken LexGetPlainToken(struct LexState *Lexer)
+{
+    union AnyValue Value;
+    return LexGetToken(Lexer, &Value);
+}
+
 /* look at the next token without changing the lexer state */
 enum LexToken LexPeekToken(struct LexState *Lexer, union AnyValue *Value)
 {
     struct LexState LocalState = *Lexer;
     return LexGetToken(&LocalState, Value);
+}
+
+enum LexToken LexPeekPlainToken(struct LexState *Lexer)
+{
+    struct LexState LocalState = *Lexer;
+    union AnyValue Value;
+    return LexGetToken(&LocalState, &Value);
 }
 
