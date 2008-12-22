@@ -7,6 +7,8 @@
 #define USE_MALLOC
 #define GLOBAL_TABLE_SIZE 199               /* global variable table */
 #define FUNCTION_STORE_MAX 50               /* maximum number of used-defined functions */
+#define STACK_MAX 10                        /* maximum function call stack depth */
+#define LOCAL_TABLE_SIZE 11                 /* maximum number of local variables */
 #define LARGE_INT_POWER_OF_TEN 1000000000   /* the largest power of ten which fits in an int on this architecture */
 
 /* handy definitions */
@@ -128,7 +130,6 @@ struct TableEntry
     
 struct Table
 {
-    const char *Name;
     short Size;
     struct TableEntry *HashTable;
 };
@@ -140,6 +141,14 @@ struct LexState
     const char *Pos;
     const char *End;
     const Str *FileName;
+};
+
+/* stack frame for function calls */
+struct StackFrame
+{
+    struct LexState ReturnLex;          /* how we got here */
+    struct Table LocalTable;            /* the local variables and parameters */
+    struct TableEntry LocalHashTable[LOCAL_TABLE_SIZE];
 };
 
 
@@ -157,7 +166,7 @@ void ProgramFail(struct LexState *Lexer, const char *Message, ...);
 void ScanFile(const Str *FileName);
 
 /* table.c */
-void TableInit(struct Table *Tbl, struct TableEntry *HashTable, const char *Name, int Size);
+void TableInit(struct Table *Tbl, struct TableEntry *HashTable, int Size);
 int TableSet(struct Table *Tbl, const Str *Key, struct Value *Val);
 int TableGet(struct Table *Tbl, const Str *Key, struct Value **Val);
 

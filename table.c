@@ -1,8 +1,6 @@
 #include <string.h>
-
 #include "picoc.h"
-
-    
+ 
 static unsigned int TableHash(const Str *Key)
 {
     unsigned int Hash;
@@ -24,10 +22,8 @@ static unsigned int TableHash(const Str *Key)
     return Hash;
 }
 
-
-void TableInit(struct Table *Tbl, struct TableEntry *HashTable, const char *Name, int Size)
+void TableInit(struct Table *Tbl, struct TableEntry *HashTable, int Size)
 {
-    Tbl->Name = Name;
     Tbl->Size = Size;
     Tbl->HashTable = HashTable;
     memset(HashTable, '\0', sizeof(struct TableEntry) * Size);
@@ -47,7 +43,6 @@ static int TableCheckEntry(struct Table *Tbl, const Str *Key, int HashPos)
     else
         return -2;  /* wrong key */
 }
-
 
 static int TableSearch(struct Table *Tbl, const Str *Key, int *AddAt)
 {
@@ -76,7 +71,6 @@ static int TableSearch(struct Table *Tbl, const Str *Key, int *AddAt)
     return -1;
 }
 
-
 int TableSet(struct Table *Tbl, const Str *Key, struct Value *Val)
 {
     int HashPos;
@@ -87,7 +81,7 @@ int TableSet(struct Table *Tbl, const Str *Key, struct Value *Val)
     if (HashPos == -1)
     {
         if (AddAt == -1)
-            Fail("table '%s' is full\n", Tbl->Name);
+            Fail("variable table is full\n");
         
         else
         {   /* add it to the table */
@@ -99,7 +93,6 @@ int TableSet(struct Table *Tbl, const Str *Key, struct Value *Val)
     
     return TRUE;
 }
-
 
 int TableGet(struct Table *Tbl, const Str *Key, struct Value **Val)
 {

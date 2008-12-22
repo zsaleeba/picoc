@@ -11,6 +11,10 @@ struct TableEntry GlobalHashTable[GLOBAL_TABLE_SIZE];
 struct LexState FunctionStore[FUNCTION_STORE_MAX];
 int FunctionStoreUsed = 0;
 
+/* the stack */
+struct StackFrame Stack[STACK_MAX];
+int StackUsed = 0;
+
 /* local prototypes */
 int ParseExpression(struct LexState *Lexer, struct Value *Result, int RunIt);
 void ParseIntExpression(struct LexState *Lexer, struct Value *Result, int RunIt);
@@ -20,7 +24,7 @@ int ParseStatement(struct LexState *Lexer, int RunIt);
 /* initialise the parser */
 void ParseInit()
 {
-    TableInit(&GlobalTable, &GlobalHashTable[0], "global", GLOBAL_TABLE_SIZE);
+    TableInit(&GlobalTable, &GlobalHashTable[0], GLOBAL_TABLE_SIZE);
 }
 
 /* define a variable */
@@ -30,17 +34,42 @@ void VariableDefine(struct LexState *Lexer, const Str *Ident, enum ValueType Typ
     
     memset(&NewValue, '\0', sizeof(NewValue));
     NewValue.Typ = Typ;
-    if (!TableSet(&GlobalTable, Ident, &NewValue))
+    
+    if (!TableSet((StackUsed == 0) ? &GlobalTable : &Stack[StackUsed-1].LocalTable, Ident, &NewValue))
         ProgramFail(Lexer, "'%S' is already defined", Ident);
 }
 
 /* get the value of a variable. must be defined */
 void VariableGet(struct LexState *Lexer, Str *Ident, struct Value *Val, struct Value **LVal)
 {
+    int Frame;
+    
+    for (Frame = StackUsed-1; Frame >= 0; Frame--)
+    {
+        if (TableGet(&Stack[Frame].LocalTable, Ident, LVal))
+        {
+            *Val = **LVal;
+            return;
+        }
+    }
+    
     if (!TableGet(&GlobalTable, Ident, LVal))
         ProgramFail(Lexer, "'%S' is undefined", Ident);
 
     *Val = **LVal;
+}
+
+/* add a stack frame when doing a function call */
+void StackFrameAdd(struct LexState *Lexer)
+{
+    struct StackFrame *NewFrame = &Stack[StackUsed];
+    
+    if (StackUsed >= STACK_MAX)
+        ProgramFail(Lexer, "too many nested function calls");
+        
+    NewFrame->ReturnLex = *Lexer;
+    TableInit(&NewFrame->LocalTable, &NewFrame->LocalHashTable[0], LOCAL_TABLE_SIZE);
+    StackUsed++;
 }
 
 /* parse a single value */

@@ -71,7 +71,6 @@ void ScanFile(const Str *FileName)
 int main(int argc, char **argv)
 {
     Str FileName;
-    Str StartFunc;
     
     if (argc < 2)
         Fail("Format: picoc <program.c> <args>...\n");
