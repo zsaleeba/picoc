@@ -91,36 +91,32 @@ void ParseParameterList(struct LexState *CallLexer, struct LexState *FuncLexer, 
 {
     enum ValueType Typ;
     union AnyValue Identifier;
-    enum LexToken Token = TokenNone;
+    enum LexToken Token = LexGetPlainToken(FuncLexer);  /* open bracket */
     int ParamCount;
     
-    ParamCount = 0;
-    while (ParamCount < ParameterUsed && Token != TokenCloseBracket)
+    for (ParamCount = 0; ParamCount < ParameterUsed; ParamCount++)
     {
         ParseType(FuncLexer, &Typ);
         Token = LexGetToken(FuncLexer, &Identifier);
-        if (Token != TokenCloseBracket)
-        {
-            if (Token != TokenIdentifier)
-                ProgramFail(FuncLexer, "invalid parameter");
+        if (Token != TokenIdentifier)
+            ProgramFail(FuncLexer, "invalid parameter");
                 
-            if (RunIt)
-            {
-                if (Parameter[ParamCount].Typ != Typ)
-                    ProgramFail(CallLexer, "parameter %d has the wrong type", ParamCount+1);
-                    
-                VariableDefine(FuncLexer, &Identifier.String, &Parameter[ParamCount]);
-                ParamCount++;
-            }
-
-            Token = LexGetPlainToken(FuncLexer);
+        if (RunIt)
+        {
+            if (Parameter[ParamCount].Typ != Typ)
+                ProgramFail(CallLexer, "parameter %d has the wrong type", ParamCount+1);
+                
+            VariableDefine(FuncLexer, &Identifier.String, &Parameter[ParamCount]);
         }
-        
+
+        Token = LexGetPlainToken(FuncLexer);
         if (Token != TokenComma && Token != TokenCloseBracket)
             ProgramFail(FuncLexer, "comma expected");
-    }
+    } 
+    if (ParameterUsed == 0)
+        Token = LexGetPlainToken(FuncLexer);
     
-    if (ParamCount != 0 || Token != TokenCloseBracket)
+    if (Token != TokenCloseBracket)
         ProgramFail(CallLexer, "wrong number of arguments");
 }
 
@@ -145,7 +141,7 @@ void ParseFunctionCall(struct LexState *Lexer, struct Value *Result, Str *FuncNa
         else
         {
             Token = LexGetPlainToken(Lexer);
-            if (TokenCloseBracket)
+            if (!TokenCloseBracket)
                 ProgramFail(Lexer, "bad argument");
         }
     } while (Token != TokenCloseBracket);
@@ -361,8 +357,6 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
     enum ValueType Typ;
     enum LexToken Token = LexGetToken(Lexer, &LexerValue);
     
-    printf("Token=%d\n", (int)Token);
-    
     switch (Token)
     {
         case TokenEOF:
@@ -495,6 +489,11 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
                 InitValue.Typ = Typ;
                 VariableDefine(Lexer, &LexerValue.String, &InitValue);
             }
+            break;
+        
+        case TokenDefault:
+            if (RunIt)
+                printf("Hello\n");
             break;
             
         default:
