@@ -15,10 +15,16 @@ int FunctionStoreUsed = 0;
 struct StackFrame Stack[STACK_MAX];
 int StackUsed = 0;
 
+/* parameter passing area */
+struct Value Parameter[PARAMETER_MAX];
+int ParameterUsed = 0;
+struct Value ReturnValue;
+
 /* local prototypes */
 int ParseExpression(struct LexState *Lexer, struct Value *Result, int RunIt);
 void ParseIntExpression(struct LexState *Lexer, struct Value *Result, int RunIt);
 int ParseStatement(struct LexState *Lexer, int RunIt);
+int ParseArguments(struct LexState *Lexer, int RunIt);
 
 
 /* initialise the parser */
@@ -28,14 +34,9 @@ void ParseInit()
 }
 
 /* define a variable */
-void VariableDefine(struct LexState *Lexer, const Str *Ident, enum ValueType Typ)
+void VariableDefine(struct LexState *Lexer, const Str *Ident, struct Value *InitValue)
 {
-    struct Value NewValue;
-    
-    memset(&NewValue, '\0', sizeof(NewValue));
-    NewValue.Typ = Typ;
-    
-    if (!TableSet((StackUsed == 0) ? &GlobalTable : &Stack[StackUsed-1].LocalTable, Ident, &NewValue))
+    if (!TableSet((StackUsed == 0) ? &GlobalTable : &Stack[StackUsed-1].LocalTable, Ident, InitValue))
         ProgramFail(Lexer, "'%S' is already defined", Ident);
 }
 
@@ -70,6 +71,107 @@ void StackFrameAdd(struct LexState *Lexer)
     NewFrame->ReturnLex = *Lexer;
     TableInit(&NewFrame->LocalTable, &NewFrame->LocalHashTable[0], LOCAL_TABLE_SIZE);
     StackUsed++;
+}
+
+/* parse a type specification */
+int ParseType(struct LexState *Lexer, enum ValueType *Typ)
+{
+    struct LexState Before = *Lexer;
+    enum LexToken Token = LexGetPlainToken(Lexer);
+    switch (Token)
+    {
+        case TokenIntType: case TokenCharType: *Typ = TypeInt; return TRUE;
+        case TokenVoidType: *Typ = TypeVoid; return TRUE;
+        default: *Lexer = Before; return FALSE;
+    }
+}
+
+/* parse a parameter list, defining parameters as local variables in the current scope */
+void ParseParameterList(struct LexState *CallLexer, struct LexState *FuncLexer, int RunIt)
+{
+    enum ValueType Typ;
+    union AnyValue Identifier;
+    enum LexToken Token = TokenNone;
+    int ParamCount;
+    
+    ParamCount = 0;
+    while (ParamCount < ParameterUsed && Token != TokenCloseBracket)
+    {
+        ParseType(FuncLexer, &Typ);
+        Token = LexGetToken(FuncLexer, &Identifier);
+        if (Token != TokenCloseBracket)
+        {
+            if (Token != TokenIdentifier)
+                ProgramFail(FuncLexer, "invalid parameter");
+                
+            if (RunIt)
+            {
+                if (Parameter[ParamCount].Typ != Typ)
+                    ProgramFail(CallLexer, "parameter %d has the wrong type", ParamCount+1);
+                    
+                VariableDefine(FuncLexer, &Identifier.String, &Parameter[ParamCount]);
+                ParamCount++;
+            }
+
+            Token = LexGetPlainToken(FuncLexer);
+        }
+        
+        if (Token != TokenComma && Token != TokenCloseBracket)
+            ProgramFail(FuncLexer, "comma expected");
+    }
+    
+    if (ParamCount != 0 || Token != TokenCloseBracket)
+        ProgramFail(CallLexer, "wrong number of arguments");
+}
+
+/* do a function call */
+void ParseFunctionCall(struct LexState *Lexer, struct Value *Result, Str *FuncName, int RunIt)
+{
+    enum LexToken Token = LexGetPlainToken(Lexer);    /* open bracket */
+    
+    /* parse arguments */
+    ParameterUsed = 0;
+    do {
+        if (ParseExpression(Lexer, &Parameter[ParameterUsed], RunIt))
+        {
+            if (RunIt && ParameterUsed >= PARAMETER_MAX)
+                ProgramFail(Lexer, "too many arguments");
+                
+            ParameterUsed++;
+            Token = LexGetPlainToken(Lexer);
+            if (Token != TokenComma && Token != TokenCloseBracket)
+                ProgramFail(Lexer, "comma expected");
+        }
+        else
+        {
+            Token = LexGetPlainToken(Lexer);
+            if (TokenCloseBracket)
+                ProgramFail(Lexer, "bad argument");
+        }
+    } while (Token != TokenCloseBracket);
+    
+    if (RunIt) 
+    {
+        struct LexState FuncLexer;
+        enum ValueType ReturnType;
+        struct Value *LValue;
+        
+        VariableGet(Lexer, FuncName, Result, &LValue);
+        if (Result->Typ != TypeFunction)
+            ProgramFail(Lexer, "not a function - can't call");
+            
+        StackFrameAdd(Lexer);
+        FuncLexer = FunctionStore[Result->Val.Integer];
+        ParseType(&FuncLexer, &ReturnType);             /* return type */
+        Result->Typ = TypeVoid;
+        LexGetPlainToken(&FuncLexer);                   /* function name again */
+        ParseParameterList(Lexer, &FuncLexer, TRUE);    /* parameters */
+        if (LexPeekPlainToken(&FuncLexer) != TokenLeftBrace || !ParseStatement(&FuncLexer, TRUE))
+            ProgramFail(&FuncLexer, "function body expected");
+        
+        if (ReturnType != Result->Typ)
+            ProgramFail(&FuncLexer, "bad return value");
+    }
 }
 
 /* parse a single value */
@@ -115,8 +217,13 @@ int ParseValue(struct LexState *Lexer, struct Value *Result, struct Value **LVal
             ProgramFail(Lexer, "not implemented");
 
         case TokenIdentifier:
-            if (RunIt)
-                VariableGet(Lexer, &Result->Val.String, Result, LValue);
+            if (LexPeekPlainToken(Lexer) == TokenOpenBracket)
+                ParseFunctionCall(Lexer, Result, &Result->Val.String, RunIt);
+            else
+            {
+                if (RunIt)
+                    VariableGet(Lexer, &Result->Val.String, Result, LValue);
+            }
             break;
             
         default:
@@ -218,42 +325,6 @@ void ParseIntExpression(struct LexState *Lexer, struct Value *Result, int RunIt)
     
     if (RunIt && Result->Typ != TypeInt)
         ProgramFail(Lexer, "integer value expected");
-}
-
-/* parse a type specification */
-int ParseType(struct LexState *Lexer, enum ValueType *Typ)
-{
-    struct LexState Before = *Lexer;
-    enum LexToken Token = LexGetPlainToken(Lexer);
-    switch (Token)
-    {
-        case TokenIntType: case TokenCharType: *Typ = TypeInt; return TRUE;
-        case TokenVoidType: *Typ = TypeVoid; return TRUE;
-        default: *Lexer = Before; return FALSE;
-    }
-}
-
-/* parse a parameter list, defining parameters as local variables in the current scope */
-void ParseParameterList(struct LexState *Lexer, int RunIt)
-{
-    enum ValueType Typ;
-    enum LexToken Token;
-    
-    while (TRUE)
-    {
-        ParseType(Lexer, &Typ);
-        Token = LexGetPlainToken(Lexer);
-        if (Token != TokenIdentifier)
-            ProgramFail(Lexer, "invalid parameter");
-        
-        Token = LexGetPlainToken(Lexer);
-        switch (Token)
-        {
-            case TokenComma: break;
-            case TokenCloseBracket: return;
-            default: ProgramFail(Lexer, "comma expected"); break;
-        }
-    }
 }
 
 /* parse a function definition and store it for later */
@@ -418,7 +489,12 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
             if (LexPeekPlainToken(Lexer) == TokenOpenBracket)
                 ParseFunctionDefinition(Lexer, &LexerValue.String, &PreState);
             else
-                VariableDefine(Lexer, &LexerValue.String, Typ);
+            {
+                struct Value InitValue;
+                InitValue.Val.Integer = 0;
+                InitValue.Typ = Typ;
+                VariableDefine(Lexer, &LexerValue.String, &InitValue);
+            }
             break;
             
         default:

@@ -8,6 +8,7 @@
 #define GLOBAL_TABLE_SIZE 199               /* global variable table */
 #define FUNCTION_STORE_MAX 50               /* maximum number of used-defined functions */
 #define STACK_MAX 10                        /* maximum function call stack depth */
+#define PARAMETER_MAX 10                    /* maximum number of parameters to a function */
 #define LOCAL_TABLE_SIZE 11                 /* maximum number of local variables */
 #define LARGE_INT_POWER_OF_TEN 1000000000   /* the largest power of ten which fits in an int on this architecture */
 
