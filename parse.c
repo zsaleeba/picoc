@@ -43,15 +43,10 @@ void VariableDefine(struct LexState *Lexer, const Str *Ident, struct Value *Init
 /* get the value of a variable. must be defined */
 void VariableGet(struct LexState *Lexer, Str *Ident, struct Value *Val, struct Value **LVal)
 {
-    int Frame;
-    
-    for (Frame = StackUsed-1; Frame >= 0; Frame--)
+    if (TableGet(&Stack[StackUsed-1].LocalTable, Ident, LVal))
     {
-        if (TableGet(&Stack[Frame].LocalTable, Ident, LVal))
-        {
-            *Val = **LVal;
-            return;
-        }
+        *Val = **LVal;
+        return;
     }
     
     if (!TableGet(&GlobalTable, Ident, LVal))
