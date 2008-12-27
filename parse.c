@@ -31,6 +31,7 @@ int ParseArguments(struct LexState *Lexer, int RunIt);
 void ParseInit()
 {
     TableInit(&GlobalTable, &GlobalHashTable[0], GLOBAL_TABLE_SIZE);
+    IntrinsicInit(&GlobalTable);
 }
 
 /* define a variable */
@@ -43,7 +44,7 @@ void VariableDefine(struct LexState *Lexer, const Str *Ident, struct Value *Init
 /* get the value of a variable. must be defined */
 void VariableGet(struct LexState *Lexer, Str *Ident, struct Value *Val, struct Value **LVal)
 {
-    if (!TableGet(&Stack[StackUsed-1].LocalTable, Ident, LVal))
+    if (StackUsed == 0 || !TableGet(&Stack[StackUsed-1].LocalTable, Ident, LVal))
     {
         if (!TableGet(&GlobalTable, Ident, LVal))
             ProgramFail(Lexer, "'%S' is undefined", Ident);
@@ -150,16 +151,25 @@ void ParseFunctionCall(struct LexState *Lexer, struct Value *Result, Str *FuncNa
             ProgramFail(Lexer, "not a function - can't call");
             
         StackFrameAdd(Lexer);
-        FuncLexer = FunctionStore[Result->Val.Integer];
+        if (Result->Val.Integer >= 0)
+            FuncLexer = FunctionStore[Result->Val.Integer];
+        else
+            IntrinsicGetLexer(&FuncLexer, Result->Val.Integer);
+
         ParseType(&FuncLexer, &ReturnType);             /* return type */
         Result->Typ = TypeVoid;
         LexGetPlainToken(&FuncLexer);                   /* function name again */
         ParseParameterList(Lexer, &FuncLexer, TRUE);    /* parameters */
-        if (LexPeekPlainToken(&FuncLexer) != TokenLeftBrace || !ParseStatement(&FuncLexer, TRUE))
-            ProgramFail(&FuncLexer, "function body expected");
+        if (Result->Val.Integer >= 0)
+        {
+            if (LexPeekPlainToken(&FuncLexer) != TokenLeftBrace || !ParseStatement(&FuncLexer, TRUE))
+                ProgramFail(&FuncLexer, "function body expected");
         
-        if (ReturnType != Result->Typ)
-            ProgramFail(&FuncLexer, "bad return value");
+            if (ReturnType != Result->Typ)
+                ProgramFail(&FuncLexer, "bad return value");
+        }
+        else
+            IntrinsicCall(Lexer, Result, ReturnType, Result->Val.Integer);
     }
 }
 

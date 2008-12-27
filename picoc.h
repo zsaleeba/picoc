@@ -159,6 +159,8 @@ struct StackFrame
     struct TableEntry LocalHashTable[LOCAL_TABLE_SIZE];
 };
 
+/* globals */
+extern struct Table GlobalTable;
 
 /* str.c */
 void StrToC(char *Dest, int DestSize, const Str *Source);
@@ -188,6 +190,12 @@ enum LexToken LexPeekPlainToken(struct LexState *Lexer);
 /* parse.c */
 void ParseInit(void);
 void Parse(const Str *FileName, const Str *Source, int RunIt);
+int ParseType(struct LexState *Lexer, enum ValueType *Typ);
+
+/* intrinsic.c */
+void IntrinsicInit(struct Table *GlobalTable);
+void IntrinsicGetLexer(struct LexState *Lexer, int IntrinsicId);
+void IntrinsicCall(struct LexState *Lexer, struct Value *Result, enum ValueType ReturnType, int IntrinsicId);
 
 #endif /* PICOC_H */
 

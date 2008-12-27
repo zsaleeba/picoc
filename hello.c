@@ -1,6 +1,6 @@
 void fred()
 {
-    default
+    sayhello();
 }
 
 fred();
