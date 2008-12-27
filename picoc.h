@@ -37,6 +37,7 @@ enum LexToken
     TokenEOF,
     TokenIdentifier,
     TokenIntegerConstant,
+    TokenFPConstant,
     TokenStringConstant,
     TokenCharacterConstant,
     TokenType,
@@ -73,6 +74,8 @@ enum LexToken
     TokenDecrement,
     TokenIntType,
     TokenCharType,
+    TokenFloatType,
+    TokenDoubleType,
     TokenVoidType,
     TokenDo,
     TokenElse,
@@ -106,6 +109,7 @@ enum ValueType
 {
     TypeVoid,
     TypeInt,
+    TypeFP,
     TypeString,
     TypeFunction
 };
@@ -113,6 +117,7 @@ enum ValueType
 union AnyValue
 {
     int Integer;
+    double FP;
     Str String;
 };
 

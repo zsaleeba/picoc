@@ -81,6 +81,7 @@ int ParseType(struct LexState *Lexer, enum ValueType *Typ)
     switch (Token)
     {
         case TokenIntType: case TokenCharType: *Typ = TypeInt; return TRUE;
+        case TokenFloatType: case TokenDoubleType: *Typ = TypeFP; return TRUE;
         case TokenVoidType: *Typ = TypeVoid; return TRUE;
         default: *Lexer = Before; return FALSE;
     }
@@ -179,11 +180,9 @@ int ParseValue(struct LexState *Lexer, struct Value *Result, struct Value **LVal
     
     switch (Token)
     {
-        case TokenIntegerConstant: case TokenCharacterConstant: case TokenStringConstant: 
-            Result->Typ = TypeInt;
-            if (Token == TokenStringConstant)
-                Result->Typ = TypeString;
-            break;
+        case TokenIntegerConstant: case TokenCharacterConstant: Result->Typ = TypeInt; break;
+        case TokenFPConstant: Result->Typ = TypeFP; break;
+        case TokenStringConstant: Result->Typ = TypeString; break;
         
         case TokenMinus:  case TokenUnaryExor: case TokenUnaryNot:
             ParseIntExpression(Lexer, Result, RunIt);
@@ -285,27 +284,60 @@ int ParseExpression(struct LexState *Lexer, struct Value *Result, int RunIt)
 
         if (RunIt)
         {
-            if (CurrentValue.Typ != TypeInt || TotalValue.Typ != TypeInt)
-                ProgramFail(Lexer, "bad operand types");
-        
-            switch (Token)
+            if (CurrentValue.Typ == TypeFP || TotalValue.Typ == TypeFP)
+            {   /* convert both to floating point */
+                if (CurrentValue.Typ == TypeInt)
+                    CurrentValue.Val.FP = (double)CurrentValue.Val.Integer;
+                else if (CurrentValue.Typ != TypeFP)
+                    ProgramFail(Lexer, "bad type for operator");
+                    
+                if (TotalValue.Typ == TypeInt)
+                    TotalValue.Val.FP = (double)TotalValue.Val.Integer;
+                else if (TotalValue.Typ != TypeFP)
+                    ProgramFail(Lexer, "bad type for operator");
+
+                TotalValue.Typ = TypeInt;
+                switch (Token)
+                {
+                    case TokenPlus: TotalValue.Val.FP += CurrentValue.Val.FP; TotalValue.Typ = TypeFP; break;
+                    case TokenMinus: TotalValue.Val.FP -= CurrentValue.Val.FP; TotalValue.Typ = TypeFP; break;
+                    case TokenAsterisk: TotalValue.Val.FP *= CurrentValue.Val.FP; TotalValue.Typ = TypeFP; break;
+                    case TokenSlash: TotalValue.Val.FP /= CurrentValue.Val.FP; TotalValue.Typ = TypeFP; break;
+                    case TokenEquality: TotalValue.Val.Integer = TotalValue.Val.FP == CurrentValue.Val.FP; break;
+                    case TokenLessThan: TotalValue.Val.Integer = TotalValue.Val.FP < CurrentValue.Val.FP; break;
+                    case TokenGreaterThan: TotalValue.Val.Integer = TotalValue.Val.FP > CurrentValue.Val.FP; break;
+                    case TokenLessEqual: TotalValue.Val.Integer = TotalValue.Val.FP <= CurrentValue.Val.FP; break;
+                    case TokenGreaterEqual: TotalValue.Val.Integer = TotalValue.Val.FP >= CurrentValue.Val.FP; break;
+                    case TokenLogicalAnd: case TokenLogicalOr: case TokenAmpersand: case TokenArithmeticOr: case TokenArithmeticExor: ProgramFail(Lexer, "bad type for operator"); break;
+                    case TokenDot: ProgramFail(Lexer, "operator not supported"); break;
+                    default: break;
+                }
+            }
+            else
             {
-                case TokenPlus: TotalValue.Val.Integer += CurrentValue.Val.Integer; break;
-                case TokenMinus: TotalValue.Val.Integer -= CurrentValue.Val.Integer; break;
-                case TokenAsterisk: TotalValue.Val.Integer *= CurrentValue.Val.Integer; break;
-                case TokenSlash: TotalValue.Val.Integer /= CurrentValue.Val.Integer; break;
-                case TokenEquality: TotalValue.Val.Integer = TotalValue.Val.Integer == CurrentValue.Val.Integer; break;
-                case TokenLessThan: TotalValue.Val.Integer = TotalValue.Val.Integer < CurrentValue.Val.Integer; break;
-                case TokenGreaterThan: TotalValue.Val.Integer = TotalValue.Val.Integer > CurrentValue.Val.Integer; break;
-                case TokenLessEqual: printf("compare %d <= %d\n", TotalValue.Val.Integer, CurrentValue.Val.Integer); TotalValue.Val.Integer = TotalValue.Val.Integer <= CurrentValue.Val.Integer; break;
-                case TokenGreaterEqual: TotalValue.Val.Integer = TotalValue.Val.Integer >= CurrentValue.Val.Integer; break;
-                case TokenLogicalAnd: TotalValue.Val.Integer = TotalValue.Val.Integer && CurrentValue.Val.Integer; break;
-                case TokenLogicalOr: TotalValue.Val.Integer = TotalValue.Val.Integer || CurrentValue.Val.Integer; break;
-                case TokenAmpersand: TotalValue.Val.Integer = TotalValue.Val.Integer & CurrentValue.Val.Integer; break;
-                case TokenArithmeticOr: TotalValue.Val.Integer = TotalValue.Val.Integer | CurrentValue.Val.Integer; break;
-                case TokenArithmeticExor: TotalValue.Val.Integer = TotalValue.Val.Integer ^ CurrentValue.Val.Integer; break;
-                case TokenDot: ProgramFail(Lexer, "operator not supported"); break;
-                default: break;
+                if (CurrentValue.Typ != TypeInt || TotalValue.Typ != TypeInt)
+                    ProgramFail(Lexer, "bad operand types");
+            
+                /* integer arithmetic */
+                switch (Token)
+                {
+                    case TokenPlus: TotalValue.Val.Integer += CurrentValue.Val.Integer; break;
+                    case TokenMinus: TotalValue.Val.Integer -= CurrentValue.Val.Integer; break;
+                    case TokenAsterisk: TotalValue.Val.Integer *= CurrentValue.Val.Integer; break;
+                    case TokenSlash: TotalValue.Val.Integer /= CurrentValue.Val.Integer; break;
+                    case TokenEquality: TotalValue.Val.Integer = TotalValue.Val.Integer == CurrentValue.Val.Integer; break;
+                    case TokenLessThan: TotalValue.Val.Integer = TotalValue.Val.Integer < CurrentValue.Val.Integer; break;
+                    case TokenGreaterThan: TotalValue.Val.Integer = TotalValue.Val.Integer > CurrentValue.Val.Integer; break;
+                    case TokenLessEqual: printf("compare %d <= %d\n", TotalValue.Val.Integer, CurrentValue.Val.Integer); TotalValue.Val.Integer = TotalValue.Val.Integer <= CurrentValue.Val.Integer; break;
+                    case TokenGreaterEqual: TotalValue.Val.Integer = TotalValue.Val.Integer >= CurrentValue.Val.Integer; break;
+                    case TokenLogicalAnd: TotalValue.Val.Integer = TotalValue.Val.Integer && CurrentValue.Val.Integer; break;
+                    case TokenLogicalOr: TotalValue.Val.Integer = TotalValue.Val.Integer || CurrentValue.Val.Integer; break;
+                    case TokenAmpersand: TotalValue.Val.Integer = TotalValue.Val.Integer & CurrentValue.Val.Integer; break;
+                    case TokenArithmeticOr: TotalValue.Val.Integer = TotalValue.Val.Integer | CurrentValue.Val.Integer; break;
+                    case TokenArithmeticExor: TotalValue.Val.Integer = TotalValue.Val.Integer ^ CurrentValue.Val.Integer; break;
+                    case TokenDot: ProgramFail(Lexer, "operator not supported"); break;
+                    default: break;
+                }
             }
         }
     }
@@ -473,6 +505,8 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
 
         case TokenIntType:
         case TokenCharType:
+        case TokenFloatType:
+        case TokenDoubleType:
         case TokenVoidType:
             *Lexer = PreState;
             ParseType(Lexer, &Typ);
@@ -485,7 +519,11 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
             else
             {
                 struct Value InitValue;
-                InitValue.Val.Integer = 0;
+                if (Typ == TokenFloatType)
+                    InitValue.Val.FP = 0.0;
+                else
+                    InitValue.Val.Integer = 0;
+                    
                 InitValue.Typ = Typ;
                 VariableDefine(Lexer, &LexerValue.String, &InitValue);
             }

@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <math.h>
 
 #include "picoc.h"
 
@@ -25,7 +26,9 @@ static struct ReservedWord ReservedWords[] =
     { "char", TokenCharType },
     { "default", TokenDefault },
     { "do", TokenDo },
+    { "double", TokenDoubleType },
     { "else", TokenElse },
+    { "float", TokenFloatType },
     { "for", TokenFor },
     { "if", TokenIf },
     { "int", TokenIntType },
@@ -59,15 +62,30 @@ enum LexToken LexCheckReservedWord(const Str *Word)
 enum LexToken LexGetNumber(struct LexState *Lexer, union AnyValue *Value)
 {
     int Result = 0;
+    double FPResult;
+    double FPDiv;
     
-    while (Lexer->Pos != Lexer->End && isdigit(*Lexer->Pos))
-    {
-        Result = Result * 10 + (*Lexer->Pos - '0');   
-        Lexer->Pos++;
-    }
+    for (; Lexer->Pos != Lexer->End && isdigit(*Lexer->Pos); Lexer->Pos++)
+        Result = Result * 10 + (*Lexer->Pos - '0');
 
     Value->Integer = Result;
-    return TokenIntegerConstant;
+    if (Lexer->Pos == Lexer->End || *Lexer->Pos != '.')
+        return TokenIntegerConstant;
+
+    Lexer->Pos++;
+    for (FPDiv = 0.1, FPResult = (double)Result; Lexer->Pos != Lexer->End && isdigit(*Lexer->Pos); Lexer->Pos++, FPDiv /= 10.0)
+        FPResult += (*Lexer->Pos - '0') * FPDiv;
+    
+    if (Lexer->Pos != Lexer->End && (*Lexer->Pos == 'e' || *Lexer->Pos == 'E'))
+    {
+        Lexer->Pos++;
+        for (Result = 0; Lexer->Pos != Lexer->End && isdigit(*Lexer->Pos); Lexer->Pos++)
+            Result = Result * 10 + (*Lexer->Pos - '0');
+            
+        FPResult *= pow(10.0, (double)Result);
+    }
+    
+    return TokenFPConstant;
 }
 
 enum LexToken LexGetWord(struct LexState *Lexer, union AnyValue *Value)
