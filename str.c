@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <math.h>
 
 #include "picoc.h"
 
@@ -63,6 +64,28 @@ void StrPrintInt(int Num, FILE *Stream)
     }
 }
 
+void StrPrintFP(double Num, FILE *Stream)
+{
+    int Exponent = 0;
+    
+    if (abs(Num) >= 1e7)
+        Exponent = log(Num) / LOG10E;
+    else if (abs(Num) <= 1e-7)
+        Exponent = log(Num) / LOG10E - 0.999999999;
+    
+    Num /= pow(10.0, Exponent);
+    StrPrintInt((int)Num, Stream);
+    fputc('.', Stream);
+    for (Num -= (int)Num; Num != 0.0; Num *= 10.0)
+        fputc('0' + (int)Num, Stream);
+    
+    if (Exponent)
+    {
+        fputc('e', Stream);
+        StrPrintInt(Exponent, Stream);
+    }
+}
+
 void StrPrintf(const char *Format, ...)
 {
     va_list Args;
@@ -88,6 +111,7 @@ void vStrPrintf(const char *Format, va_list Args)
             case 's': fputs(va_arg(Args, char *), stdout); break;
             case 'd': StrPrintInt(va_arg(Args, int), stdout); break;
             case 'c': fputc(va_arg(Args, int), stdout); break;
+            case 'f': StrPrintFP(va_arg(Args, double), stdout); break;
             case '%': fputc('%', stdout); break;
             case '\0': FPos--; break;
             }

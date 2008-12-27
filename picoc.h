@@ -26,6 +26,8 @@
 #define min(x,y) (((x)<(y))?(x):(y))
 #endif
 
+#define LOG10E 0.43429448190325182765
+
 #ifndef PATH_MAX
 #define PATH_MAX 1024
 #endif
