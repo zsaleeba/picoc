@@ -32,6 +32,8 @@
 #define PATH_MAX 1024
 #endif
 
+#define ISVALUETYPE(t) (((t) == TypeInt) || ((t) == TypeFP) || ((t) == TypeString))
+
 /* lexical tokens */
 enum LexToken
 {
@@ -88,7 +90,10 @@ enum LexToken
     TokenSwitch,
     TokenCase,
     TokenDefault,
-    TokenReturn
+    TokenReturn,
+    TokenHashDefine,
+    TokenHashInclude,
+    TokenEndOfLine
 };
 
 /* string type so we can use source file strings */
@@ -113,7 +118,8 @@ enum ValueType
     TypeInt,
     TypeFP,
     TypeString,
-    TypeFunction
+    TypeFunction,
+    TypeMacro
 };
 
 union AnyValue
@@ -160,7 +166,10 @@ struct StackFrame
 };
 
 /* globals */
-extern struct Table GlobalTable;
+struct Table GlobalTable;
+extern struct Value Parameter[PARAMETER_MAX];
+extern int ParameterUsed;
+extern struct Value ReturnValue;
 
 /* str.c */
 void StrToC(char *Dest, int DestSize, const Str *Source);
@@ -186,6 +195,7 @@ enum LexToken LexGetToken(struct LexState *Lexer, union AnyValue *Value);
 enum LexToken LexGetPlainToken(struct LexState *Lexer);
 enum LexToken LexPeekToken(struct LexState *Lexer, union AnyValue *Value);
 enum LexToken LexPeekPlainToken(struct LexState *Lexer);
+void LexToEndOfLine(struct LexState *Lexer);
 
 /* parse.c */
 void ParseInit(void);

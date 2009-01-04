@@ -149,7 +149,9 @@ void ParseFunctionCall(struct LexState *Lexer, struct Value *Result, Str *FuncNa
         VariableGet(Lexer, FuncName, Result, &LValue);
         if (Result->Typ != TypeFunction)
             ProgramFail(Lexer, "not a function - can't call");
-            
+        
+        // XXX - handle macros here too
+        
         StackFrameAdd(Lexer);
         if (Result->Val.Integer >= 0)
             FuncLexer = FunctionStore[Result->Val.Integer];
@@ -219,7 +221,11 @@ int ParseValue(struct LexState *Lexer, struct Value *Result, struct Value **LVal
             else
             {
                 if (RunIt)
+                {
                     VariableGet(Lexer, &Result->Val.String, Result, LValue);
+                    if (!ISVALUETYPE(Result->Typ))
+                        ProgramFail(Lexer, "bad variable type");
+                }
             }
             break;
             
@@ -382,10 +388,60 @@ void ParseFunctionDefinition(struct LexState *Lexer, Str *Identifier, struct Lex
         ProgramFail(Lexer, "'%S' is already defined", Identifier);
 }
 
+void ParseFor(struct LexState *Lexer, struct Value *Result, int RunIt)
+{
+    struct Value Conditional;
+    struct LexState PreConditional;
+    struct LexState PreIncrement;
+    struct LexState PreStatement;
+    struct LexState After;
+
+    if (LexGetPlainToken(Lexer) != TokenOpenBracket)
+        ProgramFail(Lexer, "'(' expected");
+                        
+    if (!ParseStatement(Lexer, RunIt))
+        ProgramFail(Lexer, "statement expected");
+    
+    PreConditional = *Lexer;
+    ParseIntExpression(Lexer, &Conditional, RunIt);
+    
+    if (LexGetPlainToken(Lexer) != TokenSemicolon)
+        ProgramFail(Lexer, "';' expected");
+    
+    PreIncrement = *Lexer;
+    ParseStatement(Lexer, FALSE);
+    
+    if (LexGetPlainToken(Lexer) != TokenCloseBracket)
+        ProgramFail(Lexer, "')' expected");
+    
+    PreStatement = *Lexer;
+    if (!ParseStatement(Lexer, RunIt && Conditional.Val.Integer))
+        ProgramFail(Lexer, "statement expected");
+    
+    After = *Lexer;
+    
+    while (Conditional.Val.Integer && RunIt)
+    {
+        *Lexer = PreIncrement;
+        ParseStatement(Lexer, TRUE);
+                        
+        *Lexer = PreConditional;
+        ParseIntExpression(Lexer, &Conditional, RunIt);
+        
+        if (Conditional.Val.Integer)
+        {
+            *Lexer = PreStatement;
+            ParseStatement(Lexer, TRUE);
+        }
+    }
+    
+    *Lexer = After;
+}
+
 /* parse a statement */
 int ParseStatement(struct LexState *Lexer, int RunIt)
 {
-    struct Value Conditional;
+    struct Value CValue;
     struct LexState PreState = *Lexer;
     union AnyValue LexerValue;
     enum ValueType Typ;
@@ -398,7 +454,7 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
             
         case TokenIdentifier: 
             *Lexer = PreState;
-            ParseExpression(Lexer, &Conditional, RunIt);
+            ParseExpression(Lexer, &CValue, RunIt);
             break;
             
         case TokenLeftBrace:
@@ -410,15 +466,15 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
             break;
             
         case TokenIf:
-            ParseIntExpression(Lexer, &Conditional, RunIt);
+            ParseIntExpression(Lexer, &CValue, RunIt);
             
-            if (!ParseStatement(Lexer, RunIt && Conditional.Val.Integer))
+            if (!ParseStatement(Lexer, RunIt && CValue.Val.Integer))
                 ProgramFail(Lexer, "statement expected");
             
             if (LexPeekToken(Lexer, &LexerValue) == TokenElse)
             {
                 LexGetToken(Lexer, &LexerValue);
-                if (!ParseStatement(Lexer, RunIt && !Conditional.Val.Integer))
+                if (!ParseStatement(Lexer, RunIt && !CValue.Val.Integer))
                     ProgramFail(Lexer, "statement expected");
             }
             break;
@@ -429,12 +485,12 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
                 do
                 {
                     *Lexer = PreConditional;
-                    ParseIntExpression(Lexer, &Conditional, RunIt);
+                    ParseIntExpression(Lexer, &CValue, RunIt);
                 
-                    if (!ParseStatement(Lexer, RunIt && Conditional.Val.Integer))
+                    if (!ParseStatement(Lexer, RunIt && CValue.Val.Integer))
                         ProgramFail(Lexer, "statement expected");
                         
-                } while (RunIt && Conditional.Val.Integer);                
+                } while (RunIt && CValue.Val.Integer);                
             }
             break;
                 
@@ -447,60 +503,13 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
                     if (!ParseStatement(Lexer, RunIt))
                         ProgramFail(Lexer, "statement expected");
                         
-                    ParseIntExpression(Lexer, &Conditional, RunIt);
+                    ParseIntExpression(Lexer, &CValue, RunIt);
                 
-                } while (Conditional.Val.Integer && RunIt);           
+                } while (CValue.Val.Integer && RunIt);           
             }
             break;
                 
         case TokenFor:
-            {
-                struct LexState PreConditional;
-                struct LexState PreIncrement;
-                struct LexState PreStatement;
-                struct LexState After;
-
-                if (LexGetToken(Lexer, &LexerValue) != TokenOpenBracket)
-                    ProgramFail(Lexer, "'(' expected");
-                                    
-                if (!ParseStatement(Lexer, RunIt))
-                    ProgramFail(Lexer, "statement expected");
-                
-                PreConditional = *Lexer;
-                ParseIntExpression(Lexer, &Conditional, RunIt);
-                
-                if (LexGetToken(Lexer, &LexerValue) != TokenSemicolon)
-                    ProgramFail(Lexer, "';' expected");
-                
-                PreIncrement = *Lexer;
-                ParseStatement(Lexer, FALSE);
-                
-                if (LexGetToken(Lexer, &LexerValue) != TokenCloseBracket)
-                    ProgramFail(Lexer, "')' expected");
-                
-                PreStatement = *Lexer;
-                if (!ParseStatement(Lexer, RunIt && Conditional.Val.Integer))
-                    ProgramFail(Lexer, "statement expected");
-                
-                After = *Lexer;
-                
-                while (Conditional.Val.Integer && RunIt)
-                {
-                    *Lexer = PreIncrement;
-                    ParseStatement(Lexer, TRUE);
-                                    
-                    *Lexer = PreConditional;
-                    ParseIntExpression(Lexer, &Conditional, RunIt);
-                    
-                    if (Conditional.Val.Integer)
-                    {
-                        *Lexer = PreStatement;
-                        ParseStatement(Lexer, TRUE);
-                    }
-                }
-                
-                *Lexer = After;
-            }
             break;
 
         case TokenSemicolon: break;
@@ -531,6 +540,21 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
             }
             break;
         
+        case TokenHashDefine:
+            if (LexGetToken(Lexer, &LexerValue) != TokenIdentifier)
+                ProgramFail(Lexer, "identifier expected");
+            
+            CValue.Val.String.Str = Lexer->Pos;
+            LexToEndOfLine(Lexer);
+            CValue.Val.String.Len = Lexer->Pos - CValue.Val.String.Str;
+            CValue.Typ = TypeMacro;
+            VariableDefine(Lexer, &LexerValue.String, &CValue);
+            break;
+            
+        case TokenHashInclude:
+            ProgramFail(Lexer, "not implemented");
+            break;
+            
         case TokenDefault:
             if (RunIt)
                 printf("Hello\n");

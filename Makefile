@@ -11,6 +11,9 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) $(LIBS)
 
+test:	picoc
+	(cd test; make test)
+
 clean:
 	rm -f $(TARGET) $(OBJS) *~
 

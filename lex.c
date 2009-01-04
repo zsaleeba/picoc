@@ -4,13 +4,12 @@
 #include "picoc.h"
 
 
-#define isCidstart(c) (isalpha(c) || (c)=='_')
+#define isCidstart(c) (isalpha(c) || (c)=='_' || (c)=='#')
 #define isCident(c) (isalnum(c) || (c)=='_')
 
-#define LEXINC Lexer->Pos++
-#define NEXTIS(c,x,y) { if (NextChar == (c)) { LEXINC; return (x); } else return (y); }
-#define NEXTIS3(c,x,d,y,z) { if (NextChar == (c)) { LEXINC; return (x); } else NEXTIS(d,y,z) }
-#define NEXTIS4(c,x,d,y,e,z,a) { if (NextChar == (c)) { LEXINC; return (x); } else NEXTIS3(d,y,e,z,a) }
+#define NEXTIS(c,x,y) { if (NextChar == (c)) { Lexer->Pos++; return (x); } else return (y); }
+#define NEXTIS3(c,x,d,y,z) { if (NextChar == (c)) { Lexer->Pos++; return (x); } else NEXTIS(d,y,z) }
+#define NEXTIS4(c,x,d,y,e,z,a) { if (NextChar == (c)) { Lexer->Pos++; return (x); } else NEXTIS3(d,y,e,z,a) }
 
 
 struct ReservedWord
@@ -21,6 +20,8 @@ struct ReservedWord
 
 static struct ReservedWord ReservedWords[] =
 {
+    { "#define", TokenHashDefine },
+    { "#include", TokenHashInclude },
     { "break", TokenBreak },
     { "case", TokenCase },
     { "char", TokenCharType },
@@ -138,6 +139,26 @@ enum LexToken LexGetCharacterConstant(struct LexState *Lexer, union AnyValue *Va
     return TokenCharacterConstant;
 }
 
+enum LexToken LexGetComment(struct LexState *Lexer, char NextChar, union AnyValue *Value)
+{
+    Lexer->Pos++;
+    if (NextChar == '*')
+    {   /* conventional C comment */
+        while (Lexer->Pos != Lexer->End && (*(Lexer->Pos-1) != '*' || *Lexer->Pos != '/'))
+            Lexer->Pos++;
+        
+        if (Lexer->Pos != Lexer->End)
+            Lexer->Pos++;
+    }
+    else
+    {   /* C++ style comment */
+        while (Lexer->Pos != Lexer->End && *Lexer->Pos != '\n')
+            Lexer->Pos++;
+    }
+
+    return LexGetToken(Lexer, Value);
+}
+
 enum LexToken LexGetToken(struct LexState *Lexer, union AnyValue *Value)
 {
     char ThisChar;
@@ -147,7 +168,7 @@ enum LexToken LexGetToken(struct LexState *Lexer, union AnyValue *Value)
     {
         if (*Lexer->Pos == '\n')
             Lexer->Line++;
-            
+
         Lexer->Pos++;
     }
     
@@ -162,7 +183,7 @@ enum LexToken LexGetToken(struct LexState *Lexer, union AnyValue *Value)
         return LexGetNumber(Lexer, Value);
     
     NextChar = (Lexer->Pos+1 != Lexer->End) ? *(Lexer->Pos+1) : 0;
-    LEXINC;
+    Lexer->Pos++;
     switch (ThisChar)
     {
         case '"': return LexGetStringConstant(Lexer, Value);
@@ -173,7 +194,7 @@ enum LexToken LexGetToken(struct LexState *Lexer, union AnyValue *Value)
         case '+': NEXTIS3('=', TokenAddAssign, '+', TokenIncrement, TokenPlus);
         case '-': NEXTIS4('=', TokenSubtractAssign, '>', TokenArrow, '-', TokenDecrement, TokenMinus);
         case '*': return TokenAsterisk;
-        case '/': return TokenSlash;
+        case '/': if (NextChar == '/' || NextChar == '*') return LexGetComment(Lexer, NextChar, Value); else return TokenSlash;
         case '<': NEXTIS('=', TokenLessEqual, TokenLessThan);
         case '>': NEXTIS('=', TokenGreaterEqual, TokenGreaterThan);
         case ';': return TokenSemicolon;
@@ -212,5 +233,12 @@ enum LexToken LexPeekPlainToken(struct LexState *Lexer)
     struct LexState LocalState = *Lexer;
     union AnyValue Value;
     return LexGetToken(&LocalState, &Value);
+}
+
+/* skip everything up to the end of the line */
+void LexToEndOfLine(struct LexState *Lexer)
+{
+    while (Lexer->Pos != Lexer->End && *Lexer->Pos != '\n')
+        Lexer->Pos++;
 }
 

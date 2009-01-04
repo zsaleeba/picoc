@@ -4,6 +4,11 @@
 
 Str IntrinsicFilename = { 9, "intrinsic" };
 
+void IntrinsicPrintInt(void)
+{
+    printf("%d\n", Parameter[0].Val.Integer);
+}
+
 void IntrinsicPrintf(void)
 {
     printf("IntrinsicPrintf\n");
@@ -22,6 +27,7 @@ struct IntrinsicFunction
 {
     { IntrinsicSayHello,    "void sayhello()" },    /* -1 */
     { IntrinsicPrintf,      "void printf()" },      /* -2 */
+    { IntrinsicPrintInt,    "void printint(int)" }, /* -3 */
 };
 
 void IntrinsicInit(struct Table *GlobalTable)
