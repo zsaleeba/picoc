@@ -92,20 +92,23 @@ void ParseParameterList(struct LexState *CallLexer, struct LexState *FuncLexer, 
     {
         ParseType(FuncLexer, &Typ);
         Token = LexGetToken(FuncLexer, &Identifier);
-        if (Token != TokenIdentifier)
-            ProgramFail(FuncLexer, "invalid parameter");
-                
-        if (RunIt)
-        {
-            if (Parameter[ParamCount].Typ != Typ)
-                ProgramFail(CallLexer, "parameter %d has the wrong type", ParamCount+1);
-                
-            VariableDefine(FuncLexer, &Identifier.String, &Parameter[ParamCount]);
-        }
-
-        Token = LexGetPlainToken(FuncLexer);
         if (Token != TokenComma && Token != TokenCloseBracket)
-            ProgramFail(FuncLexer, "comma expected");
+        {   /* there's an identifier */
+            if (Token != TokenIdentifier)
+                ProgramFail(FuncLexer, "invalid parameter");
+                
+            if (RunIt)
+            {
+                if (Parameter[ParamCount].Typ != Typ)
+                    ProgramFail(CallLexer, "parameter %d has the wrong type", ParamCount+1);
+                    
+                VariableDefine(FuncLexer, &Identifier.String, &Parameter[ParamCount]);
+            }
+    
+            Token = LexGetPlainToken(FuncLexer);
+            if (Token != TokenComma && Token != TokenCloseBracket)
+                ProgramFail(FuncLexer, "comma expected");
+        }
     } 
     if (ParameterUsed == 0)
         Token = LexGetPlainToken(FuncLexer);
@@ -580,9 +583,9 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
             LexToEndOfLine(Lexer);
             break;
 
-        case TokenBreak:
         case TokenSwitch:
         case TokenCase:
+        case TokenBreak:
         case TokenReturn:
         case TokenDefault:
             ProgramFail(Lexer, "not implemented yet");

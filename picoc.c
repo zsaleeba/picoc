@@ -31,10 +31,11 @@ void ProgramFail(struct LexState *Lexer, const char *Message, ...)
 
 /* read a file into memory. this is the only function using malloc().
  * do it differently for embedded devices without malloc */
-char *ReadFile(const Str *FileName)
+Str ReadFile(const Str *FileName)
 {
     struct stat FileInfo;
-    char *Text;
+    char *ReadText;
+    Str Text;
     FILE *InFile;
     char CFileName[PATH_MAX];
     
@@ -43,15 +44,19 @@ char *ReadFile(const Str *FileName)
     if (stat(CFileName, &FileInfo))
         Fail("can't read file %s\n", CFileName);
     
-    Text = malloc(FileInfo.st_size);
-    
+    ReadText = malloc(FileInfo.st_size);
+    if (ReadText == NULL)
+        Fail("out of memory\n");
+        
     InFile = fopen(CFileName, "r");
     if (InFile == NULL)
         Fail("can't read file %s\n", CFileName);
     
-    if (fread(Text, 1, FileInfo.st_size, InFile) != FileInfo.st_size)
+    if (fread(ReadText, 1, FileInfo.st_size, InFile) != FileInfo.st_size)
         Fail("can't read file %s\n", CFileName);
 
+    Text.Str = ReadText;
+    Text.Len = FileInfo.st_size;
     fclose(InFile);
     
     return Text;    
@@ -60,11 +65,7 @@ char *ReadFile(const Str *FileName)
 /* read and scan a file for definitions */
 void ScanFile(const Str *FileName)
 {
-    char *Source;
-    Str SourceStr;
-    
-    Source = ReadFile(FileName);
-    StrFromC(&SourceStr, Source);
+    Str SourceStr = ReadFile(FileName);
     Parse(FileName, &SourceStr, TRUE);
 }
 
