@@ -5,8 +5,8 @@
 
 /* configurable options */
 #define USE_MALLOC
-#define GLOBAL_TABLE_SIZE 199               /* global variable table */
-#define FUNCTION_STORE_MAX 50               /* maximum number of used-defined functions */
+#define GLOBAL_TABLE_SIZE 397               /* global variable table */
+#define FUNCTION_STORE_MAX 200              /* maximum number of used-defined functions and macros */
 #define STACK_MAX 10                        /* maximum function call stack depth */
 #define PARAMETER_MAX 10                    /* maximum number of parameters to a function */
 #define LOCAL_TABLE_SIZE 11                 /* maximum number of local variables */

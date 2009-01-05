@@ -150,8 +150,6 @@ void ParseFunctionCall(struct LexState *Lexer, struct Value *Result, Str *FuncNa
         if (Result->Typ != TypeFunction)
             ProgramFail(Lexer, "not a function - can't call");
         
-        // XXX - handle macros here too
-        
         StackFrameAdd(Lexer);
         if (Result->Val.Integer >= 0)
             FuncLexer = FunctionStore[Result->Val.Integer];
@@ -223,7 +221,14 @@ int ParseValue(struct LexState *Lexer, struct Value *Result, struct Value **LVal
                 if (RunIt)
                 {
                     VariableGet(Lexer, &Result->Val.String, Result, LValue);
-                    if (!ISVALUETYPE(Result->Typ))
+                    if (Result->Typ == TypeMacro)
+                    {
+                        struct LexState MacroLexer = FunctionStore[Result->Val.Integer];
+                        
+                        if (!ParseExpression(&MacroLexer, Result, TRUE))
+                            ProgramFail(&MacroLexer, "expression expected");
+                    }
+                    else if (!ISVALUETYPE(Result->Typ))
                         ProgramFail(Lexer, "bad variable type");
                 }
             }
@@ -275,7 +280,7 @@ int ParseExpression(struct LexState *Lexer, struct Value *Result, int RunIt)
                     {
                         case TokenAddAssign: TotalValue.Val.Integer += CurrentValue.Val.Integer; break;
                         case TokenSubtractAssign: TotalValue.Val.Integer -= CurrentValue.Val.Integer; break;
-                        default: TotalValue.Val.Integer = CurrentValue.Val.Integer; printf("---> %d\n", TotalValue.Val.Integer); break;
+                        default: TotalValue.Val.Integer = CurrentValue.Val.Integer; break;
                     }
                     *TotalLValue = TotalValue;
                 }
@@ -336,7 +341,7 @@ int ParseExpression(struct LexState *Lexer, struct Value *Result, int RunIt)
                     case TokenEquality: TotalValue.Val.Integer = TotalValue.Val.Integer == CurrentValue.Val.Integer; break;
                     case TokenLessThan: TotalValue.Val.Integer = TotalValue.Val.Integer < CurrentValue.Val.Integer; break;
                     case TokenGreaterThan: TotalValue.Val.Integer = TotalValue.Val.Integer > CurrentValue.Val.Integer; break;
-                    case TokenLessEqual: printf("compare %d <= %d\n", TotalValue.Val.Integer, CurrentValue.Val.Integer); TotalValue.Val.Integer = TotalValue.Val.Integer <= CurrentValue.Val.Integer; break;
+                    case TokenLessEqual: TotalValue.Val.Integer = TotalValue.Val.Integer <= CurrentValue.Val.Integer; break;
                     case TokenGreaterEqual: TotalValue.Val.Integer = TotalValue.Val.Integer >= CurrentValue.Val.Integer; break;
                     case TokenLogicalAnd: TotalValue.Val.Integer = TotalValue.Val.Integer && CurrentValue.Val.Integer; break;
                     case TokenLogicalOr: TotalValue.Val.Integer = TotalValue.Val.Integer || CurrentValue.Val.Integer; break;
@@ -369,7 +374,7 @@ void ParseFunctionDefinition(struct LexState *Lexer, Str *Identifier, struct Lex
     struct Value FuncValue;
 
     if (FunctionStoreUsed >= FUNCTION_STORE_MAX)
-        ProgramFail(Lexer, "too many functions defined");
+        ProgramFail(Lexer, "too many functions/macros defined");
     FunctionStore[FunctionStoreUsed] = *PreState;
     
     LexGetPlainToken(Lexer);
@@ -386,6 +391,29 @@ void ParseFunctionDefinition(struct LexState *Lexer, Str *Identifier, struct Lex
     
     if (!TableSet(&GlobalTable, Identifier, &FuncValue))
         ProgramFail(Lexer, "'%S' is already defined", Identifier);
+}
+
+/* parse a #define macro definition and store it for later */
+void ParseMacroDefinition(struct LexState *Lexer)
+{
+    union AnyValue MacroName;
+    struct Value MacroValue;
+
+    if (LexGetToken(Lexer, &MacroName) != TokenIdentifier)
+        ProgramFail(Lexer, "identifier expected");
+    
+    if (FunctionStoreUsed >= FUNCTION_STORE_MAX)
+        ProgramFail(Lexer, "too many functions/macros defined");
+
+    FunctionStore[FunctionStoreUsed] = *Lexer;
+    LexToEndOfLine(Lexer);
+    FunctionStore[FunctionStoreUsed].End = Lexer->Pos;
+    MacroValue.Typ = TypeMacro;
+    MacroValue.Val.Integer = FunctionStoreUsed;
+    FunctionStoreUsed++;
+    
+    if (!TableSet(&GlobalTable, &MacroName.String, &MacroValue))
+        ProgramFail(Lexer, "'%S' is already defined", &MacroName.String);
 }
 
 void ParseFor(struct LexState *Lexer, struct Value *Result, int RunIt)
@@ -541,23 +569,16 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
             break;
         
         case TokenHashDefine:
-            if (LexGetToken(Lexer, &LexerValue) != TokenIdentifier)
-                ProgramFail(Lexer, "identifier expected");
-            
-            CValue.Val.String.Str = Lexer->Pos;
-            LexToEndOfLine(Lexer);
-            CValue.Val.String.Len = Lexer->Pos - CValue.Val.String.Str;
-            CValue.Typ = TypeMacro;
-            VariableDefine(Lexer, &LexerValue.String, &CValue);
+            ParseMacroDefinition(Lexer);
             break;
             
         case TokenHashInclude:
-            ProgramFail(Lexer, "not implemented");
-            break;
-            
+        case TokenBreak:
+        case TokenSwitch:
+        case TokenCase:
+        case TokenReturn:
         case TokenDefault:
-            if (RunIt)
-                printf("Hello\n");
+            ProgramFail(Lexer, "not implemented yet");
             break;
             
         default:
