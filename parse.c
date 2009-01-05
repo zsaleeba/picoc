@@ -573,6 +573,13 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
             break;
             
         case TokenHashInclude:
+            if (LexGetToken(Lexer, &LexerValue) != TokenStringConstant)
+                ProgramFail(Lexer, "\"filename.h\" expected");
+            
+            ScanFile(&LexerValue.String);
+            LexToEndOfLine(Lexer);
+            break;
+
         case TokenBreak:
         case TokenSwitch:
         case TokenCase:
