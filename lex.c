@@ -159,7 +159,7 @@ enum LexToken LexGetComment(struct LexState *Lexer, char NextChar, union AnyValu
     return LexGetToken(Lexer, Value);
 }
 
-enum LexToken LexGetToken(struct LexState *Lexer, union AnyValue *Value)
+enum LexToken LexGetTokenUncached(struct LexState *Lexer, union AnyValue *Value)
 {
     char ThisChar;
     char NextChar;
@@ -213,6 +213,28 @@ enum LexToken LexGetToken(struct LexState *Lexer, union AnyValue *Value)
 
     ProgramFail(Lexer, "illegal character '%c'", ThisChar);
     return TokenEOF;
+}
+
+enum LexToken LexGetToken(struct LexState *Lexer, union AnyValue *Value)
+{
+    static const char *CachedPos = NULL;
+    static union AnyValue CachedValue;
+    static struct LexState CachedLexer;
+    static enum LexToken CachedToken;
+    
+    if (Lexer->Pos == CachedPos)
+    {
+        *Value = CachedValue;
+        *Lexer = CachedLexer;
+    }
+    else
+    {
+        CachedToken = LexGetTokenUncached(Lexer, Value);
+        CachedLexer = *Lexer;
+        CachedValue = *Value;
+    }
+    
+    return CachedToken;
 }
 
 enum LexToken LexGetPlainToken(struct LexState *Lexer)
