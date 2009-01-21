@@ -8,3 +8,12 @@ TODO
 * enum
 * interactive mode
 
+New type system:
+* basic types: picoc int, picoc char, native int, native char
+* structs
+* arrays of picoc types or structs
+* pointers to: 
+
+
+Also:
+* Change function store system to use dynamic allocation

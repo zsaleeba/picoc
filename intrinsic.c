@@ -2,11 +2,15 @@
 #include <string.h>
 #include "picoc.h"
 
+#define NUM_INTRINSICS 3
+
 Str IntrinsicFilename = { 9, "intrinsic" };
+struct Value IntrinsicValue[NUM_INTRINSICS];
+int IntrinsicReferenceNo[NUM_INTRINSICS];
 
 void IntrinsicPrintInt(void)
 {
-    printf("%d\n", Parameter[0].Val.Integer);
+    printf("%d\n", Parameter[0].Val->Integer);
 }
 
 void IntrinsicPrintf(void)
@@ -32,14 +36,12 @@ struct IntrinsicFunction
 
 void IntrinsicInit(struct Table *GlobalTable)
 {
-    struct Value FuncVal;
     struct LexState Lexer;
     Str Source;
     int Count;
     union AnyValue Identifier;
-    enum ValueType Typ;
+    struct ValueType *Typ;
     
-    FuncVal.Typ = TypeFunction;
     for (Count = 0; Count < sizeof(Intrinsics) / sizeof(struct IntrinsicFunction); Count++)
     {
         Source.Str = Intrinsics[Count].Prototype;
@@ -47,8 +49,11 @@ void IntrinsicInit(struct Table *GlobalTable)
         LexInit(&Lexer, &Source, &IntrinsicFilename, Count+1);
         ParseType(&Lexer, &Typ);
         LexGetToken(&Lexer, &Identifier);
-        FuncVal.Val.Integer = -1 - Count;
-        TableSet(GlobalTable, &Identifier.String, &FuncVal);
+        IntrinsicReferenceNo[Count] = -1 - Count;
+        IntrinsicValue[Count].Typ = &FunctionType;
+        IntrinsicValue[Count].Val = (union AnyValue *)&IntrinsicReferenceNo[Count];
+        IntrinsicValue[Count].MustFree = FALSE;
+        TableSet(GlobalTable, &Identifier.String, &IntrinsicValue[Count]);
     }
 }
 
@@ -60,9 +65,9 @@ void IntrinsicGetLexer(struct LexState *Lexer, int IntrinsicId)
     Lexer->FileName = &IntrinsicFilename;
 }
 
-void IntrinsicCall(struct LexState *Lexer, struct Value *Result, enum ValueType ReturnType, int IntrinsicId)
+void IntrinsicCall(struct LexState *Lexer, struct Value *Result, struct ValueType *ReturnType, int IntrinsicId)
 {
     Intrinsics[-1-IntrinsicId].Func();
-    Result->Typ = TypeVoid;
+    Result->Typ = &VoidType;
 }
 

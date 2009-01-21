@@ -20,6 +20,15 @@ struct Value Parameter[PARAMETER_MAX];
 int ParameterUsed = 0;
 struct Value ReturnValue;
 
+/* some basic types */
+struct ValueType IntType;
+struct ValueType CharType;
+struct ValueType StringType;
+struct ValueType FPType;
+struct ValueType VoidType;
+struct ValueType FunctionType;
+struct ValueType MacroType;
+
 /* local prototypes */
 int ParseExpression(struct LexState *Lexer, struct Value *Result, int RunIt);
 void ParseIntExpression(struct LexState *Lexer, struct Value *Result, int RunIt);
@@ -32,12 +41,76 @@ void ParseInit()
 {
     TableInit(&GlobalTable, &GlobalHashTable[0], GLOBAL_TABLE_SIZE);
     IntrinsicInit(&GlobalTable);
+    IntType.Base = TypeInt;
+    IntType.SubType = NULL;
+    CharType.Base = TypeChar;
+    CharType.SubType = NULL;
+    StringType.Base = TypeString;
+    StringType.SubType = NULL;
+    FPType.Base = TypeFP;
+    FPType.SubType = NULL;
+    VoidType.Base = TypeVoid;
+    VoidType.SubType = NULL;
+    FunctionType.Base = TypeFunction;
+    FunctionType.SubType = NULL;
+    MacroType.Base = TypeMacro;
+    MacroType.SubType = NULL;
+}
+
+/* find out the size of a type */
+int ParseSizeofType(struct ValueType *Typ)
+{
+    switch (Typ->Base)
+    {
+        case TypeVoid:      return 0;
+        case TypeInt:       return sizeof(int);
+        case TypeFP:        return sizeof(double);
+        case TypeChar:      return sizeof(char);
+        case TypeString:    return sizeof(Str);
+        case TypeFunction:  return sizeof(int);
+        case TypeMacro:     return sizeof(int);
+        case TypePointer:   return sizeof(struct PointerValue);
+        case TypeArray:     return 0;   // XXX - fixme
+        case TypeType:      return sizeof(struct ValueType *);
+    }
+    
+    return 0;
+}
+
+/* allocate a value either on the heap or the stack using space dependent on what type we want */
+struct Value *ParseAllocValueFromType(struct ValueType *Typ)
+{
+    struct Value *NewValue;
+    
+    if (StackUsed == 0)
+    { /* it's a global */
+        NewValue = HeapAlloc(sizeof(struct Value) + ParseSizeofType(Typ));
+        NewValue->MustFree = TRUE;
+    }
+    else
+    { /* allocated on the stack */
+        NewValue = HeapAllocStack(sizeof(struct Value) + ParseSizeofType(Typ));
+        NewValue->MustFree = FALSE;
+    }
+    
+    NewValue->Typ = Typ;
+    NewValue->Val = (union AnyValue *)((void *)NewValue + sizeof(struct Value));
+    
+    return NewValue;
+}
+
+/* allocate a value either on the heap or the stack and copy its value */
+struct Value *ParseAllocValueAndCopy(struct Value *FromValue)
+{
+    struct Value *NewValue = ParseAllocValueFromType(FromValue->Typ);
+    memcpy(NewValue->Val, FromValue->Val, ParseSizeofType(FromValue->Typ));
+    return NewValue;
 }
 
 /* define a variable */
 void VariableDefine(struct LexState *Lexer, const Str *Ident, struct Value *InitValue)
 {
-    if (!TableSet((StackUsed == 0) ? &GlobalTable : &Stack[StackUsed-1].LocalTable, Ident, InitValue))
+    if (!TableSet((StackUsed == 0) ? &GlobalTable : &Stack[StackUsed-1].LocalTable, Ident, ParseAllocValueAndCopy(InitValue)))
         ProgramFail(Lexer, "'%S' is already defined", Ident);
 }
 
@@ -67,15 +140,15 @@ void StackFrameAdd(struct LexState *Lexer)
 }
 
 /* parse a type specification */
-int ParseType(struct LexState *Lexer, enum ValueType *Typ)
+int ParseType(struct LexState *Lexer, struct ValueType **Typ)
 {
     struct LexState Before = *Lexer;
     enum LexToken Token = LexGetPlainToken(Lexer);
     switch (Token)
     {
-        case TokenIntType: case TokenCharType: *Typ = TypeInt; return TRUE;
-        case TokenFloatType: case TokenDoubleType: *Typ = TypeFP; return TRUE;
-        case TokenVoidType: *Typ = TypeVoid; return TRUE;
+        case TokenIntType: case TokenCharType: *Typ = &IntType; return TRUE;
+        case TokenFloatType: case TokenDoubleType: *Typ = &FPType; return TRUE;
+        case TokenVoidType: *Typ = &VoidType; return TRUE;
         default: *Lexer = Before; return FALSE;
     }
 }
@@ -83,7 +156,7 @@ int ParseType(struct LexState *Lexer, enum ValueType *Typ)
 /* parse a parameter list, defining parameters as local variables in the current scope */
 void ParseParameterList(struct LexState *CallLexer, struct LexState *FuncLexer, int RunIt)
 {
-    enum ValueType Typ;
+    struct ValueType *Typ;
     union AnyValue Identifier;
     enum LexToken Token = LexGetPlainToken(FuncLexer);  /* open bracket */
     int ParamCount;
@@ -146,24 +219,24 @@ void ParseFunctionCall(struct LexState *Lexer, struct Value *Result, Str *FuncNa
     if (RunIt) 
     {
         struct LexState FuncLexer;
-        enum ValueType ReturnType;
+        struct ValueType *ReturnType;
         struct Value *LValue;
         
         VariableGet(Lexer, FuncName, Result, &LValue);
-        if (Result->Typ != TypeFunction)
+        if (Result->Typ->Base != TypeFunction)
             ProgramFail(Lexer, "not a function - can't call");
         
         StackFrameAdd(Lexer);
-        if (Result->Val.Integer >= 0)
-            FuncLexer = FunctionStore[Result->Val.Integer];
+        if (Result->Val->Integer >= 0)
+            FuncLexer = FunctionStore[Result->Val->Integer];
         else
-            IntrinsicGetLexer(&FuncLexer, Result->Val.Integer);
+            IntrinsicGetLexer(&FuncLexer, Result->Val->Integer);
 
         ParseType(&FuncLexer, &ReturnType);             /* return type */
         Result->Typ = TypeVoid;
         LexGetPlainToken(&FuncLexer);                   /* function name again */
         ParseParameterList(Lexer, &FuncLexer, TRUE);    /* parameters */
-        if (Result->Val.Integer >= 0)
+        if (Result->Val->Integer >= 0)
         {
             if (LexPeekPlainToken(&FuncLexer) != TokenLeftBrace || !ParseStatement(&FuncLexer, TRUE))
                 ProgramFail(&FuncLexer, "function body expected");
@@ -172,7 +245,7 @@ void ParseFunctionCall(struct LexState *Lexer, struct Value *Result, Str *FuncNa
                 ProgramFail(&FuncLexer, "bad return value");
         }
         else
-            IntrinsicCall(Lexer, Result, ReturnType, Result->Val.Integer);
+            IntrinsicCall(Lexer, Result, ReturnType, Result->Val->Integer);
     }
 }
 
@@ -180,14 +253,14 @@ void ParseFunctionCall(struct LexState *Lexer, struct Value *Result, Str *FuncNa
 int ParseValue(struct LexState *Lexer, struct Value *Result, struct Value **LValue, int RunIt)
 {
     struct LexState PreState = *Lexer;
-    enum LexToken Token = LexGetToken(Lexer, &Result->Val);
+    enum LexToken Token = LexGetToken(Lexer, Result->Val);
     *LValue = NULL;
     
     switch (Token)
     {
-        case TokenIntegerConstant: case TokenCharacterConstant: Result->Typ = TypeInt; break;
-        case TokenFPConstant: Result->Typ = TypeFP; break;
-        case TokenStringConstant: Result->Typ = TypeString; break;
+        case TokenIntegerConstant: case TokenCharacterConstant: Result->Typ = &IntType; break;
+        case TokenFPConstant: Result->Typ = &FPType; break;
+        case TokenStringConstant: Result->Typ = &StringType; break;
         
         case TokenMinus:  case TokenUnaryExor: case TokenUnaryNot:
             ParseIntExpression(Lexer, Result, RunIt);
@@ -196,9 +269,9 @@ int ParseValue(struct LexState *Lexer, struct Value *Result, struct Value **LVal
             {
                 switch(Token)
                 {
-                    case TokenMinus: Result->Val.Integer = -(Result->Val.Integer); break;
-                    case TokenUnaryExor: Result->Val.Integer = ~(Result->Val.Integer); break;
-                    case TokenUnaryNot: Result->Val.Integer = !(Result->Val.Integer); break;
+                    case TokenMinus: Result->Val->Integer = -(Result->Val->Integer); break;
+                    case TokenUnaryExor: Result->Val->Integer = ~(Result->Val->Integer); break;
+                    case TokenUnaryNot: Result->Val->Integer = !(Result->Val->Integer); break;
                     default: break;
                 }
             }
@@ -218,15 +291,15 @@ int ParseValue(struct LexState *Lexer, struct Value *Result, struct Value **LVal
 
         case TokenIdentifier:
             if (LexPeekPlainToken(Lexer) == TokenOpenBracket)
-                ParseFunctionCall(Lexer, Result, &Result->Val.String, RunIt);
+                ParseFunctionCall(Lexer, Result, &Result->Val->String, RunIt);
             else
             {
                 if (RunIt)
                 {
-                    VariableGet(Lexer, &Result->Val.String, Result, LValue);
-                    if (Result->Typ == TypeMacro)
+                    VariableGet(Lexer, &Result->Val->String, Result, LValue);
+                    if (Result->Typ->Base == TypeMacro)
                     {
-                        struct LexState MacroLexer = FunctionStore[Result->Val.Integer];
+                        struct LexState MacroLexer = FunctionStore[Result->Val->Integer];
                         
                         if (!ParseExpression(&MacroLexer, Result, TRUE))
                             ProgramFail(&MacroLexer, "expression expected");
@@ -258,7 +331,7 @@ int ParseExpression(struct LexState *Lexer, struct Value *Result, int RunIt)
     
     while (TRUE)
     {
-        enum LexToken Token = LexPeekToken(Lexer, &CurrentValue.Val);
+        enum LexToken Token = LexPeekToken(Lexer, CurrentValue.Val);
         switch (Token)
         {
             case TokenPlus: case TokenMinus: case TokenAsterisk: case TokenSlash:
@@ -276,14 +349,14 @@ int ParseExpression(struct LexState *Lexer, struct Value *Result, int RunIt)
                 
                 if (RunIt)
                 {
-                    if (CurrentValue.Typ != TypeInt || TotalValue.Typ != TypeInt)
+                    if (CurrentValue.Typ->Base != TypeInt || TotalValue.Typ->Base != TypeInt)
                         ProgramFail(Lexer, "can't assign");
 
                     switch (Token)
                     {
-                        case TokenAddAssign: TotalValue.Val.Integer += CurrentValue.Val.Integer; break;
-                        case TokenSubtractAssign: TotalValue.Val.Integer -= CurrentValue.Val.Integer; break;
-                        default: TotalValue.Val.Integer = CurrentValue.Val.Integer; break;
+                        case TokenAddAssign: TotalValue.Val->Integer += CurrentValue.Val->Integer; break;
+                        case TokenSubtractAssign: TotalValue.Val->Integer -= CurrentValue.Val->Integer; break;
+                        default: TotalValue.Val->Integer = CurrentValue.Val->Integer; break;
                     }
                     *TotalLValue = TotalValue;
                 }
@@ -300,30 +373,30 @@ int ParseExpression(struct LexState *Lexer, struct Value *Result, int RunIt)
 
         if (RunIt)
         {
-            if (CurrentValue.Typ == TypeFP || TotalValue.Typ == TypeFP)
+            if (CurrentValue.Typ->Base == TypeFP || TotalValue.Typ->Base == TypeFP)
             {   /* convert both to floating point */
-                if (CurrentValue.Typ == TypeInt)
-                    CurrentValue.Val.FP = (double)CurrentValue.Val.Integer;
-                else if (CurrentValue.Typ != TypeFP)
+                if (CurrentValue.Typ->Base == TypeInt)
+                    CurrentValue.Val->FP = (double)CurrentValue.Val->Integer; // XXX - fixme
+                else if (CurrentValue.Typ->Base != TypeFP)
                     ProgramFail(Lexer, "bad type for operator");
                     
-                if (TotalValue.Typ == TypeInt)
-                    TotalValue.Val.FP = (double)TotalValue.Val.Integer;
-                else if (TotalValue.Typ != TypeFP)
+                if (TotalValue.Typ->Base == TypeInt)
+                    TotalValue.Val->FP = (double)TotalValue.Val->Integer; // XXX - fixme
+                else if (TotalValue.Typ->Base != TypeFP)
                     ProgramFail(Lexer, "bad type for operator");
 
-                TotalValue.Typ = TypeInt;
+                TotalValue.Typ = &IntType;
                 switch (Token)
                 {
-                    case TokenPlus: TotalValue.Val.FP += CurrentValue.Val.FP; TotalValue.Typ = TypeFP; break;
-                    case TokenMinus: TotalValue.Val.FP -= CurrentValue.Val.FP; TotalValue.Typ = TypeFP; break;
-                    case TokenAsterisk: TotalValue.Val.FP *= CurrentValue.Val.FP; TotalValue.Typ = TypeFP; break;
-                    case TokenSlash: TotalValue.Val.FP /= CurrentValue.Val.FP; TotalValue.Typ = TypeFP; break;
-                    case TokenEquality: TotalValue.Val.Integer = TotalValue.Val.FP == CurrentValue.Val.FP; break;
-                    case TokenLessThan: TotalValue.Val.Integer = TotalValue.Val.FP < CurrentValue.Val.FP; break;
-                    case TokenGreaterThan: TotalValue.Val.Integer = TotalValue.Val.FP > CurrentValue.Val.FP; break;
-                    case TokenLessEqual: TotalValue.Val.Integer = TotalValue.Val.FP <= CurrentValue.Val.FP; break;
-                    case TokenGreaterEqual: TotalValue.Val.Integer = TotalValue.Val.FP >= CurrentValue.Val.FP; break;
+                    case TokenPlus: TotalValue.Val->FP += CurrentValue.Val->FP; TotalValue.Typ = &FPType; break;
+                    case TokenMinus: TotalValue.Val->FP -= CurrentValue.Val->FP; TotalValue.Typ = &FPType; break;
+                    case TokenAsterisk: TotalValue.Val->FP *= CurrentValue.Val->FP; TotalValue.Typ = &FPType; break;
+                    case TokenSlash: TotalValue.Val->FP /= CurrentValue.Val->FP; TotalValue.Typ = &FPType; break;
+                    case TokenEquality: TotalValue.Val->Integer = TotalValue.Val->FP == CurrentValue.Val->FP; break;
+                    case TokenLessThan: TotalValue.Val->Integer = TotalValue.Val->FP < CurrentValue.Val->FP; break;
+                    case TokenGreaterThan: TotalValue.Val->Integer = TotalValue.Val->FP > CurrentValue.Val->FP; break;
+                    case TokenLessEqual: TotalValue.Val->Integer = TotalValue.Val->FP <= CurrentValue.Val->FP; break;
+                    case TokenGreaterEqual: TotalValue.Val->Integer = TotalValue.Val->FP >= CurrentValue.Val->FP; break;
                     case TokenLogicalAnd: case TokenLogicalOr: case TokenAmpersand: case TokenArithmeticOr: case TokenArithmeticExor: ProgramFail(Lexer, "bad type for operator"); break;
                     case TokenDot: ProgramFail(Lexer, "operator not supported"); break;
                     default: break;
@@ -331,26 +404,26 @@ int ParseExpression(struct LexState *Lexer, struct Value *Result, int RunIt)
             }
             else
             {
-                if (CurrentValue.Typ != TypeInt || TotalValue.Typ != TypeInt)
+                if (CurrentValue.Typ->Base != TypeInt || TotalValue.Typ->Base != TypeInt)
                     ProgramFail(Lexer, "bad operand types");
             
                 /* integer arithmetic */
                 switch (Token)
                 {
-                    case TokenPlus: TotalValue.Val.Integer += CurrentValue.Val.Integer; break;
-                    case TokenMinus: TotalValue.Val.Integer -= CurrentValue.Val.Integer; break;
-                    case TokenAsterisk: TotalValue.Val.Integer *= CurrentValue.Val.Integer; break;
-                    case TokenSlash: TotalValue.Val.Integer /= CurrentValue.Val.Integer; break;
-                    case TokenEquality: TotalValue.Val.Integer = TotalValue.Val.Integer == CurrentValue.Val.Integer; break;
-                    case TokenLessThan: TotalValue.Val.Integer = TotalValue.Val.Integer < CurrentValue.Val.Integer; break;
-                    case TokenGreaterThan: TotalValue.Val.Integer = TotalValue.Val.Integer > CurrentValue.Val.Integer; break;
-                    case TokenLessEqual: TotalValue.Val.Integer = TotalValue.Val.Integer <= CurrentValue.Val.Integer; break;
-                    case TokenGreaterEqual: TotalValue.Val.Integer = TotalValue.Val.Integer >= CurrentValue.Val.Integer; break;
-                    case TokenLogicalAnd: TotalValue.Val.Integer = TotalValue.Val.Integer && CurrentValue.Val.Integer; break;
-                    case TokenLogicalOr: TotalValue.Val.Integer = TotalValue.Val.Integer || CurrentValue.Val.Integer; break;
-                    case TokenAmpersand: TotalValue.Val.Integer = TotalValue.Val.Integer & CurrentValue.Val.Integer; break;
-                    case TokenArithmeticOr: TotalValue.Val.Integer = TotalValue.Val.Integer | CurrentValue.Val.Integer; break;
-                    case TokenArithmeticExor: TotalValue.Val.Integer = TotalValue.Val.Integer ^ CurrentValue.Val.Integer; break;
+                    case TokenPlus: TotalValue.Val->Integer += CurrentValue.Val->Integer; break;
+                    case TokenMinus: TotalValue.Val->Integer -= CurrentValue.Val->Integer; break;
+                    case TokenAsterisk: TotalValue.Val->Integer *= CurrentValue.Val->Integer; break;
+                    case TokenSlash: TotalValue.Val->Integer /= CurrentValue.Val->Integer; break;
+                    case TokenEquality: TotalValue.Val->Integer = TotalValue.Val->Integer == CurrentValue.Val->Integer; break;
+                    case TokenLessThan: TotalValue.Val->Integer = TotalValue.Val->Integer < CurrentValue.Val->Integer; break;
+                    case TokenGreaterThan: TotalValue.Val->Integer = TotalValue.Val->Integer > CurrentValue.Val->Integer; break;
+                    case TokenLessEqual: TotalValue.Val->Integer = TotalValue.Val->Integer <= CurrentValue.Val->Integer; break;
+                    case TokenGreaterEqual: TotalValue.Val->Integer = TotalValue.Val->Integer >= CurrentValue.Val->Integer; break;
+                    case TokenLogicalAnd: TotalValue.Val->Integer = TotalValue.Val->Integer && CurrentValue.Val->Integer; break;
+                    case TokenLogicalOr: TotalValue.Val->Integer = TotalValue.Val->Integer || CurrentValue.Val->Integer; break;
+                    case TokenAmpersand: TotalValue.Val->Integer = TotalValue.Val->Integer & CurrentValue.Val->Integer; break;
+                    case TokenArithmeticOr: TotalValue.Val->Integer = TotalValue.Val->Integer | CurrentValue.Val->Integer; break;
+                    case TokenArithmeticExor: TotalValue.Val->Integer = TotalValue.Val->Integer ^ CurrentValue.Val->Integer; break;
                     case TokenDot: ProgramFail(Lexer, "operator not supported"); break;
                     default: break;
                 }
@@ -367,32 +440,34 @@ void ParseIntExpression(struct LexState *Lexer, struct Value *Result, int RunIt)
     if (!ParseExpression(Lexer, Result, RunIt))
         ProgramFail(Lexer, "expression expected");
     
-    if (RunIt && Result->Typ != TypeInt)
+    if (RunIt && Result->Typ->Base != TypeInt)
         ProgramFail(Lexer, "integer value expected");
 }
 
 /* parse a function definition and store it for later */
 void ParseFunctionDefinition(struct LexState *Lexer, Str *Identifier, struct LexState *PreState)
 {
-    struct Value FuncValue;
+    struct Value *FuncValue;
 
     if (FunctionStoreUsed >= FUNCTION_STORE_MAX)
         ProgramFail(Lexer, "too many functions/macros defined");
     FunctionStore[FunctionStoreUsed] = *PreState;
     
     LexGetPlainToken(Lexer);
-    if (LexGetPlainToken(Lexer) != TokenCloseBracket || LexPeekToken(Lexer, &FuncValue.Val) != TokenLeftBrace)
+    if (LexGetPlainToken(Lexer) != TokenCloseBracket || LexPeekToken(Lexer, FuncValue->Val) != TokenLeftBrace)
         ProgramFail(Lexer, "bad function definition");
     
     if (!ParseStatement(Lexer, FALSE))
         ProgramFail(Lexer, "function definition expected");
     
     FunctionStore[FunctionStoreUsed].End = Lexer->Pos;
-    FuncValue.Typ = TypeFunction;
-    FuncValue.Val.Integer = FunctionStoreUsed;
+    FuncValue = HeapAlloc(sizeof(struct Value) + sizeof(int));
+    FuncValue->Typ = &FunctionType;
+    FuncValue->Val = (union AnyValue *)((void *)FuncValue + sizeof(struct Value));
+    FuncValue->Val->Integer = FunctionStoreUsed;
     FunctionStoreUsed++;
     
-    if (!TableSet(&GlobalTable, Identifier, &FuncValue))
+    if (!TableSet(&GlobalTable, Identifier, FuncValue))
         ProgramFail(Lexer, "'%S' is already defined", Identifier);
 }
 
@@ -400,7 +475,7 @@ void ParseFunctionDefinition(struct LexState *Lexer, Str *Identifier, struct Lex
 void ParseMacroDefinition(struct LexState *Lexer)
 {
     union AnyValue MacroName;
-    struct Value MacroValue;
+    struct Value *MacroValue;
 
     if (LexGetToken(Lexer, &MacroName) != TokenIdentifier)
         ProgramFail(Lexer, "identifier expected");
@@ -411,11 +486,13 @@ void ParseMacroDefinition(struct LexState *Lexer)
     FunctionStore[FunctionStoreUsed] = *Lexer;
     LexToEndOfLine(Lexer);
     FunctionStore[FunctionStoreUsed].End = Lexer->Pos;
-    MacroValue.Typ = TypeMacro;
-    MacroValue.Val.Integer = FunctionStoreUsed;
+    MacroValue = HeapAlloc(sizeof(struct Value) + sizeof(int));
+    MacroValue->Typ = &MacroType;
+    MacroValue->Val = (union AnyValue *)((void *)MacroValue + sizeof(struct Value));
+    MacroValue->Val->Integer = FunctionStoreUsed;
     FunctionStoreUsed++;
     
-    if (!TableSet(&GlobalTable, &MacroName.String, &MacroValue))
+    if (!TableSet(&GlobalTable, &MacroName.String, MacroValue))
         ProgramFail(Lexer, "'%S' is already defined", &MacroName.String);
 }
 
@@ -446,12 +523,12 @@ void ParseFor(struct LexState *Lexer, struct Value *Result, int RunIt)
         ProgramFail(Lexer, "')' expected");
     
     PreStatement = *Lexer;
-    if (!ParseStatement(Lexer, RunIt && Conditional.Val.Integer))
+    if (!ParseStatement(Lexer, RunIt && Conditional.Val->Integer))
         ProgramFail(Lexer, "statement expected");
     
     After = *Lexer;
     
-    while (Conditional.Val.Integer && RunIt)
+    while (Conditional.Val->Integer && RunIt)
     {
         *Lexer = PreIncrement;
         ParseStatement(Lexer, TRUE);
@@ -459,7 +536,7 @@ void ParseFor(struct LexState *Lexer, struct Value *Result, int RunIt)
         *Lexer = PreConditional;
         ParseIntExpression(Lexer, &Conditional, RunIt);
         
-        if (Conditional.Val.Integer)
+        if (Conditional.Val->Integer)
         {
             *Lexer = PreStatement;
             ParseStatement(Lexer, TRUE);
@@ -475,7 +552,7 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
     struct Value CValue;
     struct LexState PreState = *Lexer;
     union AnyValue LexerValue;
-    enum ValueType Typ;
+    struct ValueType *Typ;
     enum LexToken Token = LexGetToken(Lexer, &LexerValue);
     
     switch (Token)
@@ -499,13 +576,13 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
         case TokenIf:
             ParseIntExpression(Lexer, &CValue, RunIt);
             
-            if (!ParseStatement(Lexer, RunIt && CValue.Val.Integer))
+            if (!ParseStatement(Lexer, RunIt && CValue.Val->Integer))
                 ProgramFail(Lexer, "statement expected");
             
             if (LexPeekToken(Lexer, &LexerValue) == TokenElse)
             {
                 LexGetToken(Lexer, &LexerValue);
-                if (!ParseStatement(Lexer, RunIt && !CValue.Val.Integer))
+                if (!ParseStatement(Lexer, RunIt && !CValue.Val->Integer))
                     ProgramFail(Lexer, "statement expected");
             }
             break;
@@ -518,10 +595,10 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
                     *Lexer = PreConditional;
                     ParseIntExpression(Lexer, &CValue, RunIt);
                 
-                    if (!ParseStatement(Lexer, RunIt && CValue.Val.Integer))
+                    if (!ParseStatement(Lexer, RunIt && CValue.Val->Integer))
                         ProgramFail(Lexer, "statement expected");
                         
-                } while (RunIt && CValue.Val.Integer);                
+                } while (RunIt && CValue.Val->Integer);                
             }
             break;
                 
@@ -536,7 +613,7 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
                         
                     ParseIntExpression(Lexer, &CValue, RunIt);
                 
-                } while (CValue.Val.Integer && RunIt);           
+                } while (CValue.Val->Integer && RunIt);           
             }
             break;
                 
@@ -561,10 +638,10 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
             else
             {
                 struct Value InitValue;
-                if (Typ == TokenFloatType)
-                    InitValue.Val.FP = 0.0;
+                if (Typ->Base == TypeFP)
+                    InitValue.Val->FP = 0.0;
                 else
-                    InitValue.Val.Integer = 0;
+                    InitValue.Val->Integer = 0;
                     
                 InitValue.Typ = Typ;
                 VariableDefine(Lexer, &LexerValue.String, &InitValue);

@@ -87,7 +87,7 @@ int TableSet(struct Table *Tbl, const Str *Key, struct Value *Val)
         {   /* add it to the table */
             struct TableEntry *Entry = &Tbl->HashTable[AddAt];
             Entry->Key = *Key;
-            Entry->Val = *Val;
+            Entry->Val = Val;
         }
     }
     
@@ -104,7 +104,7 @@ int TableGet(struct Table *Tbl, const Str *Key, struct Value **Val)
     if (HashPos == -1)
         return FALSE;
     
-    *Val = &Tbl->HashTable[HashPos].Val;
+    *Val = Tbl->HashTable[HashPos].Val;
     return TRUE;
 }
 

@@ -35,7 +35,7 @@
 #define PATH_MAX 1024
 #endif
 
-#define ISVALUETYPE(t) (((t) == TypeInt) || ((t) == TypeFP) || ((t) == TypeString))
+#define ISVALUETYPE(t) (((t)->Base == TypeInt) || ((t)->Base == TypeFP) || ((t)->Base == TypeString))
 
 /* lexical tokens */
 enum LexToken
@@ -152,10 +152,10 @@ struct PointerValue
 
 union AnyValue
 {
-    unsigned char *Character;
-    short *ShortInteger;
-    int *Integer;
-    double *FP;
+    unsigned char Character;
+    short ShortInteger;
+    int Integer;
+    double FP;
     Str String;
     struct ArrayValue Array;
     struct PointerValue Pointer;
@@ -163,16 +163,16 @@ union AnyValue
 
 struct Value
 {
-    struct ValueType Typ;
-    char MustFree;
+    struct ValueType *Typ;
     union AnyValue *Val;
+    char MustFree;
 };
 
 /* hash table data structure */
 struct TableEntry
 {
     Str Key;
-    struct Value Val;
+    struct Value *Val;
 };
     
 struct Table
@@ -203,6 +203,8 @@ struct Table GlobalTable;
 extern struct Value Parameter[PARAMETER_MAX];
 extern int ParameterUsed;
 extern struct Value ReturnValue;
+extern struct ValueType VoidType;
+extern struct ValueType FunctionType;
 
 /* str.c */
 void StrToC(char *Dest, int DestSize, const Str *Source);
@@ -233,12 +235,12 @@ void LexToEndOfLine(struct LexState *Lexer);
 /* parse.c */
 void ParseInit(void);
 void Parse(const Str *FileName, const Str *Source, int RunIt);
-int ParseType(struct LexState *Lexer, struct ValueType *Typ);
+int ParseType(struct LexState *Lexer, struct ValueType **Typ);
 
 /* intrinsic.c */
 void IntrinsicInit(struct Table *GlobalTable);
 void IntrinsicGetLexer(struct LexState *Lexer, int IntrinsicId);
-void IntrinsicCall(struct LexState *Lexer, struct Value *Result, struct ValueType ReturnType, int IntrinsicId);
+void IntrinsicCall(struct LexState *Lexer, struct Value *Result, struct ValueType *ReturnType, int IntrinsicId);
 
 /* heap.c */
 void HeapInit();
