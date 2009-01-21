@@ -4,13 +4,14 @@
 #include <stdarg.h>
 
 /* configurable options */
-#define USE_MALLOC
+#define HEAP_SIZE 2048                      /* space for the heap and the stack */
 #define GLOBAL_TABLE_SIZE 397               /* global variable table */
 #define FUNCTION_STORE_MAX 200              /* maximum number of used-defined functions and macros */
 #define STACK_MAX 10                        /* maximum function call stack depth */
 #define PARAMETER_MAX 10                    /* maximum number of parameters to a function */
 #define LOCAL_TABLE_SIZE 11                 /* maximum number of local variables */
 #define LARGE_INT_POWER_OF_TEN 1000000000   /* the largest power of ten which fits in an int on this architecture */
+#define ARCH_ALIGN_WORDSIZE sizeof(int)     /* memory alignment boundary on this architecture */
 
 /* handy definitions */
 #ifndef TRUE
@@ -25,6 +26,8 @@
 #ifndef min
 #define min(x,y) (((x)<(y))?(x):(y))
 #endif
+
+#define MEM_ALIGN(x) (((x) + ARCH_ALIGN_WORDSIZE - 1) & ~(ARCH_ALIGN_WORDSIZE-1))
 
 #define LOG10E 0.43429448190325182765
 
@@ -112,27 +115,57 @@ struct FuncDef
 };
 
 /* values */
-enum ValueType
+enum BaseType
 {
-    TypeVoid,
-    TypeInt,
-    TypeFP,
-    TypeString,
-    TypeFunction,
-    TypeMacro
+    TypeVoid,                   /* no type */
+    TypeInt,                    /* integer */
+    TypeFP,                     /* floating point */
+    TypeChar,                   /* a single character - acts like an integer except in machine memory access */
+    TypeString,                 /* a constant source text string with C string emulation */
+    TypeFunction,               /* a function */
+    TypeMacro,                  /* a macro */
+    TypePointer,                /* a pointer */
+    TypeArray,                  /* an array of a sub-type */
+    TypeType                    /* a type (eg. typedef) */
+};
+
+struct ValueType
+{
+    enum BaseType Base;         /* what kind of type this is */
+    struct ValueType *SubType;  /* sub-type for pointer and array types */
+};
+
+struct ArrayValue
+{
+    unsigned int Size;          /* the number of elements in the array */
+    void *Data;                 /* pointer to the array data */
+};
+
+struct PointerValue
+{
+    struct Value *Segment;      /* array or basic value which this points to, NULL for machine memory access */
+    union s {
+        unsigned int Offset;    /* index into an array */
+        void *Memory;           /* machine memory pointer for raw memory access */
+    } Data;
 };
 
 union AnyValue
 {
-    int Integer;
-    double FP;
+    unsigned char *Character;
+    short *ShortInteger;
+    int *Integer;
+    double *FP;
     Str String;
+    struct ArrayValue Array;
+    struct PointerValue Pointer;
 };
 
 struct Value
 {
-    enum ValueType Typ;
-    union AnyValue Val;
+    struct ValueType Typ;
+    char MustFree;
+    union AnyValue *Val;
 };
 
 /* hash table data structure */
@@ -200,12 +233,20 @@ void LexToEndOfLine(struct LexState *Lexer);
 /* parse.c */
 void ParseInit(void);
 void Parse(const Str *FileName, const Str *Source, int RunIt);
-int ParseType(struct LexState *Lexer, enum ValueType *Typ);
+int ParseType(struct LexState *Lexer, struct ValueType *Typ);
 
 /* intrinsic.c */
 void IntrinsicInit(struct Table *GlobalTable);
 void IntrinsicGetLexer(struct LexState *Lexer, int IntrinsicId);
-void IntrinsicCall(struct LexState *Lexer, struct Value *Result, enum ValueType ReturnType, int IntrinsicId);
+void IntrinsicCall(struct LexState *Lexer, struct Value *Result, struct ValueType ReturnType, int IntrinsicId);
+
+/* heap.c */
+void HeapInit();
+void *HeapAllocStack(int Size);
+void HeapPushStackFrame();
+int HeapPopStackFrame();
+void *HeapAlloc(int Size);
+void HeapFree(void *Mem);
 
 #endif /* PICOC_H */
 
