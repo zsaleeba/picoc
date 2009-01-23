@@ -47,7 +47,7 @@ void IntrinsicInit(struct Table *GlobalTable)
         Source.Str = Intrinsics[Count].Prototype;
         Source.Len = strlen(Source.Str);
         LexInit(&Lexer, &Source, &IntrinsicFilename, Count+1);
-        ParseType(&Lexer, &Typ);
+        TypeParse(&Lexer, &Typ);
         LexGetToken(&Lexer, &Identifier);
         IntrinsicReferenceNo[Count] = -1 - Count;
         IntrinsicValue[Count].Typ = &FunctionType;
@@ -70,4 +70,3 @@ void IntrinsicCall(struct LexState *Lexer, struct Value *Result, struct ValueTyp
     Intrinsics[-1-IntrinsicId].Func();
     Result->Typ = &VoidType;
 }
-

@@ -10,6 +10,7 @@
 #define STACK_MAX 10                        /* maximum function call stack depth */
 #define PARAMETER_MAX 10                    /* maximum number of parameters to a function */
 #define LOCAL_TABLE_SIZE 11                 /* maximum number of local variables */
+#define STRUCT_TABLE_SIZE 11                /* maximum number of struct/union members */
 #define LARGE_INT_POWER_OF_TEN 1000000000   /* the largest power of ten which fits in an int on this architecture */
 #define ARCH_ALIGN_WORDSIZE sizeof(int)     /* memory alignment boundary on this architecture */
 
@@ -36,6 +37,8 @@
 #endif
 
 #define ISVALUETYPE(t) (((t)->Base == TypeInt) || ((t)->Base == TypeFP) || ((t)->Base == TypeString))
+
+struct Table;
 
 /* lexical tokens */
 enum LexToken
@@ -84,6 +87,14 @@ enum LexToken
     TokenFloatType,
     TokenDoubleType,
     TokenVoidType,
+    TokenEnumType,
+    TokenLongType,
+    TokenSignedType,
+    TokenShortType,
+    TokenStructType,
+    TokenUnionType,
+    TokenUnsignedType,
+    TokenTypedef,
     TokenDo,
     TokenElse,
     TokenFor,
@@ -106,6 +117,15 @@ typedef struct _Str
     const char *Str;
 } Str;
 
+/* lexer state - so we can lex nested files */
+struct LexState
+{
+    int Line;
+    const char *Pos;
+    const char *End;
+    const Str *FileName;
+};
+
 /* function definition - really just where it is in the source file */
 struct FuncDef
 {
@@ -126,13 +146,21 @@ enum BaseType
     TypeMacro,                  /* a macro */
     TypePointer,                /* a pointer */
     TypeArray,                  /* an array of a sub-type */
+    TypeStruct,                 /* aggregate type */
+    TypeUnion,                  /* merged type */
+    TypeEnum,                   /* enumated integer type */
     TypeType                    /* a type (eg. typedef) */
 };
 
 struct ValueType
 {
     enum BaseType Base;         /* what kind of type this is */
-    struct ValueType *SubType;  /* sub-type for pointer and array types */
+    int ArraySize;              /* the size of an array type */
+    int Sizeof;                 /* the storage required */
+    struct ValueType *FromType; /* the type we're derived from (or NULL) */
+    struct ValueType *DerivedTypeList;  /* first in a list of types derived from this one */
+    struct ValueType *Next;     /* next item in the derived type list */
+    struct Table *Members;      /* members of a struct, union or enum */
 };
 
 struct ArrayValue
@@ -159,6 +187,8 @@ union AnyValue
     Str String;
     struct ArrayValue Array;
     struct PointerValue Pointer;
+    struct LexState Lexer;
+    struct ValueType *Typ;
 };
 
 struct Value
@@ -181,15 +211,6 @@ struct Table
     struct TableEntry *HashTable;
 };
 
-/* lexer state - so we can lex nested files */
-struct LexState
-{
-    int Line;
-    const char *Pos;
-    const char *End;
-    const Str *FileName;
-};
-
 /* stack frame for function calls */
 struct StackFrame
 {
@@ -199,12 +220,19 @@ struct StackFrame
 };
 
 /* globals */
-struct Table GlobalTable;
+extern struct Table GlobalTable;
+extern struct LexState FunctionStore[FUNCTION_STORE_MAX];
+extern int FunctionStoreUsed;
 extern struct Value Parameter[PARAMETER_MAX];
 extern int ParameterUsed;
 extern struct Value ReturnValue;
+extern struct ValueType IntType;
+extern struct ValueType CharType;
+extern struct ValueType StringType;
+extern struct ValueType FPType;
 extern struct ValueType VoidType;
 extern struct ValueType FunctionType;
+extern struct ValueType MacroType;
 
 /* str.c */
 void StrToC(char *Dest, int DestSize, const Str *Source);
@@ -235,7 +263,11 @@ void LexToEndOfLine(struct LexState *Lexer);
 /* parse.c */
 void ParseInit(void);
 void Parse(const Str *FileName, const Str *Source, int RunIt);
-int ParseType(struct LexState *Lexer, struct ValueType **Typ);
+
+/* type.c */
+void TypeInit();
+int TypeSizeof(struct ValueType *Typ);
+int TypeParse(struct LexState *Lexer, struct ValueType **Typ, Str *Identifier);
 
 /* intrinsic.c */
 void IntrinsicInit(struct Table *GlobalTable);
@@ -250,5 +282,15 @@ int HeapPopStackFrame();
 void *HeapAlloc(int Size);
 void HeapFree(void *Mem);
 
-#endif /* PICOC_H */
+/* variable.c */
+void VariableInit();
+void *VariableAlloc(struct LexState *Lexer, int Size);
+struct Value *VariableAllocValueAndData(struct LexState *Lexer, int DataSize);
+struct Value *VariableAllocValueAndCopy(struct LexState *Lexer, struct Value *FromValue);
+struct Value *VariableAllocValueFromType(struct LexState *Lexer, struct ValueType *Typ);
+void VariableDefine(struct LexState *Lexer, const Str *Ident, struct Value *InitValue);
+int VariableDefined(Str *Ident);
+void VariableGet(struct LexState *Lexer, Str *Ident, struct Value *Val, struct Value **LVal);
+void VariableStackFrameAdd(struct LexState *Lexer);
 
+#endif /* PICOC_H */

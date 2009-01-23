@@ -29,12 +29,20 @@ static struct ReservedWord ReservedWords[] =
     { "do", TokenDo },
     { "double", TokenDoubleType },
     { "else", TokenElse },
+    { "enum", TokenEnumType },
     { "float", TokenFloatType },
     { "for", TokenFor },
     { "if", TokenIf },
     { "int", TokenIntType },
+    { "long", TokenLongType },
     { "return", TokenReturn },
+    { "signed", TokenSignedType },
+    { "short", TokenShortType },
+    { "struct", TokenStructType },
     { "switch", TokenSwitch },
+    { "typedef", TokenTypedef },
+    { "union", TokenUnionType },
+    { "unsigned", TokenUnsignedType },
     { "void", TokenVoidType },
     { "while", TokenWhile }
 };
@@ -229,6 +237,7 @@ enum LexToken LexGetToken(struct LexState *Lexer, union AnyValue *Value)
     }
     else
     {
+        CachedPos = Lexer->Pos;
         CachedToken = LexGetTokenUncached(Lexer, Value);
         CachedLexer = *Lexer;
         CachedValue = *Value;
@@ -263,4 +272,3 @@ void LexToEndOfLine(struct LexState *Lexer)
     while (Lexer->Pos != Lexer->End && *Lexer->Pos != '\n')
         Lexer->Pos++;
 }
-

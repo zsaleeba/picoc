@@ -1,33 +1,11 @@
 #include <stdio.h>
-#include <string.h>
 
 #include "picoc.h"
-
-/* the table of global definitions */
-struct Table GlobalTable;
-struct TableEntry GlobalHashTable[GLOBAL_TABLE_SIZE];
-
-/* the table of function definitions */
-struct LexState FunctionStore[FUNCTION_STORE_MAX];
-int FunctionStoreUsed = 0;
-
-/* the stack */
-struct StackFrame Stack[STACK_MAX];
-int StackUsed = 0;
 
 /* parameter passing area */
 struct Value Parameter[PARAMETER_MAX];
 int ParameterUsed = 0;
 struct Value ReturnValue;
-
-/* some basic types */
-struct ValueType IntType;
-struct ValueType CharType;
-struct ValueType StringType;
-struct ValueType FPType;
-struct ValueType VoidType;
-struct ValueType FunctionType;
-struct ValueType MacroType;
 
 /* local prototypes */
 int ParseExpression(struct LexState *Lexer, struct Value *Result, int RunIt);
@@ -39,118 +17,9 @@ int ParseArguments(struct LexState *Lexer, int RunIt);
 /* initialise the parser */
 void ParseInit()
 {
-    TableInit(&GlobalTable, &GlobalHashTable[0], GLOBAL_TABLE_SIZE);
+    VariableInit();
     IntrinsicInit(&GlobalTable);
-    IntType.Base = TypeInt;
-    IntType.SubType = NULL;
-    CharType.Base = TypeChar;
-    CharType.SubType = NULL;
-    StringType.Base = TypeString;
-    StringType.SubType = NULL;
-    FPType.Base = TypeFP;
-    FPType.SubType = NULL;
-    VoidType.Base = TypeVoid;
-    VoidType.SubType = NULL;
-    FunctionType.Base = TypeFunction;
-    FunctionType.SubType = NULL;
-    MacroType.Base = TypeMacro;
-    MacroType.SubType = NULL;
-}
-
-/* find out the size of a type */
-int ParseSizeofType(struct ValueType *Typ)
-{
-    switch (Typ->Base)
-    {
-        case TypeVoid:      return 0;
-        case TypeInt:       return sizeof(int);
-        case TypeFP:        return sizeof(double);
-        case TypeChar:      return sizeof(char);
-        case TypeString:    return sizeof(Str);
-        case TypeFunction:  return sizeof(int);
-        case TypeMacro:     return sizeof(int);
-        case TypePointer:   return sizeof(struct PointerValue);
-        case TypeArray:     return 0;   // XXX - fixme
-        case TypeType:      return sizeof(struct ValueType *);
-    }
-    
-    return 0;
-}
-
-/* allocate a value either on the heap or the stack using space dependent on what type we want */
-struct Value *ParseAllocValueFromType(struct ValueType *Typ)
-{
-    struct Value *NewValue;
-    
-    if (StackUsed == 0)
-    { /* it's a global */
-        NewValue = HeapAlloc(sizeof(struct Value) + ParseSizeofType(Typ));
-        NewValue->MustFree = TRUE;
-    }
-    else
-    { /* allocated on the stack */
-        NewValue = HeapAllocStack(sizeof(struct Value) + ParseSizeofType(Typ));
-        NewValue->MustFree = FALSE;
-    }
-    
-    NewValue->Typ = Typ;
-    NewValue->Val = (union AnyValue *)((void *)NewValue + sizeof(struct Value));
-    
-    return NewValue;
-}
-
-/* allocate a value either on the heap or the stack and copy its value */
-struct Value *ParseAllocValueAndCopy(struct Value *FromValue)
-{
-    struct Value *NewValue = ParseAllocValueFromType(FromValue->Typ);
-    memcpy(NewValue->Val, FromValue->Val, ParseSizeofType(FromValue->Typ));
-    return NewValue;
-}
-
-/* define a variable */
-void VariableDefine(struct LexState *Lexer, const Str *Ident, struct Value *InitValue)
-{
-    if (!TableSet((StackUsed == 0) ? &GlobalTable : &Stack[StackUsed-1].LocalTable, Ident, ParseAllocValueAndCopy(InitValue)))
-        ProgramFail(Lexer, "'%S' is already defined", Ident);
-}
-
-/* get the value of a variable. must be defined */
-void VariableGet(struct LexState *Lexer, Str *Ident, struct Value *Val, struct Value **LVal)
-{
-    if (StackUsed == 0 || !TableGet(&Stack[StackUsed-1].LocalTable, Ident, LVal))
-    {
-        if (!TableGet(&GlobalTable, Ident, LVal))
-            ProgramFail(Lexer, "'%S' is undefined", Ident);
-    }
-
-    *Val = **LVal;
-}
-
-/* add a stack frame when doing a function call */
-void StackFrameAdd(struct LexState *Lexer)
-{
-    struct StackFrame *NewFrame = &Stack[StackUsed];
-    
-    if (StackUsed >= STACK_MAX)
-        ProgramFail(Lexer, "too many nested function calls");
-        
-    NewFrame->ReturnLex = *Lexer;
-    TableInit(&NewFrame->LocalTable, &NewFrame->LocalHashTable[0], LOCAL_TABLE_SIZE);
-    StackUsed++;
-}
-
-/* parse a type specification */
-int ParseType(struct LexState *Lexer, struct ValueType **Typ)
-{
-    struct LexState Before = *Lexer;
-    enum LexToken Token = LexGetPlainToken(Lexer);
-    switch (Token)
-    {
-        case TokenIntType: case TokenCharType: *Typ = &IntType; return TRUE;
-        case TokenFloatType: case TokenDoubleType: *Typ = &FPType; return TRUE;
-        case TokenVoidType: *Typ = &VoidType; return TRUE;
-        default: *Lexer = Before; return FALSE;
-    }
+    TypeInit();
 }
 
 /* parse a parameter list, defining parameters as local variables in the current scope */
@@ -163,7 +32,7 @@ void ParseParameterList(struct LexState *CallLexer, struct LexState *FuncLexer, 
     
     for (ParamCount = 0; ParamCount < ParameterUsed; ParamCount++)
     {
-        ParseType(FuncLexer, &Typ);
+        TypeParse(FuncLexer, &Typ);
         Token = LexGetToken(FuncLexer, &Identifier);
         if (Token != TokenComma && Token != TokenCloseBracket)
         {   /* there's an identifier */
@@ -226,13 +95,13 @@ void ParseFunctionCall(struct LexState *Lexer, struct Value *Result, Str *FuncNa
         if (Result->Typ->Base != TypeFunction)
             ProgramFail(Lexer, "not a function - can't call");
         
-        StackFrameAdd(Lexer);
+        VariableStackFrameAdd(Lexer);
         if (Result->Val->Integer >= 0)
             FuncLexer = FunctionStore[Result->Val->Integer];
         else
             IntrinsicGetLexer(&FuncLexer, Result->Val->Integer);
 
-        ParseType(&FuncLexer, &ReturnType);             /* return type */
+        TypeParse(&FuncLexer, &ReturnType);             /* return type */
         Result->Typ = TypeVoid;
         LexGetPlainToken(&FuncLexer);                   /* function name again */
         ParseParameterList(Lexer, &FuncLexer, TRUE);    /* parameters */
@@ -461,9 +330,8 @@ void ParseFunctionDefinition(struct LexState *Lexer, Str *Identifier, struct Lex
         ProgramFail(Lexer, "function definition expected");
     
     FunctionStore[FunctionStoreUsed].End = Lexer->Pos;
-    FuncValue = HeapAlloc(sizeof(struct Value) + sizeof(int));
+    FuncValue = VariableAllocValueAndData(Lexer, sizeof(int));
     FuncValue->Typ = &FunctionType;
-    FuncValue->Val = (union AnyValue *)((void *)FuncValue + sizeof(struct Value));
     FuncValue->Val->Integer = FunctionStoreUsed;
     FunctionStoreUsed++;
     
@@ -486,9 +354,8 @@ void ParseMacroDefinition(struct LexState *Lexer)
     FunctionStore[FunctionStoreUsed] = *Lexer;
     LexToEndOfLine(Lexer);
     FunctionStore[FunctionStoreUsed].End = Lexer->Pos;
-    MacroValue = HeapAlloc(sizeof(struct Value) + sizeof(int));
+    MacroValue = VariableAllocValueAndData(Lexer, sizeof(int));
     MacroValue->Typ = &MacroType;
-    MacroValue->Val = (union AnyValue *)((void *)MacroValue + sizeof(struct Value));
     MacroValue->Val->Integer = FunctionStoreUsed;
     FunctionStoreUsed++;
     
@@ -628,7 +495,7 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
         case TokenDoubleType:
         case TokenVoidType:
             *Lexer = PreState;
-            ParseType(Lexer, &Typ);
+            TypeParse(Lexer, &Typ);
             if (LexGetToken(Lexer, &LexerValue) != TokenIdentifier)
                 ProgramFail(Lexer, "identifier expected");
                 
@@ -689,4 +556,3 @@ void Parse(const Str *FileName, const Str *Source, int RunIt)
     if (Lexer.Pos != Lexer.End)
         ProgramFail(&Lexer, "parse error");
 }
-

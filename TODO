@@ -17,3 +17,5 @@ New type system:
 
 Also:
 * Change function store system to use dynamic allocation
+* Check for Alloc returns checking NULL
+

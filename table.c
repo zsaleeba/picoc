@@ -1,27 +1,16 @@
 #include <string.h>
 #include "picoc.h"
- 
+
+/* hash function */
 static unsigned int TableHash(const Str *Key)
 {
-    unsigned int Hash;
-    int Count;
-    int Offset;
-    const char *KeyPos;
-    
-    Hash = Key->Len;
-    KeyPos = Key->Str;
-    Offset = 8;
-    for (Count = 0; Count < Key->Len; Count++, Offset+=7)
-    {
-        if (Offset > sizeof(unsigned int) * 8 - 7)
-            Offset -= (sizeof(unsigned int)-1) * 8;
-            
-        Hash ^= *KeyPos++ << Offset;
-    }
-    
-    return Hash;
+    if (Key->Len == 0)
+        return 0;
+    else
+        return ((*Key->Str << 24) | (Key->Str[Key->Len-1] << 16) | (Key->Str[Key->Len >> 1] << 8)) ^ Key->Len;
 }
 
+/* initialise a table */
 void TableInit(struct Table *Tbl, struct TableEntry *HashTable, int Size)
 {
     Tbl->Size = Size;
@@ -44,6 +33,7 @@ static int TableCheckEntry(struct Table *Tbl, const Str *Key, int HashPos)
         return -2;  /* wrong key */
 }
 
+/* search a table for an identifier. sets AddAt to where to add it at if not found */
 static int TableSearch(struct Table *Tbl, const Str *Key, int *AddAt)
 {
     int HashValue;
@@ -71,6 +61,7 @@ static int TableSearch(struct Table *Tbl, const Str *Key, int *AddAt)
     return -1;
 }
 
+/* set an identifier to a value. returns FALSE if it already exists */
 int TableSet(struct Table *Tbl, const Str *Key, struct Value *Val)
 {
     int HashPos;
@@ -88,12 +79,14 @@ int TableSet(struct Table *Tbl, const Str *Key, struct Value *Val)
             struct TableEntry *Entry = &Tbl->HashTable[AddAt];
             Entry->Key = *Key;
             Entry->Val = Val;
+            return TRUE;
         }
     }
-    
-    return TRUE;
+    else
+        return FALSE;
 }
 
+/* find a value in a table. returns FALSE if not found */
 int TableGet(struct Table *Tbl, const Str *Key, struct Value **Val)
 {
     int HashPos;
@@ -107,4 +100,3 @@ int TableGet(struct Table *Tbl, const Str *Key, struct Value **Val)
     *Val = Tbl->HashTable[HashPos].Val;
     return TRUE;
 }
-
