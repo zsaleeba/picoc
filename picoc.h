@@ -43,71 +43,22 @@ struct Table;
 /* lexical tokens */
 enum LexToken
 {
-    TokenNone,
-    TokenEOF,
-    TokenIdentifier,
-    TokenIntegerConstant,
-    TokenFPConstant,
-    TokenStringConstant,
-    TokenCharacterConstant,
-    TokenType,
-    TokenOpenBracket,
-    TokenCloseBracket,
-    TokenAssign,
-    TokenPlus,
-    TokenMinus,
-    TokenAsterisk,
-    TokenSlash,
-    TokenEquality,
-    TokenLessThan,
-    TokenGreaterThan,
-    TokenLessEqual,
-    TokenGreaterEqual,
-    TokenSemicolon,
-    TokenArrow,
-    TokenAmpersand,
-    TokenLeftBrace,
-    TokenRightBrace,
-    TokenLeftAngleBracket,
-    TokenRightAngleBracket,
-    TokenLogicalAnd,
-    TokenLogicalOr,
-    TokenArithmeticOr,
-    TokenArithmeticExor,
-    TokenUnaryExor,
-    TokenUnaryNot,
-    TokenComma,
-    TokenDot,
-    TokenAddAssign,
-    TokenSubtractAssign,
-    TokenIncrement,
-    TokenDecrement,
-    TokenIntType,
-    TokenCharType,
-    TokenFloatType,
-    TokenDoubleType,
-    TokenVoidType,
-    TokenEnumType,
-    TokenLongType,
-    TokenSignedType,
-    TokenShortType,
-    TokenStructType,
-    TokenUnionType,
-    TokenUnsignedType,
-    TokenTypedef,
-    TokenDo,
-    TokenElse,
-    TokenFor,
-    TokenIf,
-    TokenWhile,
-    TokenBreak,
-    TokenSwitch,
-    TokenCase,
-    TokenDefault,
-    TokenReturn,
-    TokenHashDefine,
-    TokenHashInclude,
-    TokenEndOfLine
+    TokenNone, TokenEOF, TokenEndOfLine,
+    TokenIdentifier, TokenIntegerConstant, TokenFPConstant, TokenStringConstant, TokenCharacterConstant,
+    TokenOpenBracket, TokenCloseBracket,
+    TokenAssign, TokenPlus, TokenMinus, TokenAsterisk, TokenSlash,
+    TokenEquality, TokenLessThan, TokenGreaterThan, TokenLessEqual, TokenGreaterEqual,
+    TokenSemicolon, TokenComma, TokenDot,
+    TokenArrow, TokenAmpersand,
+    TokenLeftBrace, TokenRightBrace,
+    TokenLeftAngleBracket, TokenRightAngleBracket,
+    TokenLogicalAnd, TokenLogicalOr, TokenArithmeticOr, TokenArithmeticExor, TokenUnaryExor, TokenUnaryNot,
+    TokenAddAssign, TokenSubtractAssign,
+    TokenIncrement, TokenDecrement,
+    TokenIntType, TokenCharType, TokenFloatType, TokenDoubleType, TokenVoidType, TokenEnumType,
+    TokenLongType, TokenSignedType, TokenShortType, TokenStructType, TokenUnionType, TokenUnsignedType, TokenTypedef,
+    TokenDo, TokenElse, TokenFor, TokenIf, TokenWhile, TokenBreak, TokenSwitch, TokenCase, TokenDefault, TokenReturn,
+    TokenHashDefine, TokenHashInclude
 };
 
 /* string type so we can use source file strings */
@@ -157,6 +108,7 @@ struct ValueType
     enum BaseType Base;         /* what kind of type this is */
     int ArraySize;              /* the size of an array type */
     int Sizeof;                 /* the storage required */
+    Str Identifier;             /* the name of a struct or union */
     struct ValueType *FromType; /* the type we're derived from (or NULL) */
     struct ValueType *DerivedTypeList;  /* first in a list of types derived from this one */
     struct ValueType *Next;     /* next item in the derived type list */
@@ -235,6 +187,7 @@ extern struct ValueType FunctionType;
 extern struct ValueType MacroType;
 
 /* str.c */
+void StrCopy(Str *Dest, const Str *Source);
 void StrToC(char *Dest, int DestSize, const Str *Source);
 void StrFromC(Str *Dest, const char *Source);
 int StrEqual(const Str *Str1, const Str *Str2);
@@ -267,7 +220,7 @@ void Parse(const Str *FileName, const Str *Source, int RunIt);
 /* type.c */
 void TypeInit();
 int TypeSizeof(struct ValueType *Typ);
-int TypeParse(struct LexState *Lexer, struct ValueType **Typ, Str *Identifier);
+void TypeParse(struct LexState *Lexer, struct ValueType **Typ, Str *Identifier);
 
 /* intrinsic.c */
 void IntrinsicInit(struct Table *GlobalTable);

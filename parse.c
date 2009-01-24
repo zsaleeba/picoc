@@ -8,8 +8,8 @@ int ParameterUsed = 0;
 struct Value ReturnValue;
 
 /* local prototypes */
-int ParseExpression(struct LexState *Lexer, struct Value *Result, int RunIt);
-void ParseIntExpression(struct LexState *Lexer, struct Value *Result, int RunIt);
+int ParseExpression(struct LexState *Lexer, struct Value **Result, int RunIt);
+void ParseIntExpression(struct LexState *Lexer, struct Value **Result, int RunIt);
 int ParseStatement(struct LexState *Lexer, int RunIt);
 int ParseArguments(struct LexState *Lexer, int RunIt);
 
@@ -26,32 +26,32 @@ void ParseInit()
 void ParseParameterList(struct LexState *CallLexer, struct LexState *FuncLexer, int RunIt)
 {
     struct ValueType *Typ;
-    union AnyValue Identifier;
+    Str Identifier;
     enum LexToken Token = LexGetPlainToken(FuncLexer);  /* open bracket */
     int ParamCount;
     
     for (ParamCount = 0; ParamCount < ParameterUsed; ParamCount++)
     {
-        TypeParse(FuncLexer, &Typ);
-        Token = LexGetToken(FuncLexer, &Identifier);
-        if (Token != TokenComma && Token != TokenCloseBracket)
+        TypeParse(FuncLexer, &Typ, &Identifier);
+        if (Identifier->Len != 0)
         {   /* there's an identifier */
-            if (Token != TokenIdentifier)
-                ProgramFail(FuncLexer, "invalid parameter");
-                
             if (RunIt)
             {
                 if (Parameter[ParamCount].Typ != Typ)
                     ProgramFail(CallLexer, "parameter %d has the wrong type", ParamCount+1);
                     
-                VariableDefine(FuncLexer, &Identifier.String, &Parameter[ParamCount]);
+                VariableDefine(FuncLexer, &Identifier, &Parameter[ParamCount]);
             }
-    
-            Token = LexGetPlainToken(FuncLexer);
-            if (Token != TokenComma && Token != TokenCloseBracket)
-                ProgramFail(FuncLexer, "comma expected");
         }
-    } 
+    
+        Token = LexGetPlainToken(FuncLexer);
+        if (ParamCount < ParameterUsed-1 && Token != TokenComma)
+                ProgramFail(FuncLexer, "comma expected");
+    }
+    
+    if (Token != TokenCloseBracket)
+        ProgramFail(FuncLexer, "')' expected");
+        
     if (ParameterUsed == 0)
         Token = LexGetPlainToken(FuncLexer);
     
@@ -60,7 +60,7 @@ void ParseParameterList(struct LexState *CallLexer, struct LexState *FuncLexer, 
 }
 
 /* do a function call */
-void ParseFunctionCall(struct LexState *Lexer, struct Value *Result, Str *FuncName, int RunIt)
+void ParseFunctionCall(struct LexState *Lexer, struct Value **Result, Str *FuncName, int RunIt)
 {
     enum LexToken Token = LexGetPlainToken(Lexer);    /* open bracket */
     
@@ -119,7 +119,7 @@ void ParseFunctionCall(struct LexState *Lexer, struct Value *Result, Str *FuncNa
 }
 
 /* parse a single value */
-int ParseValue(struct LexState *Lexer, struct Value *Result, struct Value **LValue, int RunIt)
+int ParseValue(struct LexState *Lexer, struct Value **Result, struct Value **LValue, int RunIt)
 {
     struct LexState PreState = *Lexer;
     enum LexToken Token = LexGetToken(Lexer, Result->Val);
@@ -188,7 +188,7 @@ int ParseValue(struct LexState *Lexer, struct Value *Result, struct Value **LVal
 }
 
 /* parse an expression. operator precedence is not supported */
-int ParseExpression(struct LexState *Lexer, struct Value *Result, int RunIt)
+int ParseExpression(struct LexState *Lexer, struct Value **Result, int RunIt)
 {
     struct Value CurrentValue;
     struct Value *CurrentLValue;
@@ -304,7 +304,7 @@ int ParseExpression(struct LexState *Lexer, struct Value *Result, int RunIt)
 }
 
 /* parse an expression. operator precedence is not supported */
-void ParseIntExpression(struct LexState *Lexer, struct Value *Result, int RunIt)
+void ParseIntExpression(struct LexState *Lexer, struct Value **Result, int RunIt)
 {
     if (!ParseExpression(Lexer, Result, RunIt))
         ProgramFail(Lexer, "expression expected");
@@ -363,7 +363,7 @@ void ParseMacroDefinition(struct LexState *Lexer)
         ProgramFail(Lexer, "'%S' is already defined", &MacroName.String);
 }
 
-void ParseFor(struct LexState *Lexer, struct Value *Result, int RunIt)
+void ParseFor(struct LexState *Lexer, int RunIt)
 {
     struct Value Conditional;
     struct LexState PreConditional;
@@ -485,6 +485,7 @@ int ParseStatement(struct LexState *Lexer, int RunIt)
             break;
                 
         case TokenFor:
+            ParseFor(Lexer, RunIt);
             break;
 
         case TokenSemicolon: break;

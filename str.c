@@ -7,6 +7,12 @@
 #include "picoc.h"
 
 
+void StrCopy(Str *Dest, const Str *Source)
+{
+    Dest->Str = Source->Str;
+    Dest->Len = Source->Len;
+}
+
 void StrToC(char *Dest, int DestSize, const Str *Source)
 {
     int CopyLen = min(DestSize-1, Source->Len);
