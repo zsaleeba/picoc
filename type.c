@@ -20,7 +20,7 @@ struct ValueType *TypeAdd(struct LexState *Lexer, struct ValueType *ParentType, 
     NewType->Base = Base;
     NewType->ArraySize = ArraySize;
     NewType->Sizeof = Sizeof;
-    StrCopy(&NewType->Identifier, Identifier);
+    NewType->Identifier = *Identifier;
     NewType->Members = NULL;
     NewType->FromType = ParentType;
     NewType->DerivedTypeList = NULL;
@@ -58,7 +58,7 @@ void TypeAddBaseType(struct ValueType *TypeNode, enum BaseType Base, int Sizeof)
     TypeNode->Base = Base;
     TypeNode->ArraySize = 0;
     TypeNode->Sizeof = Sizeof;
-    StrFromC(&TypeNode->Identifier, "");
+    TypeNode->Identifier = StrEmpty;
     TypeNode->Members = NULL;
     TypeNode->FromType = NULL;
     TypeNode->DerivedTypeList = NULL;
@@ -84,7 +84,6 @@ void TypeInit()
 void TypeParseStruct(struct LexState *Lexer, struct ValueType **Typ, int IsStruct)
 {
     union AnyValue LexValue;
-    int TotalSize = 0;
     struct ValueType *MemberType;
     Str MemberIdentifier;
     struct Value *MemberValue;
@@ -92,30 +91,30 @@ void TypeParseStruct(struct LexState *Lexer, struct ValueType **Typ, int IsStruc
     if (LexGetToken(Lexer, &LexValue) != TokenIdentifier)
         ProgramFail(Lexer, "struct/union name required");
     
-    if (LexGetPlainToken(Lexer) != TokenOpenBrace)
+    if (LexGetPlainToken(Lexer) != TokenLeftBrace)
         ProgramFail(Lexer, "'{' expected");
     
-    if (StackLevel != 0)
+    if (StackUsed != 0)
         ProgramFail(Lexer, "struct/union definitions can only be globals");
         
     *Typ = TypeGetMatching(Lexer, &UberType, IsStruct ? TypeStruct : TypeUnion, 0, &LexValue.String);
-    (*Typ)->Members = VariableAlloc(sizeof(struct Table) + STRUCT_TABLE_SIZE * sizeof(struct TableEntry));
-    (*Typ)->Members->HashTable = (struct Table *)((void *)(*Typ)->Members + sizeof(struct Table));
+    (*Typ)->Members = VariableAlloc(Lexer, sizeof(struct Table) + STRUCT_TABLE_SIZE * sizeof(struct TableEntry));
+    (*Typ)->Members->HashTable = (void *)(*Typ)->Members + sizeof(struct Table);
     
     do {
         TypeParse(Lexer, &MemberType, &MemberIdentifier);
         
         MemberValue = VariableAllocValueAndData(Lexer, sizeof(int));
         MemberValue->MustFree = TRUE;
-        MemberValue->Typ = &MemberType;
+        MemberValue->Typ = MemberType;
         if (IsStruct)
         { /* allocate this member's location in the struct */
-            MemberValue->Value->Integer = (*Typ)->Sizeof;
+            MemberValue->Val->Integer = (*Typ)->Sizeof;
             (*Typ)->Sizeof += MemberValue->Typ->Sizeof;
         }
         else
         { /* union members always start at 0, make sure it's big enough to hold the largest member */
-            MemberValue->Value->Integer = 0;
+            MemberValue->Val->Integer = 0;
             if (MemberValue->Typ->Sizeof > (*Typ)->Sizeof)
                 (*Typ)->Sizeof = MemberValue->Typ->Sizeof;
         }
@@ -123,7 +122,7 @@ void TypeParseStruct(struct LexState *Lexer, struct ValueType **Typ, int IsStruc
         if (!TableSet((*Typ)->Members, &MemberIdentifier, MemberValue))
             ProgramFail(Lexer, "member '%S' already defined", &MemberIdentifier);
                     
-    } while (LexPeekPlainToken(Lexer) != TokenCloseBrace);
+    } while (LexPeekPlainToken(Lexer) != TokenRightBrace);
     
     LexGetPlainToken(Lexer);
 }
@@ -132,9 +131,8 @@ void TypeParseStruct(struct LexState *Lexer, struct ValueType **Typ, int IsStruc
 void TypeParse(struct LexState *Lexer, struct ValueType **Typ, Str *Identifier)
 {
     struct LexState Before;
-    struct LexToken Token;
+    enum LexToken Token;
     union AnyValue LexValue;
-    struct Value ArraySize;
     int Done = FALSE;
     *Typ = NULL;
     
@@ -160,8 +158,8 @@ void TypeParse(struct LexState *Lexer, struct ValueType **Typ, Str *Identifier)
                 if (*Typ != NULL)
                     ProgramFail(Lexer, "bad type declaration");
                 
-                TypeParseDeclarator(Lexer, Typ, Identifier);
-                if (LexGetTokenOnly(Lexer) != TokenCloseBracket)
+                TypeParse(Lexer, Typ, Identifier);
+                if (LexGetPlainToken(Lexer) != TokenCloseBracket)
                     ProgramFail(Lexer, "')' expected");
                 break;
                 
@@ -169,11 +167,11 @@ void TypeParse(struct LexState *Lexer, struct ValueType **Typ, Str *Identifier)
                 if (*Typ == NULL)
                     ProgramFail(Lexer, "bad type declaration");
 
-                *Typ = TypeGetMatching(Lexer, *Typ, TypePointer, 0);
+                *Typ = TypeGetMatching(Lexer, *Typ, TypePointer, 0, &StrEmpty);
                 break;
             
             case TokenIdentifier:
-                if (*Typ == NULL || Identifier->Length != 0)
+                if (*Typ == NULL || Identifier->Len != 0)
                     ProgramFail(Lexer, "bad type declaration");
                 
                 *Identifier = LexValue.String;
@@ -187,26 +185,32 @@ void TypeParse(struct LexState *Lexer, struct ValueType **Typ, Str *Identifier)
     if (*Typ == NULL)
         ProgramFail(Lexer, "bad type declaration");
 
-    if (Identifier->Length != 0)
+    if (Identifier->Len != 0)
     { /* parse stuff after the identifier */
         Done = FALSE;
         while (!Done)
         {
             Before = *Lexer;
-            switch (LexGetTokenOnly(Lexer))
+            switch (LexGetPlainToken(Lexer))
             {
-                case TokenOpenSquareBracket:
+                case TokenLeftSquareBracket:
                     {
-                        struct Value ArraySize;
-                        union AnyValue ArraySizeAnyValue;
-                        ArraySize->Val = &ArraySizeAnyValue;
-                        if (!ParseExpression(Lexer, &ArraySize, TRUE))
-                            ArraySize->Val->Integer = 0;
+                        struct Value *ArraySizeValue;
+                        int ArraySize = 0;
 
-                        if (LexGetTokenOnly(Lexer) != TokenCloseSquareBracket)
+                        if (ParseExpression(Lexer, &ArraySizeValue, TRUE))
+                        {
+                            if (ArraySizeValue->Typ->Base != TypeInt)
+                                ProgramFail(Lexer, "array size must be an integer");
+                                
+                            ArraySize = ArraySizeValue->Val->Integer;
+                             HeapFree(ArraySizeValue);
+                        }
+
+                        if (LexGetPlainToken(Lexer) != TokenRightSquareBracket)
                             ProgramFail(Lexer, "']' expected");
                             
-                        *Typ = TypeGetMatching(Lexer, *Typ, TypeArray, ArraySize->Val->Integer);
+                        *Typ = TypeGetMatching(Lexer, *Typ, TypeArray, ArraySize, &StrEmpty);
                     }
                     break;
                     

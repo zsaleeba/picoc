@@ -210,8 +210,8 @@ enum LexToken LexGetTokenUncached(struct LexState *Lexer, union AnyValue *Value)
         case '|': NEXTIS('|', TokenLogicalOr, TokenArithmeticOr);
         case '{': return TokenLeftBrace;
         case '}': return TokenRightBrace;
-        case '[': return TokenLeftAngleBracket;
-        case ']': return TokenRightAngleBracket;
+        case '[': return TokenLeftSquareBracket;
+        case ']': return TokenRightSquareBracket;
         case '!': return TokenUnaryNot;
         case '^': return TokenArithmeticExor;
         case '~': return TokenUnaryExor;

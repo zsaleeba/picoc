@@ -86,6 +86,7 @@ int VariableDefined(Str *Ident)
 }
 
 /* get the value of a variable. must be defined */
+XXX
 void VariableGet(struct LexState *Lexer, Str *Ident, struct Value *Val, struct Value **LVal)
 {
     if (StackUsed == 0 || !TableGet(&Stack[StackUsed-1].LocalTable, Ident, LVal))

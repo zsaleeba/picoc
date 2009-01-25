@@ -6,13 +6,9 @@
 
 #include "picoc.h"
 
+Str StrEmpty = { "", 0 };
 
-void StrCopy(Str *Dest, const Str *Source)
-{
-    Dest->Str = Source->Str;
-    Dest->Len = Source->Len;
-}
-
+/* convert a Str to a C string */
 void StrToC(char *Dest, int DestSize, const Str *Source)
 {
     int CopyLen = min(DestSize-1, Source->Len);
@@ -20,12 +16,14 @@ void StrToC(char *Dest, int DestSize, const Str *Source)
     Dest[CopyLen] = '\0';
 }
 
+/* convert a C string to a Str */
 void StrFromC(Str *Dest, const char *Source)
 {
     Dest->Str = Source;
     Dest->Len = strlen(Source);
 }
 
+/* compare two Strs for equality */
 int StrEqual(const Str *Str1, const Str *Str2)
 {
     if (Str1->Len != Str2->Len)
@@ -34,11 +32,13 @@ int StrEqual(const Str *Str1, const Str *Str2)
     return memcmp(Str1->Str, Str2->Str, Str1->Len) == 0;
 }
 
+/* compare a Str to a C string */
 int StrEqualC(const Str *Str1, const char *Str2)
 {
     return strncmp(Str1->Str, Str2, Str1->Len) == 0 && Str2[Str1->Len] == '\0';
 }
 
+/* print an integer to a stream without using printf/sprintf */
 void StrPrintInt(int Num, FILE *Stream)
 {
     int Div;
@@ -70,6 +70,7 @@ void StrPrintInt(int Num, FILE *Stream)
     }
 }
 
+/* print a double to a stream without using printf/sprintf */
 void StrPrintFP(double Num, FILE *Stream)
 {
     int Exponent = 0;
@@ -92,6 +93,7 @@ void StrPrintFP(double Num, FILE *Stream)
     }
 }
 
+/* Str version of printf */
 void StrPrintf(const char *Format, ...)
 {
     va_list Args;
@@ -126,4 +128,3 @@ void vStrPrintf(const char *Format, va_list Args)
             putchar(*FPos);
     }
 }
-

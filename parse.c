@@ -3,9 +3,9 @@
 #include "picoc.h"
 
 /* parameter passing area */
-struct Value Parameter[PARAMETER_MAX];
+struct Value *Parameter[PARAMETER_MAX];
 int ParameterUsed = 0;
-struct Value ReturnValue;
+struct Value *ReturnValue;
 
 /* local prototypes */
 int ParseExpression(struct LexState *Lexer, struct Value **Result, int RunIt);
@@ -33,14 +33,14 @@ void ParseParameterList(struct LexState *CallLexer, struct LexState *FuncLexer, 
     for (ParamCount = 0; ParamCount < ParameterUsed; ParamCount++)
     {
         TypeParse(FuncLexer, &Typ, &Identifier);
-        if (Identifier->Len != 0)
+        if (Identifier.Len != 0)
         {   /* there's an identifier */
             if (RunIt)
             {
-                if (Parameter[ParamCount].Typ != Typ)
+                if (Parameter[ParamCount]->Typ != Typ)
                     ProgramFail(CallLexer, "parameter %d has the wrong type", ParamCount+1);
                     
-                VariableDefine(FuncLexer, &Identifier, &Parameter[ParamCount]);
+                VariableDefine(FuncLexer, &Identifier, Parameter[ParamCount]);
             }
         }
     
@@ -90,8 +90,9 @@ void ParseFunctionCall(struct LexState *Lexer, struct Value **Result, Str *FuncN
         struct LexState FuncLexer;
         struct ValueType *ReturnType;
         struct Value *LValue;
+        int Count;
         
-        VariableGet(Lexer, FuncName, Result, &LValue);
+        VariableGet(Lexer, FuncName, *Result, &LValue);
         if (Result->Typ->Base != TypeFunction)
             ProgramFail(Lexer, "not a function - can't call");
         
@@ -115,6 +116,9 @@ void ParseFunctionCall(struct LexState *Lexer, struct Value **Result, Str *FuncN
         }
         else
             IntrinsicCall(Lexer, Result, ReturnType, Result->Val->Integer);
+        
+        for (Count = 0; Count < ParameterUsed; Count++)
+            HeapFree(Parameter[ParameterUsed]);
     }
 }
 

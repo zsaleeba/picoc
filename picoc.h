@@ -51,7 +51,7 @@ enum LexToken
     TokenSemicolon, TokenComma, TokenDot,
     TokenArrow, TokenAmpersand,
     TokenLeftBrace, TokenRightBrace,
-    TokenLeftAngleBracket, TokenRightAngleBracket,
+    TokenLeftSquareBracket, TokenRightSquareBracket,
     TokenLogicalAnd, TokenLogicalOr, TokenArithmeticOr, TokenArithmeticExor, TokenUnaryExor, TokenUnaryNot,
     TokenAddAssign, TokenSubtractAssign,
     TokenIncrement, TokenDecrement,
@@ -175,9 +175,11 @@ struct StackFrame
 extern struct Table GlobalTable;
 extern struct LexState FunctionStore[FUNCTION_STORE_MAX];
 extern int FunctionStoreUsed;
-extern struct Value Parameter[PARAMETER_MAX];
+extern struct Value *Parameter[PARAMETER_MAX];
 extern int ParameterUsed;
-extern struct Value ReturnValue;
+extern struct StackFrame Stack[STACK_MAX];
+extern int StackUsed;
+extern struct Value *ReturnValue;
 extern struct ValueType IntType;
 extern struct ValueType CharType;
 extern struct ValueType StringType;
@@ -185,9 +187,9 @@ extern struct ValueType FPType;
 extern struct ValueType VoidType;
 extern struct ValueType FunctionType;
 extern struct ValueType MacroType;
+extern Str StrEmpty;
 
 /* str.c */
-void StrCopy(Str *Dest, const Str *Source);
 void StrToC(char *Dest, int DestSize, const Str *Source);
 void StrFromC(Str *Dest, const char *Source);
 int StrEqual(const Str *Str1, const Str *Str2);
@@ -215,6 +217,7 @@ void LexToEndOfLine(struct LexState *Lexer);
 
 /* parse.c */
 void ParseInit(void);
+int ParseExpression(struct LexState *Lexer, struct Value **Result, int RunIt);
 void Parse(const Str *FileName, const Str *Source, int RunIt);
 
 /* type.c */
@@ -243,7 +246,7 @@ struct Value *VariableAllocValueAndCopy(struct LexState *Lexer, struct Value *Fr
 struct Value *VariableAllocValueFromType(struct LexState *Lexer, struct ValueType *Typ);
 void VariableDefine(struct LexState *Lexer, const Str *Ident, struct Value *InitValue);
 int VariableDefined(Str *Ident);
-void VariableGet(struct LexState *Lexer, Str *Ident, struct Value *Val, struct Value **LVal);
+XXX void VariableGet(struct LexState *Lexer, Str *Ident, struct Value *Val, struct Value **LVal);
 void VariableStackFrameAdd(struct LexState *Lexer);
 
 #endif /* PICOC_H */
