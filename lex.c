@@ -11,6 +11,8 @@
 #define NEXTIS3(c,x,d,y,z) { if (NextChar == (c)) { Lexer->Pos++; return (x); } else NEXTIS(d,y,z) }
 #define NEXTIS4(c,x,d,y,e,z,a) { if (NextChar == (c)) { Lexer->Pos++; return (x); } else NEXTIS3(d,y,e,z,a) }
 
+static union AnyValue LexAnyValue;
+static struct Value LexValue = { TypeVoid, &LexAnyValue, FALSE, FALSE };
 
 struct ReservedWord
 {
@@ -68,7 +70,7 @@ enum LexToken LexCheckReservedWord(const Str *Word)
     return TokenNone;
 }
 
-enum LexToken LexGetNumber(struct LexState *Lexer, union AnyValue *Value)
+enum LexToken LexGetNumber(struct LexState *Lexer, struct Value **Value)
 {
     int Result = 0;
     double FPResult;
@@ -77,10 +79,12 @@ enum LexToken LexGetNumber(struct LexState *Lexer, union AnyValue *Value)
     for (; Lexer->Pos != Lexer->End && isdigit(*Lexer->Pos); Lexer->Pos++)
         Result = Result * 10 + (*Lexer->Pos - '0');
 
-    Value->Integer = Result;
+    (*Value)->Typ = &IntType;
+    (*Value)->Val->Integer = Result;
     if (Lexer->Pos == Lexer->End || *Lexer->Pos != '.')
         return TokenIntegerConstant;
 
+    (*Value)->Typ = &FPType;
     Lexer->Pos++;
     for (FPDiv = 0.1, FPResult = (double)Result; Lexer->Pos != Lexer->End && isdigit(*Lexer->Pos); Lexer->Pos++, FPDiv /= 10.0)
         FPResult += (*Lexer->Pos - '0') * FPDiv;
@@ -97,7 +101,7 @@ enum LexToken LexGetNumber(struct LexState *Lexer, union AnyValue *Value)
     return TokenFPConstant;
 }
 
-enum LexToken LexGetWord(struct LexState *Lexer, union AnyValue *Value)
+enum LexToken LexGetWord(struct LexState *Lexer, struct Value **Value)
 {
     const char *Pos = Lexer->Pos + 1;
     enum LexToken Token;
@@ -105,22 +109,24 @@ enum LexToken LexGetWord(struct LexState *Lexer, union AnyValue *Value)
     while (Lexer->Pos != Lexer->End && isCident(*Pos))
         Pos++;
     
-    Value->String.Str = Lexer->Pos;
-    Value->String.Len = Pos - Lexer->Pos;
+    (*Value)->Typ = &StringType;
+    (*Value)->Val->String.Str = Lexer->Pos;
+    (*Value)->Val->String.Len = Pos - Lexer->Pos;
     Lexer->Pos = Pos;
     
-    Token = LexCheckReservedWord(&Value->String);
+    Token = LexCheckReservedWord(&(*Value)->Val->String);
     if (Token != TokenNone)
         return Token;
     
     return TokenIdentifier;
 }
 
-enum LexToken LexGetStringConstant(struct LexState *Lexer, union AnyValue *Value)
+enum LexToken LexGetStringConstant(struct LexState *Lexer, struct Value **Value)
 {
     int Escape = FALSE;
     
-    Value->String.Str = Lexer->Pos;
+    (*Value)->Typ = &StringType;
+    (*Value)->Val->String.Str = Lexer->Pos;
     while (Lexer->Pos != Lexer->End && (*Lexer->Pos != '"' || Escape))
     {
         if (Escape)
@@ -130,16 +136,17 @@ enum LexToken LexGetStringConstant(struct LexState *Lexer, union AnyValue *Value
             
         Lexer->Pos++;
     }
-    Value->String.Len = Lexer->Pos - Value->String.Str;
+    (*Value)->Val->String.Len = Lexer->Pos - (*Value)->Val->String.Str;
     if (*Lexer->Pos == '"')
         Lexer->Pos++;
     
     return TokenStringConstant;
 }
 
-enum LexToken LexGetCharacterConstant(struct LexState *Lexer, union AnyValue *Value)
+enum LexToken LexGetCharacterConstant(struct LexState *Lexer, struct Value **Value)
 {
-    Value->Integer = Lexer->Pos[1];
+    (*Value)->Typ = &IntType;
+    (*Value)->Val->Integer = Lexer->Pos[1];
     if (Lexer->Pos[2] != '\'')
         ProgramFail(Lexer, "illegal character '%c'", Lexer->Pos[2]);
         
@@ -147,7 +154,7 @@ enum LexToken LexGetCharacterConstant(struct LexState *Lexer, union AnyValue *Va
     return TokenCharacterConstant;
 }
 
-enum LexToken LexGetComment(struct LexState *Lexer, char NextChar, union AnyValue *Value)
+enum LexToken LexGetComment(struct LexState *Lexer, char NextChar, struct Value **Value)
 {
     Lexer->Pos++;
     if (NextChar == '*')
@@ -167,11 +174,12 @@ enum LexToken LexGetComment(struct LexState *Lexer, char NextChar, union AnyValu
     return LexGetToken(Lexer, Value);
 }
 
-enum LexToken LexGetTokenUncached(struct LexState *Lexer, union AnyValue *Value)
+enum LexToken LexGetTokenUncached(struct LexState *Lexer, struct Value **Value)
 {
     char ThisChar;
     char NextChar;
     
+    *Value = &LexValue;
     while (Lexer->Pos != Lexer->End && isspace(*Lexer->Pos))
     {
         if (*Lexer->Pos == '\n')
@@ -223,16 +231,18 @@ enum LexToken LexGetTokenUncached(struct LexState *Lexer, union AnyValue *Value)
     return TokenEOF;
 }
 
-enum LexToken LexGetToken(struct LexState *Lexer, union AnyValue *Value)
+enum LexToken LexGetToken(struct LexState *Lexer, struct Value **Value)
 {
     static const char *CachedPos = NULL;
-    static union AnyValue CachedValue;
+    static union AnyValue CachedAnyValue;
+    static struct Value CachedValue;
     static struct LexState CachedLexer;
     static enum LexToken CachedToken;
     
     if (Lexer->Pos == CachedPos)
     {
-        *Value = CachedValue;
+        *Value = &CachedValue;
+        CachedValue.Val = &CachedAnyValue;
         *Lexer = CachedLexer;
     }
     else
@@ -240,7 +250,8 @@ enum LexToken LexGetToken(struct LexState *Lexer, union AnyValue *Value)
         CachedPos = Lexer->Pos;
         CachedToken = LexGetTokenUncached(Lexer, Value);
         CachedLexer = *Lexer;
-        CachedValue = *Value;
+        CachedValue = **Value;
+        CachedAnyValue = *(*Value)->Val;
     }
     
     return CachedToken;
@@ -248,12 +259,12 @@ enum LexToken LexGetToken(struct LexState *Lexer, union AnyValue *Value)
 
 enum LexToken LexGetPlainToken(struct LexState *Lexer)
 {
-    union AnyValue Value;
+    struct Value *Value;
     return LexGetToken(Lexer, &Value);
 }
 
 /* look at the next token without changing the lexer state */
-enum LexToken LexPeekToken(struct LexState *Lexer, union AnyValue *Value)
+enum LexToken LexPeekToken(struct LexState *Lexer, struct Value **Value)
 {
     struct LexState LocalState = *Lexer;
     return LexGetToken(&LocalState, Value);
@@ -262,7 +273,7 @@ enum LexToken LexPeekToken(struct LexState *Lexer, union AnyValue *Value)
 enum LexToken LexPeekPlainToken(struct LexState *Lexer)
 {
     struct LexState LocalState = *Lexer;
-    union AnyValue Value;
+    struct Value *Value;
     return LexGetToken(&LocalState, &Value);
 }
 

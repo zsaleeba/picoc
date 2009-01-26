@@ -18,4 +18,5 @@ New type system:
 Also:
 * Change function store system to use dynamic allocation
 * Check for Alloc returns checking NULL
-
+* Do we really need OnHeap? Isn't every value on the stack anyway?
+* Remove Var parameter from HeapPopStack() once we're certain it all works

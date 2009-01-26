@@ -6,7 +6,7 @@
 
 #include "picoc.h"
 
-Str StrEmpty = { "", 0 };
+Str StrEmpty = { 0, "" };
 
 /* convert a Str to a C string */
 void StrToC(char *Dest, int DestSize, const Str *Source)

@@ -147,7 +147,8 @@ struct Value
 {
     struct ValueType *Typ;
     union AnyValue *Val;
-    char MustFree;
+    char ValOnHeap;
+    char ValOnStack;
 };
 
 /* hash table data structure */
@@ -209,15 +210,16 @@ int TableGet(struct Table *Tbl, const Str *Key, struct Value **Val);
 
 /* lex.c */
 void LexInit(struct LexState *Lexer, const Str *Source, const Str *FileName, int Line);
-enum LexToken LexGetToken(struct LexState *Lexer, union AnyValue *Value);
+enum LexToken LexGetToken(struct LexState *Lexer, struct Value **Value);
 enum LexToken LexGetPlainToken(struct LexState *Lexer);
-enum LexToken LexPeekToken(struct LexState *Lexer, union AnyValue *Value);
+enum LexToken LexPeekToken(struct LexState *Lexer, struct Value **Value);
 enum LexToken LexPeekPlainToken(struct LexState *Lexer);
 void LexToEndOfLine(struct LexState *Lexer);
 
 /* parse.c */
 void ParseInit(void);
-int ParseExpression(struct LexState *Lexer, struct Value **Result, int RunIt);
+int ParseExpression(struct LexState *Lexer, struct Value **Result, int ResultOnHeap, int RunIt);
+int ParseIntExpression(struct LexState *Lexer, int RunIt);
 void Parse(const Str *FileName, const Str *Source, int RunIt);
 
 /* type.c */
@@ -233,6 +235,7 @@ void IntrinsicCall(struct LexState *Lexer, struct Value *Result, struct ValueTyp
 /* heap.c */
 void HeapInit();
 void *HeapAllocStack(int Size);
+int HeapPopStack(void *Addr, int Size);
 void HeapPushStackFrame();
 int HeapPopStackFrame();
 void *HeapAlloc(int Size);
@@ -240,13 +243,15 @@ void HeapFree(void *Mem);
 
 /* variable.c */
 void VariableInit();
-void *VariableAlloc(struct LexState *Lexer, int Size);
-struct Value *VariableAllocValueAndData(struct LexState *Lexer, int DataSize);
-struct Value *VariableAllocValueAndCopy(struct LexState *Lexer, struct Value *FromValue);
-struct Value *VariableAllocValueFromType(struct LexState *Lexer, struct ValueType *Typ);
+void *VariableAlloc(struct LexState *Lexer, int Size, int OnHeap);
+void VariableStackPop(struct LexState *Lexer, struct Value *Var);
+struct Value *VariableAllocValueAndData(struct LexState *Lexer, int DataSize, int OnHeap);
+struct Value *VariableAllocValueAndCopy(struct LexState *Lexer, struct Value *FromValue, int OnHeap);
+struct Value *VariableAllocValueFromType(struct LexState *Lexer, struct ValueType *Typ, int OnHeap);
 void VariableDefine(struct LexState *Lexer, const Str *Ident, struct Value *InitValue);
 int VariableDefined(Str *Ident);
-XXX void VariableGet(struct LexState *Lexer, Str *Ident, struct Value *Val, struct Value **LVal);
+void VariableGet(struct LexState *Lexer, Str *Ident, struct Value **LVal);
 void VariableStackFrameAdd(struct LexState *Lexer);
+void VariableStackFramePop(struct LexState *Lexer);
 
 #endif /* PICOC_H */

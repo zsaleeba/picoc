@@ -73,7 +73,6 @@ int TableSet(struct Table *Tbl, const Str *Key, struct Value *Val)
     {
         if (AddAt == -1)
             Fail("variable table is full\n");
-        
         else
         {   /* add it to the table */
             struct TableEntry *Entry = &Tbl->HashTable[AddAt];
@@ -82,8 +81,8 @@ int TableSet(struct Table *Tbl, const Str *Key, struct Value *Val)
             return TRUE;
         }
     }
-    else
-        return FALSE;
+
+    return FALSE;
 }
 
 /* find a value in a table. returns FALSE if not found */

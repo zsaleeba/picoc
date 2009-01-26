@@ -10,7 +10,7 @@ int IntrinsicReferenceNo[NUM_INTRINSICS];
 
 void IntrinsicPrintInt(void)
 {
-    printf("%d\n", Parameter[0].Val->Integer);
+    printf("%d\n", Parameter[0]->Val->Integer);
 }
 
 void IntrinsicPrintf(void)
@@ -39,7 +39,7 @@ void IntrinsicInit(struct Table *GlobalTable)
     struct LexState Lexer;
     Str Source;
     int Count;
-    union AnyValue Identifier;
+    Str Identifier;
     struct ValueType *Typ;
     
     for (Count = 0; Count < sizeof(Intrinsics) / sizeof(struct IntrinsicFunction); Count++)
@@ -47,13 +47,13 @@ void IntrinsicInit(struct Table *GlobalTable)
         Source.Str = Intrinsics[Count].Prototype;
         Source.Len = strlen(Source.Str);
         LexInit(&Lexer, &Source, &IntrinsicFilename, Count+1);
-        TypeParse(&Lexer, &Typ);
-        LexGetToken(&Lexer, &Identifier);
+        TypeParse(&Lexer, &Typ, &Identifier);
         IntrinsicReferenceNo[Count] = -1 - Count;
         IntrinsicValue[Count].Typ = &FunctionType;
         IntrinsicValue[Count].Val = (union AnyValue *)&IntrinsicReferenceNo[Count];
-        IntrinsicValue[Count].MustFree = FALSE;
-        TableSet(GlobalTable, &Identifier.String, &IntrinsicValue[Count]);
+        IntrinsicValue[Count].ValOnHeap = FALSE;
+        IntrinsicValue[Count].ValOnStack = FALSE;
+        TableSet(GlobalTable, &Identifier, &IntrinsicValue[Count]);
     }
 }
 

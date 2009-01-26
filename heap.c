@@ -1,5 +1,6 @@
 /* stack grows up from the bottom and heap grows down from the top of heap space */
 #include <memory.h>
+#include <assert.h>
 #include "picoc.h"
 
 #define FREELIST_BUCKETS 8                          /* freelists for 4, 8, 12 ... 32 byte allocs */
@@ -45,6 +46,19 @@ void *HeapAllocStack(int Size)
     StackTop = NewTop;
     memset(NewMem, '\0', Size);
     return NewMem;
+}
+
+/* free some space at the top of the stack */
+int HeapPopStack(void *Addr, int Size)
+{
+    int ToLose = MEM_ALIGN(Size);
+    if (ToLose > (StackTop - (void *)&HeapMemory))
+        return FALSE;
+    
+    StackTop -= ToLose;
+    assert(StackTop == Addr);
+    
+    return TRUE;
 }
 
 /* push a new stack frame on to the stack */
