@@ -6,10 +6,6 @@
 struct Table GlobalTable;
 struct TableEntry GlobalHashTable[GLOBAL_TABLE_SIZE];
 
-/* the table of function definitions */
-struct LexState FunctionStore[FUNCTION_STORE_MAX];
-int FunctionStoreUsed = 0;
-
 /* the stack */
 struct StackFrame Stack[STACK_MAX];
 int StackUsed = 0;

@@ -97,15 +97,15 @@ void ParseFunctionCall(struct LexState *Lexer, struct Value **Result, int Result
             ProgramFail(Lexer, "not a function - can't call");
         
         VariableStackFrameAdd(Lexer);
-        if (FuncValue->Val->Integer >= 0)
-            FuncLexer = FunctionStore[FuncValue->Val->Integer];
+        if (FuncValue->Val->Lexer.Line >= 0)
+            FuncLexer = FuncValue->Val->Lexer;
         else
-            IntrinsicGetLexer(&FuncLexer, FuncValue->Val->Integer);
+            IntrinsicGetLexer(&FuncLexer, FuncValue->Val->Lexer.Line);
 
         TypeParse(&FuncLexer, &ReturnType, &FuncName);  /* get the return type */
         *Result = VariableAllocValueFromType(Lexer, ReturnType, ResultOnHeap);
         ParseParameterList(Lexer, &FuncLexer, TRUE);    /* parameters */
-        if (FuncValue->Val->Integer >= 0)
+        if (FuncValue->Val->Lexer.Line >= 0)
         { /* run a user-defined function */
             if (LexPeekPlainToken(&FuncLexer) != TokenLeftBrace || !ParseStatement(&FuncLexer, TRUE))
                 ProgramFail(&FuncLexer, "function body expected");
@@ -114,7 +114,7 @@ void ParseFunctionCall(struct LexState *Lexer, struct Value **Result, int Result
                 ProgramFail(&FuncLexer, "bad return value");
         }
         else
-            IntrinsicCall(Lexer, *Result, ReturnType, (*Result)->Val->Integer);
+            IntrinsicCall(Lexer, *Result, ReturnType, (*Result)->Val->Lexer.Line);
         
         VariableStackFramePop(Lexer);
             
@@ -175,7 +175,7 @@ int ParseValue(struct LexState *Lexer, struct Value **Result, int ResultOnHeap, 
                     VariableGet(Lexer, &LexValue->Val->String, &IdentValue);
                     if (IdentValue->Typ->Base == TypeMacro)
                     {
-                        struct LexState MacroLexer = FunctionStore[IdentValue->Val->Integer];
+                        struct LexState MacroLexer = IdentValue->Val->Lexer;
                         
                         if (!ParseExpression(&MacroLexer, Result, ResultOnHeap, TRUE))
                             ProgramFail(&MacroLexer, "expression expected");
@@ -359,12 +359,9 @@ int ParseIntExpression(struct LexState *Lexer, int RunIt)
 /* parse a function definition and store it for later */
 void ParseFunctionDefinition(struct LexState *Lexer, Str *Identifier, struct LexState *PreState)
 {
-    struct Value *FuncValue;
+    struct Value *FuncValue = VariableAllocValueAndData(Lexer, sizeof(struct LexState), TRUE);
 
-    if (FunctionStoreUsed >= FUNCTION_STORE_MAX)
-        ProgramFail(Lexer, "too many functions/macros defined");
-    FunctionStore[FunctionStoreUsed] = *PreState;
-    
+    FuncValue->Val->Lexer = *PreState;
     LexGetPlainToken(Lexer);
     if (LexGetPlainToken(Lexer) != TokenCloseBracket || LexPeekPlainToken(Lexer) != TokenLeftBrace)
         ProgramFail(Lexer, "bad function definition");
@@ -372,11 +369,8 @@ void ParseFunctionDefinition(struct LexState *Lexer, Str *Identifier, struct Lex
     if (!ParseStatement(Lexer, FALSE))
         ProgramFail(Lexer, "function definition expected");
     
-    FunctionStore[FunctionStoreUsed].End = Lexer->Pos;
-    FuncValue = VariableAllocValueAndData(Lexer, sizeof(int), TRUE);
+    FuncValue->Val->Lexer.End = Lexer->Pos;
     FuncValue->Typ = &FunctionType;
-    FuncValue->Val->Integer = FunctionStoreUsed;
-    FunctionStoreUsed++;
     
     if (!TableSet(&GlobalTable, Identifier, FuncValue))
         ProgramFail(Lexer, "'%S' is already defined", Identifier);
@@ -386,21 +380,15 @@ void ParseFunctionDefinition(struct LexState *Lexer, Str *Identifier, struct Lex
 void ParseMacroDefinition(struct LexState *Lexer)
 {
     struct Value *MacroName;
-    struct Value *MacroValue;
+    struct Value *MacroValue = VariableAllocValueAndData(Lexer, sizeof(struct LexState), TRUE);
 
     if (LexGetToken(Lexer, &MacroName) != TokenIdentifier)
         ProgramFail(Lexer, "identifier expected");
     
-    if (FunctionStoreUsed >= FUNCTION_STORE_MAX)
-        ProgramFail(Lexer, "too many functions/macros defined");
-
-    FunctionStore[FunctionStoreUsed] = *Lexer;
+    MacroValue->Val->Lexer = *Lexer;
     LexToEndOfLine(Lexer);
-    FunctionStore[FunctionStoreUsed].End = Lexer->Pos;
-    MacroValue = VariableAllocValueAndData(Lexer, sizeof(int), TRUE);
+    MacroValue->Val->Lexer.End = Lexer->Pos;
     MacroValue->Typ = &MacroType;
-    MacroValue->Val->Integer = FunctionStoreUsed;
-    FunctionStoreUsed++;
     
     if (!TableSet(&GlobalTable, &MacroName->Val->String, MacroValue))
         ProgramFail(Lexer, "'%S' is already defined", &MacroName->Val->String);
