@@ -167,19 +167,17 @@ struct Table
 /* stack frame for function calls */
 struct StackFrame
 {
-    struct LexState ReturnLex;          /* how we got here */
-    struct Table LocalTable;            /* the local variables and parameters */
+    struct LexState ReturnLex;              /* how we got here */
+    struct Table LocalTable;                /* the local variables and parameters */
     struct TableEntry LocalHashTable[LOCAL_TABLE_SIZE];
+    struct StackFrame *PreviousStackFrame;  /* the next lower stack frame */
 };
 
 /* globals */
 extern struct Table GlobalTable;
-extern struct LexState FunctionStore[FUNCTION_STORE_MAX];
-extern int FunctionStoreUsed;
 extern struct Value *Parameter[PARAMETER_MAX];
 extern int ParameterUsed;
-extern struct StackFrame Stack[STACK_MAX];
-extern int StackUsed;
+extern struct StackFrame *TopStackFrame;
 extern struct Value *ReturnValue;
 extern struct ValueType IntType;
 extern struct ValueType CharType;

@@ -7,14 +7,14 @@ struct Table GlobalTable;
 struct TableEntry GlobalHashTable[GLOBAL_TABLE_SIZE];
 
 /* the stack */
-struct StackFrame Stack[STACK_MAX];
-int StackUsed = 0;
+struct StackFrame *TopStackFrame = NULL;
 
 
 /* initialise the variable system */
 void VariableInit()
 {
     TableInit(&GlobalTable, &GlobalHashTable[0], GLOBAL_TABLE_SIZE);
+    TopStackFrame = NULL;
 }
 
 /* allocate some memory, either on the heap or the stack and check if we've run out */
@@ -64,7 +64,7 @@ struct Value *VariableAllocValueAndCopy(struct LexState *Lexer, struct Value *Fr
 /* define a variable */
 void VariableDefine(struct LexState *Lexer, const Str *Ident, struct Value *InitValue)
 {
-    if (!TableSet((StackUsed == 0) ? &GlobalTable : &Stack[StackUsed-1].LocalTable, Ident, VariableAllocValueAndCopy(Lexer, InitValue, StackUsed == 0)))
+    if (!TableSet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, Ident, VariableAllocValueAndCopy(Lexer, InitValue, TopStackFrame == NULL)))
         ProgramFail(Lexer, "'%S' is already defined", Ident);
 }
 
@@ -73,7 +73,7 @@ int VariableDefined(Str *Ident)
 {
     struct Value *FoundValue;
     
-    if (StackUsed == 0 || !TableGet(&Stack[StackUsed-1].LocalTable, Ident, &FoundValue))
+    if (TopStackFrame == NULL || !TableGet(&TopStackFrame->LocalTable, Ident, &FoundValue))
     {
         if (!TableGet(&GlobalTable, Ident, &FoundValue))
             return FALSE;
@@ -85,7 +85,7 @@ int VariableDefined(Str *Ident)
 /* get the value of a variable. must be defined */
 void VariableGet(struct LexState *Lexer, Str *Ident, struct Value **LVal)
 {
-    if (StackUsed == 0 || !TableGet(&Stack[StackUsed-1].LocalTable, Ident, LVal))
+    if (TopStackFrame == NULL || !TableGet(&TopStackFrame->LocalTable, Ident, LVal))
     {
         if (!TableGet(&GlobalTable, Ident, LVal))
             ProgramFail(Lexer, "'%S' is undefined", Ident);
@@ -114,24 +114,23 @@ void VariableStackPop(struct LexState *Lexer, struct Value *Var)
 /* add a stack frame when doing a function call */
 void VariableStackFrameAdd(struct LexState *Lexer)
 {
-    struct StackFrame *NewFrame = &Stack[StackUsed];
+    struct StackFrame *NewFrame;
     
-    if (StackUsed >= STACK_MAX)
-        ProgramFail(Lexer, "too many nested function calls");
-        
+    HeapPushStackFrame();
+    NewFrame = HeapAllocStack(sizeof(struct StackFrame));
     NewFrame->ReturnLex = *Lexer;
     TableInit(&NewFrame->LocalTable, &NewFrame->LocalHashTable[0], LOCAL_TABLE_SIZE);
-    StackUsed++;
-    HeapPushStackFrame();
+    NewFrame->PreviousStackFrame = TopStackFrame;
+    TopStackFrame = NewFrame;
 }
 
 /* remove a stack frame */
 void VariableStackFramePop(struct LexState *Lexer)
 {
-    if (StackUsed == 0)
+    if (TopStackFrame == NULL)
         ProgramFail(Lexer, "stack is empty - can't go back");
         
-    StackUsed--;
-    *Lexer = Stack[StackUsed].ReturnLex;
+    TopStackFrame = TopStackFrame->PreviousStackFrame;
+    *Lexer = TopStackFrame->ReturnLex;
     HeapPopStackFrame();
 }

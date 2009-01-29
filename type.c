@@ -94,7 +94,7 @@ void TypeParseStruct(struct LexState *Lexer, struct ValueType **Typ, int IsStruc
     if (LexGetPlainToken(Lexer) != TokenLeftBrace)
         ProgramFail(Lexer, "'{' expected");
     
-    if (StackUsed != 0)
+    if (TopStackFrame != NULL)
         ProgramFail(Lexer, "struct/union definitions can only be globals");
         
     *Typ = TypeGetMatching(Lexer, &UberType, IsStruct ? TypeStruct : TypeUnion, 0, &LexValue->Val->String);
