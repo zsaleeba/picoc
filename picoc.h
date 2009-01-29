@@ -156,12 +156,14 @@ struct TableEntry
 {
     Str Key;
     struct Value *Val;
+    struct TableEntry *Next;
 };
     
 struct Table
 {
     short Size;
-    struct TableEntry *HashTable;
+    short OnHeap;
+    struct TableEntry **HashTable;
 };
 
 /* stack frame for function calls */
@@ -169,7 +171,7 @@ struct StackFrame
 {
     struct LexState ReturnLex;              /* how we got here */
     struct Table LocalTable;                /* the local variables and parameters */
-    struct TableEntry LocalHashTable[LOCAL_TABLE_SIZE];
+    struct TableEntry *LocalHashTable[LOCAL_TABLE_SIZE];
     struct StackFrame *PreviousStackFrame;  /* the next lower stack frame */
 };
 
@@ -202,7 +204,7 @@ void ProgramFail(struct LexState *Lexer, const char *Message, ...);
 void ScanFile(const Str *FileName);
 
 /* table.c */
-void TableInit(struct Table *Tbl, struct TableEntry *HashTable, int Size);
+void TableInit(struct Table *Tbl, struct TableEntry **HashTable, int Size, int OnHeap);
 int TableSet(struct Table *Tbl, const Str *Key, struct Value *Val);
 int TableGet(struct Table *Tbl, const Str *Key, struct Value **Val);
 

@@ -4,7 +4,7 @@
 
 /* the table of global definitions */
 struct Table GlobalTable;
-struct TableEntry GlobalHashTable[GLOBAL_TABLE_SIZE];
+struct TableEntry *GlobalHashTable[GLOBAL_TABLE_SIZE];
 
 /* the stack */
 struct StackFrame *TopStackFrame = NULL;
@@ -13,7 +13,7 @@ struct StackFrame *TopStackFrame = NULL;
 /* initialise the variable system */
 void VariableInit()
 {
-    TableInit(&GlobalTable, &GlobalHashTable[0], GLOBAL_TABLE_SIZE);
+    TableInit(&GlobalTable, &GlobalHashTable[0], GLOBAL_TABLE_SIZE, TRUE);
     TopStackFrame = NULL;
 }
 
@@ -119,7 +119,7 @@ void VariableStackFrameAdd(struct LexState *Lexer)
     HeapPushStackFrame();
     NewFrame = HeapAllocStack(sizeof(struct StackFrame));
     NewFrame->ReturnLex = *Lexer;
-    TableInit(&NewFrame->LocalTable, &NewFrame->LocalHashTable[0], LOCAL_TABLE_SIZE);
+    TableInit(&NewFrame->LocalTable, &NewFrame->LocalHashTable[0], LOCAL_TABLE_SIZE, FALSE);
     NewFrame->PreviousStackFrame = TopStackFrame;
     TopStackFrame = NewFrame;
 }

@@ -1,7 +1,7 @@
 #include <string.h>
 #include "picoc.h"
 
-/* hash function */
+/* quick hash function */
 static unsigned int TableHash(const Str *Key)
 {
     if (Key->Len == 0)
@@ -11,53 +11,27 @@ static unsigned int TableHash(const Str *Key)
 }
 
 /* initialise a table */
-void TableInit(struct Table *Tbl, struct TableEntry *HashTable, int Size)
+void TableInit(struct Table *Tbl, struct TableEntry **HashTable, int Size, int OnHeap)
 {
     Tbl->Size = Size;
+    Tbl->OnHeap = OnHeap;
     Tbl->HashTable = HashTable;
-    memset(HashTable, '\0', sizeof(struct TableEntry) * Size);
+    memset(HashTable, '\0', sizeof(struct TableEntry *) * Size);
 }
 
-
-static int TableCheckEntry(struct Table *Tbl, const Str *Key, int HashPos)
-{
-    struct TableEntry *Entry = &Tbl->HashTable[HashPos];
-    
-    if (Entry->Key.Len == 0)
-        return -1;   /* empty */
-        
-    else if (StrEqual(&Entry->Key, Key))
-        return HashPos;   /* found */
-    
-    else
-        return -2;  /* wrong key */
-}
-
-/* search a table for an identifier. sets AddAt to where to add it at if not found */
+/* check a hash table entry for a key */
 static int TableSearch(struct Table *Tbl, const Str *Key, int *AddAt)
 {
-    int HashValue;
-    int HashPos;
-    int Result;
+    struct TableEntry *Entry;
+    int HashValue = TableHash(Key) % Tbl->Size;;
     
-    HashValue = TableHash(Key) % Tbl->Size;
-    
-    for (HashPos = HashValue; HashPos < Tbl->Size; HashPos++)
+    for (Entry = Tbl->HashTable[HashValue]; Entry != NULL; Entry = Entry->Next)
     {
-        *AddAt = HashPos;
-        if ( (Result = TableCheckEntry(Tbl, Key, HashPos)) != -2)
-            return Result;
+        if (StrEqual(&Entry->Key, Key))
+            return HashValue;   /* found */
     }
     
-    for (HashPos = 0; HashPos < HashValue; HashPos++)
-    {
-        *AddAt = HashPos;
-        if ( (Result = TableCheckEntry(Tbl, Key, HashPos)) != -2)
-            return Result;
-    }
-    
-    /* not found and table is full */
-    *AddAt = -1;
+    *AddAt = HashValue;    /* didn't find it in the chain */
     return -1;
 }
 
@@ -70,16 +44,13 @@ int TableSet(struct Table *Tbl, const Str *Key, struct Value *Val)
     HashPos = TableSearch(Tbl, Key, &AddAt);
 
     if (HashPos == -1)
-    {
-        if (AddAt == -1)
-            Fail("variable table is full\n");
-        else
-        {   /* add it to the table */
-            struct TableEntry *Entry = &Tbl->HashTable[AddAt];
-            Entry->Key = *Key;
-            Entry->Val = Val;
-            return TRUE;
-        }
+    {   /* add it to the table */
+        struct TableEntry *NewEntry = VariableAlloc(NULL, sizeof(struct TableEntry), Tbl->OnHeap);
+        NewEntry->Key = *Key;
+        NewEntry->Val = Val;
+        NewEntry->Next = Tbl->HashTable[AddAt];
+        Tbl->HashTable[AddAt] = NewEntry;
+        return TRUE;
     }
 
     return FALSE;
@@ -96,6 +67,6 @@ int TableGet(struct Table *Tbl, const Str *Key, struct Value **Val)
     if (HashPos == -1)
         return FALSE;
     
-    *Val = Tbl->HashTable[HashPos].Val;
+    *Val = Tbl->HashTable[HashPos]->Val;
     return TRUE;
 }

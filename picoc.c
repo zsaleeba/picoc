@@ -22,7 +22,9 @@ void ProgramFail(struct LexState *Lexer, const char *Message, ...)
 {
     va_list Args;
 
-    StrPrintf("%S:%d: ", Lexer->FileName, Lexer->Line);   
+    if (Lexer != NULL)
+        StrPrintf("%S:%d: ", Lexer->FileName, Lexer->Line);   
+        
     va_start(Args, Message);
     vStrPrintf(Message, Args);
     StrPrintf("\n");
