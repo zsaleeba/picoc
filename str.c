@@ -1,41 +1,29 @@
+/* maintains a shared string table so we don't have to worry about string allocation */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 #include <math.h>
-
 #include "picoc.h"
 
-Str StrEmpty = { 0, "" };
+struct Table StringTable;
+struct TableEntry *StringHashTable[STRING_TABLE_SIZE];
 
-/* convert a Str to a C string */
-void StrToC(char *Dest, int DestSize, const Str *Source)
+/* initialise the shared string system */
+void StrInit()
 {
-    int CopyLen = min(DestSize-1, Source->Len);
-    memcpy(Dest, Source->Str, CopyLen);
-    Dest[CopyLen] = '\0';
+    TableInit(&StringTable, &StringHashTable[0], STRING_TABLE_SIZE, TRUE);
 }
 
-/* convert a C string to a Str */
-void StrFromC(Str *Dest, const char *Source)
+/* register a string in the shared string store */
+const char *StrRegister2(const char *Str, int Len)
 {
-    Dest->Str = Source;
-    Dest->Len = strlen(Source);
+    return TableSetKey(&StringTable, Str, Len);
 }
 
-/* compare two Strs for equality */
-int StrEqual(const Str *Str1, const Str *Str2)
+const char *StrRegister(const char *Str)
 {
-    if (Str1->Len != Str2->Len)
-        return FALSE;
-    
-    return memcmp(Str1->Str, Str2->Str, Str1->Len) == 0;
-}
-
-/* compare a Str to a C string */
-int StrEqualC(const Str *Str1, const char *Str2)
-{
-    return strncmp(Str1->Str, Str2, Str1->Len) == 0 && Str2[Str1->Len] == '\0';
+    return StrRegister2(Str, strlen(Str));
 }
 
 /* print an integer to a stream without using printf/sprintf */
@@ -93,6 +81,7 @@ void StrPrintFP(double Num, FILE *Stream)
     }
 }
 
+#if 0
 /* Str version of printf */
 void StrPrintf(const char *Format, ...)
 {
@@ -128,3 +117,5 @@ void vStrPrintf(const char *Format, va_list Args)
             putchar(*FPos);
     }
 }
+#endif
+

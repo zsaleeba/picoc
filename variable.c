@@ -18,7 +18,7 @@ void VariableInit()
 }
 
 /* allocate some memory, either on the heap or the stack and check if we've run out */
-void *VariableAlloc(struct LexState *Lexer, int Size, int OnHeap)
+void *VariableAlloc(struct ParseState *Parser, int Size, int OnHeap)
 {
     void *NewValue;
     
@@ -28,15 +28,15 @@ void *VariableAlloc(struct LexState *Lexer, int Size, int OnHeap)
         NewValue = HeapAllocStack(Size);
     
     if (NewValue == NULL)
-        ProgramFail(Lexer, "out of memory");
+        ProgramFail(Parser, "out of memory");
     
     return NewValue;
 }
 
 /* allocate a value either on the heap or the stack using space dependent on what type we want */
-struct Value *VariableAllocValueAndData(struct LexState *Lexer, int DataSize, int OnHeap)
+struct Value *VariableAllocValueAndData(struct ParseState *Parser, int DataSize, int OnHeap)
 {
-    struct Value *NewValue = VariableAlloc(Lexer, DataSize, OnHeap);
+    struct Value *NewValue = VariableAlloc(Parser, DataSize, OnHeap);
     NewValue->Val = (union AnyValue *)((void *)NewValue + sizeof(struct Value));
     NewValue->ValOnHeap = OnHeap;
     NewValue->ValOnStack = !OnHeap;
@@ -45,31 +45,31 @@ struct Value *VariableAllocValueAndData(struct LexState *Lexer, int DataSize, in
 }
 
 /* allocate a value given its type */
-struct Value *VariableAllocValueFromType(struct LexState *Lexer, struct ValueType *Typ, int OnHeap)
+struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct ValueType *Typ, int OnHeap)
 {
-    struct Value *NewValue = VariableAllocValueAndData(Lexer, Typ->Sizeof, OnHeap);
+    struct Value *NewValue = VariableAllocValueAndData(Parser, Typ->Sizeof, OnHeap);
     NewValue->Typ = Typ;
     return NewValue;
 }
 
 /* allocate a value either on the heap or the stack and copy its value */
-struct Value *VariableAllocValueAndCopy(struct LexState *Lexer, struct Value *FromValue, int OnHeap)
+struct Value *VariableAllocValueAndCopy(struct ParseState *Parser, struct Value *FromValue, int OnHeap)
 {
-    struct Value *NewValue = VariableAllocValueAndData(Lexer, FromValue->Typ->Sizeof, OnHeap);
+    struct Value *NewValue = VariableAllocValueAndData(Parser, FromValue->Typ->Sizeof, OnHeap);
     NewValue->Typ = FromValue->Typ;
     memcpy(NewValue->Val, FromValue->Val, FromValue->Typ->Sizeof);
     return NewValue;
 }
 
 /* define a variable */
-void VariableDefine(struct LexState *Lexer, const Str *Ident, struct Value *InitValue)
+void VariableDefine(struct ParseState *Parser, const char *Ident, struct Value *InitValue)
 {
-    if (!TableSet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, Ident, VariableAllocValueAndCopy(Lexer, InitValue, TopStackFrame == NULL)))
-        ProgramFail(Lexer, "'%S' is already defined", Ident);
+    if (!TableSet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, Ident, VariableAllocValueAndCopy(Parser, InitValue, TopStackFrame == NULL)))
+        ProgramFail(Parser, "'%S' is already defined", Ident);
 }
 
 /* check if a variable with a given name is defined */
-int VariableDefined(Str *Ident)
+int VariableDefined(const char *Ident)
 {
     struct Value *FoundValue;
     
@@ -83,17 +83,17 @@ int VariableDefined(Str *Ident)
 }
 
 /* get the value of a variable. must be defined */
-void VariableGet(struct LexState *Lexer, Str *Ident, struct Value **LVal)
+void VariableGet(struct ParseState *Parser, const char *Ident, struct Value **LVal)
 {
     if (TopStackFrame == NULL || !TableGet(&TopStackFrame->LocalTable, Ident, LVal))
     {
         if (!TableGet(&GlobalTable, Ident, LVal))
-            ProgramFail(Lexer, "'%S' is undefined", Ident);
+            ProgramFail(Parser, "'%S' is undefined", Ident);
     }
 }
 
 /* free and/or pop the top value off the stack. Var must be the top value on the stack! */
-void VariableStackPop(struct LexState *Lexer, struct Value *Var)
+void VariableStackPop(struct ParseState *Parser, struct Value *Var)
 {
     int Success;
     
@@ -108,29 +108,29 @@ void VariableStackPop(struct LexState *Lexer, struct Value *Var)
         Success = HeapPopStack(Var, sizeof(struct Value));                       /* value isn't our problem */
         
     if (!Success)
-        ProgramFail(Lexer, "stack underrun");
+        ProgramFail(Parser, "stack underrun");
 }
 
 /* add a stack frame when doing a function call */
-void VariableStackFrameAdd(struct LexState *Lexer)
+void VariableStackFrameAdd(struct ParseState *Parser)
 {
     struct StackFrame *NewFrame;
     
     HeapPushStackFrame();
     NewFrame = HeapAllocStack(sizeof(struct StackFrame));
-    NewFrame->ReturnLex = *Lexer;
+    NewFrame->ReturnParser = *Parser;
     TableInit(&NewFrame->LocalTable, &NewFrame->LocalHashTable[0], LOCAL_TABLE_SIZE, FALSE);
     NewFrame->PreviousStackFrame = TopStackFrame;
     TopStackFrame = NewFrame;
 }
 
 /* remove a stack frame */
-void VariableStackFramePop(struct LexState *Lexer)
+void VariableStackFramePop(struct ParseState *Parser)
 {
     if (TopStackFrame == NULL)
-        ProgramFail(Lexer, "stack is empty - can't go back");
+        ProgramFail(Parser, "stack is empty - can't go back");
         
     TopStackFrame = TopStackFrame->PreviousStackFrame;
-    *Lexer = TopStackFrame->ReturnLex;
+    *Parser = TopStackFrame->ReturnParser;
     HeapPopStackFrame();
 }

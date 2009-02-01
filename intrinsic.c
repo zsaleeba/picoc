@@ -44,9 +44,7 @@ void IntrinsicInit(struct Table *GlobalTable)
     
     for (Count = 0; Count < sizeof(Intrinsics) / sizeof(struct IntrinsicFunction); Count++)
     {
-        Source.Str = Intrinsics[Count].Prototype;
-        Source.Len = strlen(Source.Str);
-        LexInit(&Lexer, &Source, &IntrinsicFilename, Count+1);
+        LexInit(&Lexer, Intrinsics[Count].Prototype, strlen(Source.Str), &IntrinsicFilename, Count+1);
         TypeParse(&Lexer, &Typ, &Identifier);
         IntrinsicReferenceNo[Count] = -1 - Count;
         IntrinsicValue[Count].Typ = &FunctionType;

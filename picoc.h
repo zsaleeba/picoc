@@ -5,14 +5,15 @@
 
 /* configurable options */
 #define HEAP_SIZE 2048                      /* space for the heap and the stack */
-#define GLOBAL_TABLE_SIZE 397               /* global variable table */
-#define FUNCTION_STORE_MAX 200              /* maximum number of used-defined functions and macros */
-#define STACK_MAX 10                        /* maximum function call stack depth */
-#define PARAMETER_MAX 10                    /* maximum number of parameters to a function */
-#define LOCAL_TABLE_SIZE 11                 /* maximum number of local variables */
-#define STRUCT_TABLE_SIZE 11                /* maximum number of struct/union members */
 #define LARGE_INT_POWER_OF_TEN 1000000000   /* the largest power of ten which fits in an int on this architecture */
 #define ARCH_ALIGN_WORDSIZE sizeof(int)     /* memory alignment boundary on this architecture */
+
+#define GLOBAL_TABLE_SIZE 397               /* global variable table */
+#define STRING_TABLE_SIZE 97                /* shared string table size */
+#define PARAMETER_MAX 10                    /* maximum number of parameters to a function */
+#define LINEBUFFER_MAX 256                  /* maximum number of characters on a line */
+#define LOCAL_TABLE_SIZE 11                 /* size of local variable table (can expand) */
+#define STRUCT_TABLE_SIZE 11                /* size of struct/union member table (can expand) */
 
 /* handy definitions */
 #ifndef TRUE
@@ -61,28 +62,13 @@ enum LexToken
     TokenHashDefine, TokenHashInclude
 };
 
-/* string type so we can use source file strings */
-typedef struct _Str
+/* parser state - has all this detail so we can parse nested files */
+struct ParseState
 {
-    int Len;
-    const char *Str;
-} Str;
-
-/* lexer state - so we can lex nested files */
-struct LexState
-{
+    const void *Pos;
+    const void *End;
     int Line;
-    const char *Pos;
-    const char *End;
-    const Str *FileName;
-};
-
-/* function definition - really just where it is in the source file */
-struct FuncDef
-{
-    Str Source;
-    Str FileName;
-    int StartLine;
+    const char *FileName;
 };
 
 /* values */
@@ -103,16 +89,28 @@ enum BaseType
     TypeType                    /* a type (eg. typedef) */
 };
 
+/* data type */
 struct ValueType
 {
     enum BaseType Base;         /* what kind of type this is */
     int ArraySize;              /* the size of an array type */
     int Sizeof;                 /* the storage required */
-    Str Identifier;             /* the name of a struct or union */
+    const char *Identifier;     /* the name of a struct or union */
     struct ValueType *FromType; /* the type we're derived from (or NULL) */
     struct ValueType *DerivedTypeList;  /* first in a list of types derived from this one */
     struct ValueType *Next;     /* next item in the derived type list */
     struct Table *Members;      /* members of a struct, union or enum */
+};
+
+/* function definition */
+struct FuncDef
+{
+    struct ValueType *ReturnType;   /* the return value type */
+    int NumParams;                  /* the number of parameters */
+    struct Typ *ParamType;          /* array of parameter types */
+    const char **ParamName;         /* array of parameter names */
+    void (*Intrinsic)();            /* intrinsic call address or NULL */
+    struct ParseState Body;         /* lexical tokens of the function body if not intrinsic */
 };
 
 struct ArrayValue
@@ -136,11 +134,12 @@ union AnyValue
     short ShortInteger;
     int Integer;
     double FP;
-    Str String;
+    char *String;
     struct ArrayValue Array;
     struct PointerValue Pointer;
-    struct LexState Lexer;
+    struct ParseState Parser;
     struct ValueType *Typ;
+    struct FuncDef FuncDef;
 };
 
 struct Value
@@ -154,7 +153,7 @@ struct Value
 /* hash table data structure */
 struct TableEntry
 {
-    Str Key;
+    const char *Key;
     struct Value *Val;
     struct TableEntry *Next;
 };
@@ -169,7 +168,7 @@ struct Table
 /* stack frame for function calls */
 struct StackFrame
 {
-    struct LexState ReturnLex;              /* how we got here */
+    struct ParseState ReturnParser;         /* how we got here */
     struct Table LocalTable;                /* the local variables and parameters */
     struct TableEntry *LocalHashTable[LOCAL_TABLE_SIZE];
     struct StackFrame *PreviousStackFrame;  /* the next lower stack frame */
@@ -188,49 +187,38 @@ extern struct ValueType FPType;
 extern struct ValueType VoidType;
 extern struct ValueType FunctionType;
 extern struct ValueType MacroType;
-extern Str StrEmpty;
-
-/* str.c */
-void StrToC(char *Dest, int DestSize, const Str *Source);
-void StrFromC(Str *Dest, const char *Source);
-int StrEqual(const Str *Str1, const Str *Str2);
-int StrEqualC(const Str *Str1, const char *Str2);
-void StrPrintf(const char *Format, ...);
-void vStrPrintf(const char *Format, va_list Args);
 
 /* picoc.c */
-void Fail(const char *Message, ...);
-void ProgramFail(struct LexState *Lexer, const char *Message, ...);
-void ScanFile(const Str *FileName);
+void ProgramFail(struct ParseState *Parser, const char *Message, ...);
+void ScanFile(const char *FileName);
 
 /* table.c */
 void TableInit(struct Table *Tbl, struct TableEntry **HashTable, int Size, int OnHeap);
-int TableSet(struct Table *Tbl, const Str *Key, struct Value *Val);
-int TableGet(struct Table *Tbl, const Str *Key, struct Value **Val);
+int TableSet(struct Table *Tbl, const char *Key, struct Value *Val);
+int TableGet(struct Table *Tbl, const char *Key, struct Value **Val);
+const char *TableSetKey(struct Table *Tbl, const char *Ident, int IdentLen);
 
 /* lex.c */
-void LexInit(struct LexState *Lexer, const Str *Source, const Str *FileName, int Line);
-enum LexToken LexGetToken(struct LexState *Lexer, struct Value **Value);
-enum LexToken LexGetPlainToken(struct LexState *Lexer);
-enum LexToken LexPeekToken(struct LexState *Lexer, struct Value **Value);
-enum LexToken LexPeekPlainToken(struct LexState *Lexer);
-void LexToEndOfLine(struct LexState *Lexer);
+void LexInit(struct ParseState *Parser, const char *Source, int SourceLen, const char *FileName, int Line);
+enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int IncPos);
+void LexToEndOfLine(struct ParseState *Parser);
 
 /* parse.c */
 void ParseInit(void);
-int ParseExpression(struct LexState *Lexer, struct Value **Result, int ResultOnHeap, int RunIt);
-int ParseIntExpression(struct LexState *Lexer, int RunIt);
-void Parse(const Str *FileName, const Str *Source, int RunIt);
+int ParseExpression(struct ParseState *Parser, struct Value **Result, int ResultOnHeap, int RunIt);
+int ParseIntExpression(struct ParseState *Parser, int RunIt);
+int ParseStatement(struct ParseState *Parser, int RunIt);
+void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt);
 
 /* type.c */
 void TypeInit();
 int TypeSizeof(struct ValueType *Typ);
-void TypeParse(struct LexState *Lexer, struct ValueType **Typ, Str *Identifier);
+void TypeParse(struct ParseState *Parser, struct ValueType **Typ, const char **Identifier);
 
 /* intrinsic.c */
 void IntrinsicInit(struct Table *GlobalTable);
-void IntrinsicGetLexer(struct LexState *Lexer, int IntrinsicId);
-void IntrinsicCall(struct LexState *Lexer, struct Value *Result, struct ValueType *ReturnType, int IntrinsicId);
+void IntrinsicGetLexer(struct ParseState *Parser, int IntrinsicId);
+void IntrinsicCall(struct ParseState *Parser, struct Value *Result, struct ValueType *ReturnType, int IntrinsicId);
 
 /* heap.c */
 void HeapInit();
@@ -243,15 +231,20 @@ void HeapFree(void *Mem);
 
 /* variable.c */
 void VariableInit();
-void *VariableAlloc(struct LexState *Lexer, int Size, int OnHeap);
-void VariableStackPop(struct LexState *Lexer, struct Value *Var);
-struct Value *VariableAllocValueAndData(struct LexState *Lexer, int DataSize, int OnHeap);
-struct Value *VariableAllocValueAndCopy(struct LexState *Lexer, struct Value *FromValue, int OnHeap);
-struct Value *VariableAllocValueFromType(struct LexState *Lexer, struct ValueType *Typ, int OnHeap);
-void VariableDefine(struct LexState *Lexer, const Str *Ident, struct Value *InitValue);
-int VariableDefined(Str *Ident);
-void VariableGet(struct LexState *Lexer, Str *Ident, struct Value **LVal);
-void VariableStackFrameAdd(struct LexState *Lexer);
-void VariableStackFramePop(struct LexState *Lexer);
+void *VariableAlloc(struct ParseState *Parser, int Size, int OnHeap);
+void VariableStackPop(struct ParseState *Parser, struct Value *Var);
+struct Value *VariableAllocValueAndData(struct ParseState *Parser, int DataSize, int OnHeap);
+struct Value *VariableAllocValueAndCopy(struct ParseState *Parser, struct Value *FromValue, int OnHeap);
+struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct ValueType *Typ, int OnHeap);
+void VariableDefine(struct ParseState *Parser, const char *Ident, struct Value *InitValue);
+int VariableDefined(const char *Ident);
+void VariableGet(struct ParseState *Parser, const char *Ident, struct Value **LVal);
+void VariableStackFrameAdd(struct ParseState *Parser);
+void VariableStackFramePop(struct ParseState *Parser);
+
+/* str.c */
+void StrInit();
+const char *StrRegister(const char *Str);
+const char *StrRegister2(const char *Str, int Len);
 
 #endif /* PICOC_H */

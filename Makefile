@@ -3,7 +3,7 @@ CFLAGS=-Wall -g
 LIBS=-lm
 
 TARGET	= picoc
-SRCS	= picoc.c table.c str.c parse.c lex.c intrinsic.c heap.c type.c variable.c
+SRCS	= picoc.c table.c lex.c parse.c intrinsic.c heap.c type.c variable.c str.c
 OBJS	:= $(SRCS:%.c=%.o)
 
 all: $(TARGET)

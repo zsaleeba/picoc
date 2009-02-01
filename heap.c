@@ -90,6 +90,9 @@ void *HeapAlloc(int Size)
     int AllocSize = MEM_ALIGN(Size) + sizeof(NewMem->Size);
     int Bucket = AllocSize >> 2;
     
+    if (Size == 0)
+        return NULL;
+    
     if (Bucket < FREELIST_BUCKETS && FreeListBucket[Bucket] != NULL)
     { /* try to allocate from a freelist bucket first */
         NewMem = FreeListBucket[Bucket];
@@ -136,6 +139,9 @@ void HeapFree(void *Mem)
 {
     struct AllocNode *MemNode = (struct AllocNode *)(Mem-sizeof(int));
     int Bucket = MemNode->Size >> 2;
+    
+    if (Mem == NULL)
+        return;
     
     if ((void *)MemNode == HeapBottom)
     { /* pop it off the bottom of the heap, reducing the heap size */
