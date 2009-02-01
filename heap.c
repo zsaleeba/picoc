@@ -134,16 +134,21 @@ void *HeapAlloc(int Size)
 /* free some dynamically allocated memory */
 void HeapFree(void *Mem)
 {
-    int Bucket = ((struct AllocNode *)Mem)->Size >> 2;
+    struct AllocNode *MemNode = (struct AllocNode *)(Mem-sizeof(int));
+    int Bucket = MemNode->Size >> 2;
     
-    if (Bucket < FREELIST_BUCKETS)
+    if ((void *)MemNode == HeapBottom)
+    { /* pop it off the bottom of the heap, reducing the heap size */
+        HeapBottom += sizeof(int) + MemNode->Size;
+    }
+    else if (Bucket < FREELIST_BUCKETS)
     { /* we can fit it in a bucket */
-        *(struct AllocNode **)Mem = FreeListBucket[Bucket];
-        FreeListBucket[Bucket] = (struct AllocNode *)Mem;
+        *(struct AllocNode **)MemNode = FreeListBucket[Bucket];
+        FreeListBucket[Bucket] = (struct AllocNode *)MemNode;
     }
     else
     { /* put it in the big memory freelist */
-        ((struct AllocNode *)Mem)->NextFree = FreeListBig;
-        FreeListBig = (struct AllocNode *)Mem;
+        MemNode->NextFree = FreeListBig;
+        FreeListBig = MemNode;
     }
 }
