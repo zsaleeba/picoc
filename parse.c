@@ -22,59 +22,31 @@ void ParseInit()
     TypeInit();
 }
 
-/* parse a parameter list, defining parameters as local variables in the current scope */
-void ParseParameterList(struct ParseState *CallLexer, struct FuncDef *Func, int RunIt)
-{
-    XXX - fix this
-    struct ValueType *Typ;
-    Str Identifier;
-    enum LexToken Token = LexGetToken(FuncLexer, NULL, TRUE);  /* open bracket */
-    int ParamCount;
-    
-    for (ParamCount = 0; ParamCount < ParameterUsed; ParamCount++)
-    {
-        TypeParse(FuncLexer, &Typ, &Identifier);
-        if (Identifier.Len != 0)
-        {   /* there's an identifier */
-            if (RunIt)
-            {
-                if (Parameter[ParamCount]->Typ != Typ)
-                    ProgramFail(CallLexer, "parameter %d has the wrong type", ParamCount+1);
-                    
-                VariableDefine(FuncLexer, &Identifier, Parameter[ParamCount]);
-            }
-        }
-    
-        Token = LexGetToken(FuncLexer, NULL, TRUE);
-        if (ParamCount < ParameterUsed-1 && Token != TokenComma)
-                ProgramFail(FuncLexer, "comma expected");
-    }
-    
-    if (Token != TokenCloseBracket)
-        ProgramFail(FuncLexer, "')' expected");
-        
-    if (ParameterUsed == 0)
-        Token = LexGetToken(FuncLexer, NULL, TRUE);
-    
-    if (Token != TokenCloseBracket)
-        ProgramFail(CallLexer, "wrong number of arguments");
-}
-
 /* do a function call */
-void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, int ResultOnHeap, Str *FuncName, int RunIt)
+void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, int ResultOnHeap, const char *FuncName, int RunIt)
 {
-    XXX - fix this
+    struct Value *FuncValue;
     enum LexToken Token = LexGetToken(Parser, NULL, TRUE);    /* open bracket */
     
+    if (RunIt) 
+    { /* get the function definition */
+        VariableGet(Parser, FuncName, &FuncValue);
+        if (FuncValue->Typ->Base != TypeFunction)
+            ProgramFail(Parser, "not a function - can't call");
+    }
+        
     /* parse arguments */
     ParameterUsed = 0;
     do {
         if (ParseExpression(Parser, &Parameter[ParameterUsed], FALSE, RunIt))
         {
-            if (RunIt && ParameterUsed >= PARAMETER_MAX)
-                ProgramFail(Parser, "too many arguments");
+            if (RunIt && FuncValue->Val->FuncDef.ParamType[ParameterUsed] != Parameter[ParameterUsed]->Typ)
+                ProgramFail(Parser, "parameter %d to %s is the wrong type", ParameterUsed, FuncName);
                 
             ParameterUsed++;
+            if (RunIt && ParameterUsed >= FuncValue->Val->FuncDef.NumParams)
+                ProgramFail(Parser, "too many arguments");
+                
             Token = LexGetToken(Parser, NULL, TRUE);
             if (Token != TokenComma && Token != TokenCloseBracket)
                 ProgramFail(Parser, "comma expected");
@@ -88,36 +60,27 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, int Res
     } while (Token != TokenCloseBracket);
     
     if (RunIt) 
-    {
-        struct ParseState FuncLexer;
-        struct ValueType *ReturnType;
-        struct Value *FuncValue;
-        Str FuncName;
+    { /* run the function */
         int Count;
         
-        VariableGet(Parser, &FuncName, &FuncValue);
-        if ((*Result)->Typ->Base != TypeFunction)
-            ProgramFail(Parser, "not a function - can't call");
-        
         VariableStackFrameAdd(Parser);
-        if (FuncValue->Val->Parser.Line >= 0)
-            FuncLexer = FuncValue->Val->Parser;
-        else
-            IntrinsicGetLexer(&FuncLexer, FuncValue->Val->Parser.Line);
 
-        TypeParse(&FuncLexer, &ReturnType, &FuncName);  /* get the return type */
-        *Result = VariableAllocValueFromType(Parser, ReturnType, ResultOnHeap);
-        ParseParameterList(Parser, &FuncLexer, TRUE);    /* parameters */
-        if (FuncValue->Val->Parser.Line >= 0)
+        *Result = VariableAllocValueFromType(Parser, FuncValue->Val->FuncDef.ReturnType, ResultOnHeap);
+        if (FuncValue->Val->FuncDef.Intrinsic == NULL)
         { /* run a user-defined function */
-            if (LexGetToken(&FuncLexer, NULL, FALSE) != TokenLeftBrace || !ParseStatement(&FuncLexer, TRUE))
-                ProgramFail(&FuncLexer, "function body expected");
+            struct ParseState FuncParser = FuncValue->Val->FuncDef.Body;
+            
+            for (Count = 0; Count < ParameterUsed; Count++)
+                VariableDefine(Parser, FuncValue->Val->FuncDef.ParamName[Count], Parameter[Count]);
+            
+            if (!ParseStatement(&FuncParser, TRUE))
+                ProgramFail(&FuncParser, "function body expected");
         
-            if (ReturnType != (*Result)->Typ)
-                ProgramFail(&FuncLexer, "bad return value");
+            if (FuncValue->Val->FuncDef.ReturnType != (*Result)->Typ)
+                ProgramFail(&FuncParser, "bad type of return value");
         }
         else
-            IntrinsicCall(Parser, *Result, ReturnType, (*Result)->Val->Parser.Line);
+            FuncValue->Val->FuncDef.Intrinsic();
         
         VariableStackFramePop(Parser);
             
@@ -169,13 +132,13 @@ int ParseValue(struct ParseState *Parser, struct Value **Result, int ResultOnHea
 
         case TokenIdentifier:
             if (LexGetToken(Parser, NULL, FALSE) == TokenOpenBracket)
-                ParseFunctionCall(Parser, Result, ResultOnHeap, &LexValue->Val->String, RunIt);
+                ParseFunctionCall(Parser, Result, ResultOnHeap, LexValue->Val->String, RunIt);
             else
             {
                 if (RunIt)
                 {
                     struct Value *IdentValue;
-                    VariableGet(Parser, &LexValue->Val->String, &IdentValue);
+                    VariableGet(Parser, LexValue->Val->String, &IdentValue);
                     if (IdentValue->Typ->Base == TypeMacro)
                     {
                         struct ParseState MacroLexer = IdentValue->Val->Parser;
@@ -360,10 +323,10 @@ int ParseIntExpression(struct ParseState *Parser, int RunIt)
 }
 
 /* parse a function definition and store it for later */
-struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *ReturnType, const char *Identifier, int IsProtoType)
+struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *ReturnType, const char *Identifier, int IsPrototype)
 {
-    struct ValueType *ParamTyp;
-    Str Identifier;
+    struct ValueType *ParamType;
+    const char *ParamIdentifier;
     enum LexToken Token;
     struct Value *FuncValue;
     struct ParseState ParamParser;
@@ -381,8 +344,10 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
                 ParamCount++;
         } 
     }
+    if (ParamCount > PARAMETER_MAX)
+        ProgramFail(Parser, "too many parameters");
     
-    FuncValue = VariableAllocValueAndData(Parser, sizeof(struct FuncDef) + sizeof(struct ValueType *) * ParamCount + sizeof(Str *) * ParamCount, TRUE);
+    FuncValue = VariableAllocValueAndData(Parser, sizeof(struct FuncDef) + sizeof(struct ValueType *) * ParamCount + sizeof(const char *) * ParamCount, TRUE);
     FuncValue->Typ = &FunctionType;
     FuncValue->Val->FuncDef.ReturnType = ReturnType;
     FuncValue->Val->FuncDef.NumParams = ParamCount;
@@ -392,13 +357,13 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
    
     for (ParamCount = 0; ParamCount < FuncValue->Val->FuncDef.NumParams; ParamCount++)
     { /* harvest the parameters into the function definition */
-        TypeParse(ParamParser, &Typ, &Identifier);
-        FuncValue->Val->FuncDef.ParamType[ParamCount] = Typ;
-        FuncValue->Val->FuncDef.ParamName[ParamCount] = Typ;
+        TypeParse(&ParamParser, &ParamType, &ParamIdentifier);
+        FuncValue->Val->FuncDef.ParamType[ParamCount] = ParamType;
+        FuncValue->Val->FuncDef.ParamName[ParamCount] = ParamIdentifier;
         
-        Token = LexGetToken(ParamParser, NULL, TRUE);
+        Token = LexGetToken(&ParamParser, NULL, TRUE);
         if (Token != TokenComma)
-                ProgramFail(ParamParser, "comma expected");
+            ProgramFail(&ParamParser, "comma expected");
     }
     
     if (!IsPrototype)
@@ -408,12 +373,10 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
         
         if (!ParseStatement(Parser, FALSE))
             ProgramFail(Parser, "function definition expected");
-    
-        FuncValue->Val->FuncDef.Body.End = Parser->Pos;
     }
         
     if (!TableSet(&GlobalTable, Identifier, FuncValue))
-        ProgramFail(Parser, "'%S' is already defined", Identifier);
+        ProgramFail(Parser, "'%s' is already defined", Identifier);
     
     return FuncValue;
 }
@@ -421,7 +384,6 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
 /* parse a #define macro definition and store it for later */
 void ParseMacroDefinition(struct ParseState *Parser)
 {
-    XXX - fix this
     struct Value *MacroName;
     struct Value *MacroValue = VariableAllocValueAndData(Parser, sizeof(struct ParseState), TRUE);
 
@@ -429,11 +391,10 @@ void ParseMacroDefinition(struct ParseState *Parser)
         ProgramFail(Parser, "identifier expected");
     
     MacroValue->Val->Parser = *Parser;
-    MacroValue->Val->Parser.End = Parser->Pos;
     MacroValue->Typ = &MacroType;
     
-    if (!TableSet(&GlobalTable, &MacroName->Val->String, MacroValue))
-        ProgramFail(Parser, "'%S' is already defined", &MacroName->Val->String);
+    if (!TableSet(&GlobalTable, MacroName->Val->String, MacroValue))
+        ProgramFail(Parser, "'%s' is already defined", &MacroName->Val->String);
 }
 
 void ParseFor(struct ParseState *Parser, int RunIt)
@@ -492,7 +453,7 @@ int ParseStatement(struct ParseState *Parser, int RunIt)
     struct Value *CValue;
     int Condition;
     struct ParseState PreState = *Parser;
-    Str Identifier;
+    const char *Identifier;
     struct ValueType *Typ;
     enum LexToken Token = LexGetToken(Parser, NULL, TRUE);
     
@@ -572,14 +533,14 @@ int ParseStatement(struct ParseState *Parser, int RunIt)
         case TokenVoidType:
             *Parser = PreState;
             TypeParse(Parser, &Typ, &Identifier);
-            if (Identifier.Len == 0)
+            if (Identifier == StrEmpty)
                 ProgramFail(Parser, "identifier expected");
                 
             /* handle function definitions */
             if (LexGetToken(Parser, NULL, FALSE) == TokenOpenBracket)
-                ParseFunctionDefinition(Parser, &Typ, &Identifier, FALSE);
+                ParseFunctionDefinition(Parser, Typ, Identifier, FALSE);
             else
-                VariableDefine(Parser, &Identifier, VariableAllocValueFromType(Parser, Typ, FALSE));
+                VariableDefine(Parser, Identifier, VariableAllocValueFromType(Parser, Typ, FALSE));
             break;
         
         case TokenHashDefine:
@@ -592,7 +553,7 @@ int ParseStatement(struct ParseState *Parser, int RunIt)
             if (LexGetToken(Parser, &LexerValue, TRUE) != TokenStringConstant)
                 ProgramFail(Parser, "\"filename.h\" expected");
             
-            ScanFile(&LexerValue->Val->String);
+            ScanFile(LexerValue->Val->String);
             break;
         }
 
@@ -613,7 +574,7 @@ int ParseStatement(struct ParseState *Parser, int RunIt)
 }
 
 /* quick scan a source file for definitions */
-void Parse(const Str *FileName, const Str *Source, int SourceLen, int RunIt)
+void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt)
 {
     struct ParseState Parser;
     
@@ -622,6 +583,6 @@ void Parse(const Str *FileName, const Str *Source, int SourceLen, int RunIt)
     while (ParseStatement(&Parser, RunIt))
     {}
     
-    if (Parser.Pos != Parser.End)
+    if (LexGetToken(&Parser, NULL, FALSE) != TokenEOF)
         ProgramFail(&Parser, "parse error");
 }

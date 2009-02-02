@@ -65,7 +65,7 @@ struct Value *VariableAllocValueAndCopy(struct ParseState *Parser, struct Value 
 void VariableDefine(struct ParseState *Parser, const char *Ident, struct Value *InitValue)
 {
     if (!TableSet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, Ident, VariableAllocValueAndCopy(Parser, InitValue, TopStackFrame == NULL)))
-        ProgramFail(Parser, "'%S' is already defined", Ident);
+        ProgramFail(Parser, "'%s' is already defined", Ident);
 }
 
 /* check if a variable with a given name is defined */
@@ -88,7 +88,7 @@ void VariableGet(struct ParseState *Parser, const char *Ident, struct Value **LV
     if (TopStackFrame == NULL || !TableGet(&TopStackFrame->LocalTable, Ident, LVal))
     {
         if (!TableGet(&GlobalTable, Ident, LVal))
-            ProgramFail(Parser, "'%S' is undefined", Ident);
+            ProgramFail(Parser, "'%s' is undefined", Ident);
     }
 }
 

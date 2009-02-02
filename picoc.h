@@ -10,7 +10,7 @@
 
 #define GLOBAL_TABLE_SIZE 397               /* global variable table */
 #define STRING_TABLE_SIZE 97                /* shared string table size */
-#define PARAMETER_MAX 10                    /* maximum number of parameters to a function */
+#define PARAMETER_MAX 16                    /* maximum number of parameters to a function */
 #define LINEBUFFER_MAX 256                  /* maximum number of characters on a line */
 #define LOCAL_TABLE_SIZE 11                 /* size of local variable table (can expand) */
 #define STRUCT_TABLE_SIZE 11                /* size of struct/union member table (can expand) */
@@ -113,7 +113,7 @@ struct FuncDef
 {
     struct ValueType *ReturnType;   /* the return value type */
     int NumParams;                  /* the number of parameters */
-    struct Typ *ParamType;          /* array of parameter types */
+    struct ValueType **ParamType;   /* array of parameter types */
     const char **ParamName;         /* array of parameter names */
     void (*Intrinsic)();            /* intrinsic call address or NULL */
     struct ParseState Body;         /* lexical tokens of the function body if not intrinsic */
@@ -211,7 +211,7 @@ void ScanFile(const char *FileName);
 void TableInit(struct Table *Tbl, struct TableEntry **HashTable, int Size, int OnHeap);
 int TableSet(struct Table *Tbl, const char *Key, struct Value *Val);
 int TableGet(struct Table *Tbl, const char *Key, struct Value **Val);
-const char *TableSetKey(struct Table *Tbl, const char *Ident, int IdentLen);
+const char *TableSetIdentifier(struct Table *Tbl, const char *Ident, int IdentLen);
 
 /* lex.c */
 void LexInit();

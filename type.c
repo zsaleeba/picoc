@@ -119,7 +119,7 @@ void TypeParseStruct(struct ParseState *Parser, struct ValueType **Typ, int IsSt
         }
         
         if (!TableSet((*Typ)->Members, MemberIdentifier, MemberValue))
-            ProgramFail(Parser, "member '%S' already defined", &MemberIdentifier);
+            ProgramFail(Parser, "member '%s' already defined", &MemberIdentifier);
                     
     } while (LexGetToken(Parser, NULL, FALSE) != TokenRightBrace);
     

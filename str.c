@@ -20,7 +20,7 @@ void StrInit()
 /* register a string in the shared string store */
 const char *StrRegister2(const char *Str, int Len)
 {
-    return TableSetKey(&StringTable, Str, Len);
+    return TableSetIdentifier(&StringTable, Str, Len);
 }
 
 const char *StrRegister(const char *Str)
