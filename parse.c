@@ -360,7 +360,7 @@ int ParseIntExpression(struct ParseState *Parser, int RunIt)
 }
 
 /* parse a function definition and store it for later */
-void ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *ReturnType, Str *Identifier)
+struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *ReturnType, const char *Identifier, int IsProtoType)
 {
     struct ValueType *ParamTyp;
     Str Identifier;
@@ -401,16 +401,21 @@ void ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *Return
                 ProgramFail(ParamParser, "comma expected");
     }
     
-    if (LexGetToken(Parser, NULL, FALSE) != TokenLeftBrace)
-        ProgramFail(Parser, "bad function definition");
+    if (!IsPrototype)
+    {
+        if (LexGetToken(Parser, NULL, FALSE) != TokenLeftBrace)
+            ProgramFail(Parser, "bad function definition");
+        
+        if (!ParseStatement(Parser, FALSE))
+            ProgramFail(Parser, "function definition expected");
     
-    if (!ParseStatement(Parser, FALSE))
-        ProgramFail(Parser, "function definition expected");
-
-    FuncValue->Val->FuncDef.Body.End = Parser->Pos;
-    
+        FuncValue->Val->FuncDef.Body.End = Parser->Pos;
+    }
+        
     if (!TableSet(&GlobalTable, Identifier, FuncValue))
         ProgramFail(Parser, "'%S' is already defined", Identifier);
+    
+    return FuncValue;
 }
 
 /* parse a #define macro definition and store it for later */
@@ -572,7 +577,7 @@ int ParseStatement(struct ParseState *Parser, int RunIt)
                 
             /* handle function definitions */
             if (LexGetToken(Parser, NULL, FALSE) == TokenOpenBracket)
-                ParseFunctionDefinition(Parser, &Typ, &Identifier);
+                ParseFunctionDefinition(Parser, &Typ, &Identifier, FALSE);
             else
                 VariableDefine(Parser, &Identifier, VariableAllocValueFromType(Parser, Typ, FALSE));
             break;

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdarg.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -32,7 +33,7 @@ char *ReadFile(const char *FileName)
     if (stat(FileName, &FileInfo))
         ProgramFail(NULL, "can't read file %s\n", FileName);
     
-    ReadText = HeapAlloc(FileInfo.st_size);
+    ReadText = HeapAlloc(FileInfo.st_size + 1);
     if (ReadText == NULL)
         ProgramFail(NULL, "out of memory\n");
         
@@ -43,6 +44,7 @@ char *ReadFile(const char *FileName)
     if (fread(ReadText, 1, FileInfo.st_size, InFile) != FileInfo.st_size)
         ProgramFail(NULL, "can't read file %s\n", FileName);
 
+    ReadText[FileInfo.st_size] = '\0';
     fclose(InFile);
     
     return ReadText;    
@@ -52,7 +54,7 @@ char *ReadFile(const char *FileName)
 void ScanFile(const char *FileName)
 {
     char *SourceStr = ReadFile(FileName);
-    Parse(FileName, SourceStr, TRUE);
+    Parse(FileName, SourceStr, strlen(SourceStr), TRUE);
     HeapFree(SourceStr);
 }
 

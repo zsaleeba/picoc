@@ -153,9 +153,17 @@ struct Value
 /* hash table data structure */
 struct TableEntry
 {
-    const char *Key;
-    struct Value *Val;
-    struct TableEntry *Next;
+    struct TableEntry *Next;    /* next item in this hash chain */
+    union TableEntryPayload
+    {
+        struct ValueEntry
+        {
+            const char *Key;    /* points to the shared string table */
+            struct Value *Val;  /* the value we're storing */
+        } v;                    /* used for tables of values */
+        
+        const char Key[1];      /* dummy size - used for the shared string table */
+    } p;
 };
     
 struct Table
@@ -208,6 +216,7 @@ void ParseInit(void);
 int ParseExpression(struct ParseState *Parser, struct Value **Result, int ResultOnHeap, int RunIt);
 int ParseIntExpression(struct ParseState *Parser, int RunIt);
 int ParseStatement(struct ParseState *Parser, int RunIt);
+struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *ReturnType, const char *Identifier, int IsProtoType);
 void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt);
 
 /* type.c */
@@ -217,8 +226,6 @@ void TypeParse(struct ParseState *Parser, struct ValueType **Typ, const char **I
 
 /* intrinsic.c */
 void IntrinsicInit(struct Table *GlobalTable);
-void IntrinsicGetLexer(struct ParseState *Parser, int IntrinsicId);
-void IntrinsicCall(struct ParseState *Parser, struct Value *Result, struct ValueType *ReturnType, int IntrinsicId);
 
 /* heap.c */
 void HeapInit();
