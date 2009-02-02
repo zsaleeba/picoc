@@ -6,12 +6,6 @@
 #define FREELIST_BUCKETS 8                          /* freelists for 4, 8, 12 ... 32 byte allocs */
 #define SPLIT_MEM_THRESHOLD 16                      /* don't split memory which is close in size */
 
-struct AllocNode
-{
-    int Size;
-    struct AllocNode *NextFree;
-};
-
 static unsigned char HeapMemory[HEAP_SIZE];         /* all memory - stack and heap */
 static void *StackFrame = &HeapMemory;              /* the current stack frame */
 static void *StackTop = &HeapMemory;                /* the top of the stack */
@@ -59,6 +53,13 @@ int HeapPopStack(void *Addr, int Size)
     assert(StackTop == Addr);
     
     return TRUE;
+}
+
+/* get all the free space from the top of the stack - only suitable for temporary work */
+void *HeapStackGetFreeSpace(int *MemAvailable)
+{
+    *MemAvailable = StackTop - (void *)&HeapMemory;
+    return StackTop;
 }
 
 /* push a new stack frame on to the stack */

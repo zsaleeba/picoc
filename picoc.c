@@ -65,6 +65,7 @@ int main(int argc, char **argv)
     
     HeapInit();
     StrInit();
+    LexInit();
     ParseInit();
     
     ScanFile(argv[1]);

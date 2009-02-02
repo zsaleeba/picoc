@@ -11,9 +11,11 @@
 #define isCidstart(c) (isalpha(c) || (c)=='_' || (c)=='#')
 #define isCident(c) (isalnum(c) || (c)=='_')
 
-#define NEXTIS(c,x,y) { if (NextChar == (c)) { Lexer->Pos++; return (x); } else return (y); }
-#define NEXTIS3(c,x,d,y,z) { if (NextChar == (c)) { Lexer->Pos++; return (x); } else NEXTIS(d,y,z) }
-#define NEXTIS4(c,x,d,y,e,z,a) { if (NextChar == (c)) { Lexer->Pos++; return (x); } else NEXTIS3(d,y,e,z,a) }
+#define ISVALUETOKEN(t) ((t) >= TokenIdentifier && (t) <= TokenCharacterConstant)
+
+#define NEXTIS(c,x,y) { if (NextChar == (c)) { Lexer->Pos++; GotToken = (x); } else GotToken = (y); }
+#define NEXTIS3(c,x,d,y,z) { if (NextChar == (c)) { Lexer->Pos++; GotToken = (x); } else NEXTIS(d,y,z) }
+#define NEXTIS4(c,x,d,y,e,z,a) { if (NextChar == (c)) { Lexer->Pos++; GotToken = (x); } else NEXTIS3(d,y,e,z,a) }
 
 static union AnyValue LexAnyValue;
 static struct Value LexValue = { TypeVoid, &LexAnyValue, FALSE, FALSE };
@@ -22,35 +24,36 @@ struct ReservedWord
 {
     const char *Word;
     enum LexToken Token;
+    const char *SharedWord; /* word stored in shared string space */
 };
 
 static struct ReservedWord ReservedWords[] =
 {
-    { "#define", TokenHashDefine },
-    { "#include", TokenHashInclude },
-    { "break", TokenBreak },
-    { "case", TokenCase },
-    { "char", TokenCharType },
-    { "default", TokenDefault },
-    { "do", TokenDo },
-    { "double", TokenDoubleType },
-    { "else", TokenElse },
-    { "enum", TokenEnumType },
-    { "float", TokenFloatType },
-    { "for", TokenFor },
-    { "if", TokenIf },
-    { "int", TokenIntType },
-    { "long", TokenLongType },
-    { "return", TokenReturn },
-    { "signed", TokenSignedType },
-    { "short", TokenShortType },
-    { "struct", TokenStructType },
-    { "switch", TokenSwitch },
-    { "typedef", TokenTypedef },
-    { "union", TokenUnionType },
-    { "unsigned", TokenUnsignedType },
-    { "void", TokenVoidType },
-    { "while", TokenWhile }
+    { "#define", TokenHashDefine, NULL },
+    { "#include", TokenHashInclude, NULL },
+    { "break", TokenBreak, NULL },
+    { "case", TokenCase, NULL },
+    { "char", TokenCharType, NULL },
+    { "default", TokenDefault, NULL },
+    { "do", TokenDo, NULL },
+    { "double", TokenDoubleType, NULL },
+    { "else", TokenElse, NULL },
+    { "enum", TokenEnumType, NULL },
+    { "float", TokenFloatType, NULL },
+    { "for", TokenFor, NULL },
+    { "if", TokenIf, NULL },
+    { "int", TokenIntType, NULL },
+    { "long", TokenLongType, NULL },
+    { "return", TokenReturn, NULL },
+    { "signed", TokenSignedType, NULL },
+    { "short", TokenShortType, NULL },
+    { "struct", TokenStructType, NULL },
+    { "switch", TokenSwitch, NULL },
+    { "typedef", TokenTypedef, NULL },
+    { "union", TokenUnionType, NULL },
+    { "unsigned", TokenUnsignedType, NULL },
+    { "void", TokenVoidType, NULL },
+    { "while", TokenWhile, NULL }
 };
 
 struct LexState
@@ -61,14 +64,25 @@ struct LexState
     const char *FileName;
 };
 
-void LexInit(struct ParseState *Parser, const char *Source, int SourceLen, const char *FileName, int Line)
+
+/* initialise the lexer */
+void LexInit()
 {
-    Parser->Pos = Source;
-    Parser->End = Source + SourceLen;
+    int Count;
+    
+    for (Count = 0; Count < sizeof(ReservedWords) / sizeof(struct ReservedWord); Count++)
+        ReservedWords[Count].SharedWord = StrRegister(ReservedWords[Count].Word);
+}
+
+/* prepare to parse a pre-tokenised buffer */
+void LexInitParser(struct ParseState *Parser, void *TokenSource, int TokenSourceLen, const char *FileName, int Line)
+{
+    Parser->Pos = TokenSource;
     Parser->Line = Line;
     Parser->FileName = FileName;
 }
 
+/* exit with a message */
 void LexFail(struct LexState *Lexer, const char *Message, ...)
 {
     va_list Args;
@@ -80,19 +94,21 @@ void LexFail(struct LexState *Lexer, const char *Message, ...)
     exit(1);
 }
 
+/* check if a word is a reserved word - used while scanning */
 enum LexToken LexCheckReservedWord(const char *Word)
 {
     int Count;
     
     for (Count = 0; Count < sizeof(ReservedWords) / sizeof(struct ReservedWord); Count++)
     {
-        if (strcmp(Word, ReservedWords[Count].Word) == 0)
+        if (Word == ReservedWords[Count].SharedWord)
             return ReservedWords[Count].Token;
     }
     
     return TokenNone;
 }
 
+/* skip a comment - used while scanning */
 enum LexToken LexGetNumber(struct LexState *Lexer, struct Value *Value)
 {
     int Result = 0;
@@ -124,6 +140,7 @@ enum LexToken LexGetNumber(struct LexState *Lexer, struct Value *Value)
     return TokenFPConstant;
 }
 
+/* get a reserved word or identifier - used while scanning */
 enum LexToken LexGetWord(struct LexState *Lexer, struct Value *Value)
 {
     const char *Pos = Lexer->Pos + 1;
@@ -143,6 +160,7 @@ enum LexToken LexGetWord(struct LexState *Lexer, struct Value *Value)
     return TokenIdentifier;
 }
 
+/* get a string constant - used while scanning */
 enum LexToken LexGetStringConstant(struct LexState *Lexer, struct Value *Value)
 {
     int Escape = FALSE;
@@ -166,6 +184,7 @@ enum LexToken LexGetStringConstant(struct LexState *Lexer, struct Value *Value)
     return TokenStringConstant;
 }
 
+/* get a character constant - used while scanning */
 enum LexToken LexGetCharacterConstant(struct LexState *Lexer, struct Value *Value)
 {
     Value->Typ = &IntType;
@@ -177,7 +196,8 @@ enum LexToken LexGetCharacterConstant(struct LexState *Lexer, struct Value *Valu
     return TokenCharacterConstant;
 }
 
-enum LexToken LexGetComment(struct LexState *Lexer, char NextChar, struct Value *Value)
+/* skip a comment - used while scanning */
+void LexSkipComment(struct LexState *Lexer, char NextChar)
 {
     Lexer->Pos++;
     if (NextChar == '*')
@@ -193,96 +213,133 @@ enum LexToken LexGetComment(struct LexState *Lexer, char NextChar, struct Value 
         while (Lexer->Pos != Lexer->End && *Lexer->Pos != '\n')
             Lexer->Pos++;
     }
-
-    return LexGetToken(Lexer, Value);
 }
 
-enum LexToken LexGetTokenToStack(struct LexState *Lexer, struct Value **Value)
+/* get a single token from the source - used while scanning */
+enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
 {
     char ThisChar;
     char NextChar;
+    enum LexToken GotToken = TokenNone;
     
-    if (Lexer->Pos == Lexer->End)
+    do
     {
-        char LineBuffer[LINEBUFFER_MAX];
-        if (fgets(&LineBuffer[0], LINEBUFFER_MAX, stdin) == NULL)
-            return TokenEOF;
-    }
+        if (Lexer->Pos == Lexer->End)
+        {
+            char LineBuffer[LINEBUFFER_MAX];
+            if (fgets(&LineBuffer[0], LINEBUFFER_MAX, stdin) == NULL)
+                return TokenEOF;
+        }
+        
+        *Value = &LexValue;
+        while (Lexer->Pos != Lexer->End && isspace(*Lexer->Pos))
+        {
+            if (*Lexer->Pos == '\n')
+                Lexer->Line++;
     
-    *Value = &LexValue;
-    while (Lexer->Pos != Lexer->End && isspace(*Lexer->Pos))
-    {
-        if (*Lexer->Pos == '\n')
-            Lexer->Line++;
-
+            Lexer->Pos++;
+        }
+        
+        ThisChar = *Lexer->Pos;
+        if (isCidstart(ThisChar))
+            return LexGetWord(Lexer, *Value);
+        
+        if (isdigit(ThisChar))
+            return LexGetNumber(Lexer, *Value);
+        
+        NextChar = (Lexer->Pos+1 != Lexer->End) ? *(Lexer->Pos+1) : 0;
         Lexer->Pos++;
-    }
+        switch (ThisChar)
+        {
+            case '"': GotToken = LexGetStringConstant(Lexer, *Value);
+            case '\'': GotToken = LexGetCharacterConstant(Lexer, *Value);
+            case '(': GotToken = TokenOpenBracket;
+            case ')': GotToken = TokenCloseBracket;
+            case '=': NEXTIS('=', TokenEquality, TokenAssign);
+            case '+': NEXTIS3('=', TokenAddAssign, '+', TokenIncrement, TokenPlus);
+            case '-': NEXTIS4('=', TokenSubtractAssign, '>', TokenArrow, '-', TokenDecrement, TokenMinus);
+            case '*': GotToken = TokenAsterisk;
+            case '/': if (NextChar == '/' || NextChar == '*') LexSkipComment(Lexer, NextChar); else GotToken = TokenSlash;
+            case '<': NEXTIS('=', TokenLessEqual, TokenLessThan);
+            case '>': NEXTIS('=', TokenGreaterEqual, TokenGreaterThan);
+            case ';': GotToken = TokenSemicolon;
+            case '&': NEXTIS('&', TokenLogicalAnd, TokenAmpersand);
+            case '|': NEXTIS('|', TokenLogicalOr, TokenArithmeticOr);
+            case '{': GotToken = TokenLeftBrace;
+            case '}': GotToken = TokenRightBrace;
+            case '[': GotToken = TokenLeftSquareBracket;
+            case ']': GotToken = TokenRightSquareBracket;
+            case '!': GotToken = TokenUnaryNot;
+            case '^': GotToken = TokenArithmeticExor;
+            case '~': GotToken = TokenUnaryExor;
+            case ',': GotToken = TokenComma;
+            case '.': GotToken = TokenDot;
+            default:  LexFail(Lexer, "illegal character '%c'", ThisChar);
+        }
+    } while (GotToken == TokenNone);
     
-    ThisChar = *Lexer->Pos;
-    if (isCidstart(ThisChar))
-        return LexGetWord(Lexer, *Value);
-    
-    if (isdigit(ThisChar))
-        return LexGetNumber(Lexer, *Value);
-    
-    NextChar = (Lexer->Pos+1 != Lexer->End) ? *(Lexer->Pos+1) : 0;
-    Lexer->Pos++;
-    switch (ThisChar)
-    {
-        case '"': return LexGetStringConstant(Lexer, *Value);
-        case '\'': return LexGetCharacterConstant(Lexer, *Value);
-        case '(': return TokenOpenBracket;
-        case ')': return TokenCloseBracket;
-        case '=': NEXTIS('=', TokenEquality, TokenAssign);
-        case '+': NEXTIS3('=', TokenAddAssign, '+', TokenIncrement, TokenPlus);
-        case '-': NEXTIS4('=', TokenSubtractAssign, '>', TokenArrow, '-', TokenDecrement, TokenMinus);
-        case '*': return TokenAsterisk;
-        case '/': if (NextChar == '/' || NextChar == '*') return LexGetComment(Lexer, NextChar, *Value); else return TokenSlash;
-        case '<': NEXTIS('=', TokenLessEqual, TokenLessThan);
-        case '>': NEXTIS('=', TokenGreaterEqual, TokenGreaterThan);
-        case ';': return TokenSemicolon;
-        case '&': NEXTIS('&', TokenLogicalAnd, TokenAmpersand);
-        case '|': NEXTIS('|', TokenLogicalOr, TokenArithmeticOr);
-        case '{': return TokenLeftBrace;
-        case '}': return TokenRightBrace;
-        case '[': return TokenLeftSquareBracket;
-        case ']': return TokenRightSquareBracket;
-        case '!': return TokenUnaryNot;
-        case '^': return TokenArithmeticExor;
-        case '~': return TokenUnaryExor;
-        case ',': return TokenComma;
-        case '.': return TokenDot;
-    }
-
-    LexFail(Lexer, "illegal character '%c'", ThisChar);
-    return TokenEOF;
+    return GotToken;
 }
 
-void LexTokeniseToStack(struct LexState *Lexer, struct Value **Value)
+/* produce tokens from the lexer and return a heap buffer with the result - used for scanning */
+void *LexTokeniseToHeap(struct LexState *Lexer)
 {
-    XXX - finish this
+    enum LexToken Token;
+    void *HeapMem;
+    struct Value *GotValue;
+    int MemAvailable;
+    int MemUsed;
+    void *TokenSpace = HeapStackGetFreeSpace(&MemAvailable);
+    
+    do
+    { /* store the token at the end of the stack area */
+        Token = LexScanGetToken(Lexer, &GotValue);
+        *(char *)TokenSpace = Token;
+        TokenSpace++;
+        MemUsed++;
+
+        if (ISVALUETOKEN(Token))
+        { /* store a value as well */
+            int ValueSize = sizeof(struct Value) + GotValue->Typ->Sizeof;
+            if (MemAvailable - MemUsed <= ValueSize)
+                LexFail(Lexer, "out of memory while lexing");
+
+            memcpy(TokenSpace, GotValue, ValueSize);
+            TokenSpace += ValueSize;
+            MemUsed += ValueSize;
+        }
+        
+        if (MemAvailable <= MemUsed)
+            LexFail(Lexer, "out of memory while lexing");
+            
+    } while (Token != TokenEOF);
+    
+    if (MemAvailable < MemUsed*2 + sizeof(struct AllocNode))   /* need memory for stack copy + heap copy */
+        LexFail(Lexer, "out of memory while lexing");
+        
+    HeapMem = HeapAlloc(MemUsed);
+    memcpy(HeapMem, HeapStackGetFreeSpace(&MemAvailable), MemUsed);
+    return HeapMem;
 }
 
+/* get the next token given a parser state */
 enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int IncPos)
 {
-    enum LexToken;
+    enum LexToken Token;
         
-    while (Parser->Pos != Parser->End && (enum LexToken)*(unsigned char *)Parser->Pos == TokenEndOfLine)
+    while ((enum LexToken)*(unsigned char *)Parser->Pos == TokenEndOfLine)
     { /* skip leading newlines */
-        Pos->Line++;
-        Pos++;
+        Parser->Line++;
+        Parser->Pos++;
     }
     
-    if (Parser->Pos == Parser->End)
-        return TokenEOF;
-
-    LexToken = (enum LexToken)*(unsigned char *)Parser->Pos;
-    if (LexToken >= TokenIdentifier && LexToken <= TokenCharacterConstant)
+    Token = (enum LexToken)*(unsigned char *)Parser->Pos;
+    if (ISVALUETOKEN(Token))
     { /* this token requires a value */
         int ValueLen = sizeof(struct Value) + ((struct Value *)Parser->Pos)->Typ->Sizeof;
         if (Value != NULL)
         { /* copy the value out (aligns it in the process) */
-            memcpy(LexValue, (struct Value *)Parser->Pos, ValueLen);
+            memcpy(&LexValue, (struct Value *)Parser->Pos, ValueLen);
             *Value = &LexValue;
         }
         
@@ -291,10 +348,10 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
     }
     else
     {
-        if (IncPos)
+        if (IncPos && Token != TokenEndOfLine)
             Parser->Pos++;
     }
     
-    return LexToken;
+    return Token;
 }
 

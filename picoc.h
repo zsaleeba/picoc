@@ -62,11 +62,17 @@ enum LexToken
     TokenHashDefine, TokenHashInclude
 };
 
+/* used in dynamic memory allocation */
+struct AllocNode
+{
+    int Size;
+    struct AllocNode *NextFree;
+};
+
 /* parser state - has all this detail so we can parse nested files */
 struct ParseState
 {
     const void *Pos;
-    const void *End;
     int Line;
     const char *FileName;
 };
@@ -207,7 +213,8 @@ int TableGet(struct Table *Tbl, const char *Key, struct Value **Val);
 const char *TableSetKey(struct Table *Tbl, const char *Ident, int IdentLen);
 
 /* lex.c */
-void LexInit(struct ParseState *Parser, const char *Source, int SourceLen, const char *FileName, int Line);
+void LexInit();
+void LexInitParser(struct ParseState *Parser, void *TokenSource, int TokenSourceLen, const char *FileName, int Line);
 enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int IncPos);
 void LexToEndOfLine(struct ParseState *Parser);
 
@@ -231,6 +238,7 @@ void IntrinsicInit(struct Table *GlobalTable);
 void HeapInit();
 void *HeapAllocStack(int Size);
 int HeapPopStack(void *Addr, int Size);
+void *HeapStackGetFreeSpace(int *MemAvailable);
 void HeapPushStackFrame();
 int HeapPopStackFrame();
 void *HeapAlloc(int Size);
