@@ -578,8 +578,9 @@ void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt)
 {
     struct ParseState Parser;
     
-    LexInit(&Parser, Source, SourceLen, FileName, 1);
-    
+    void *Tokens = LexAnalyse(FileName, Source, SourceLen); // XXX - some better way of storing tokenised input?
+    LexInitParser(&Parser, Tokens, FileName, 1);
+
     while (ParseStatement(&Parser, RunIt))
     {}
     

@@ -35,10 +35,13 @@ void IntrinsicInit(struct Table *GlobalTable)
     const char *Identifier;
     struct ValueType *ReturnType;
     struct Value *NewValue;
+    void *Tokens;
+    const char *IntrinsicName = StrRegister("intrinsic");
     
     for (Count = 0; Count < sizeof(Intrinsics) / sizeof(struct IntrinsicFunction); Count++)
     {
-        LexInit(&Parser, Intrinsics[Count].Prototype, strlen(Intrinsics[Count].Prototype), StrEmpty, Count+1);
+        Tokens = LexAnalyse(IntrinsicName, Intrinsics[Count].Prototype, strlen(Intrinsics[Count].Prototype));
+        LexInitParser(&Parser, Tokens, IntrinsicName, Count+1);
         TypeParse(&Parser, &ReturnType, &Identifier);
         NewValue = ParseFunctionDefinition(&Parser, ReturnType, Identifier, TRUE);
         NewValue->Val->FuncDef.Intrinsic = Intrinsics[Count].Func;

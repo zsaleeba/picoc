@@ -214,10 +214,10 @@ int TableGet(struct Table *Tbl, const char *Key, struct Value **Val);
 const char *TableSetIdentifier(struct Table *Tbl, const char *Ident, int IdentLen);
 
 /* lex.c */
-void LexInit();
-void LexInitParser(struct ParseState *Parser, void *TokenSource, int TokenSourceLen, const char *FileName, int Line);
+void LexInit(void);
+void *LexAnalyse(const char *FileName, const char *Source, int SourceLen);
+void LexInitParser(struct ParseState *Parser, void *TokenSource, const char *FileName, int Line);
 enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int IncPos);
-void LexToEndOfLine(struct ParseState *Parser);
 
 /* parse.c */
 void ParseInit(void);

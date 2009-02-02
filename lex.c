@@ -74,14 +74,6 @@ void LexInit()
         ReservedWords[Count].SharedWord = StrRegister(ReservedWords[Count].Word);
 }
 
-/* prepare to parse a pre-tokenised buffer */
-void LexInitParser(struct ParseState *Parser, void *TokenSource, int TokenSourceLen, const char *FileName, int Line)
-{
-    Parser->Pos = TokenSource;
-    Parser->Line = Line;
-    Parser->FileName = FileName;
-}
-
 /* exit with a message */
 void LexFail(struct LexState *Lexer, const char *Message, ...)
 {
@@ -282,7 +274,7 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
 }
 
 /* produce tokens from the lexer and return a heap buffer with the result - used for scanning */
-void *LexTokeniseToHeap(struct LexState *Lexer)
+void *LexTokenise(struct LexState *Lexer)
 {
     enum LexToken Token;
     void *HeapMem;
@@ -318,8 +310,28 @@ void *LexTokeniseToHeap(struct LexState *Lexer)
         LexFail(Lexer, "out of memory while lexing");
         
     HeapMem = HeapAlloc(MemUsed);
-    memcpy(HeapMem, HeapStackGetFreeSpace(&MemAvailable), MemUsed);
+    memcpy(HeapMem, HeapStackGetFreeSpace(&MemAvailable), MemUsed);    
     return HeapMem;
+}
+
+/* lexically analyse some source text */
+void *LexAnalyse(const char *FileName, const char *Source, int SourceLen)
+{
+    struct LexState Lexer;
+    
+    Lexer.Pos = Source;
+    Lexer.End = Source + SourceLen;
+    Lexer.Line = 1;
+    Lexer.FileName = FileName;
+    return LexTokenise(&Lexer);
+}
+
+/* prepare to parse a pre-tokenised buffer */
+void LexInitParser(struct ParseState *Parser, void *TokenSource, const char *FileName, int Line)
+{
+    Parser->Pos = TokenSource;
+    Parser->Line = Line;
+    Parser->FileName = FileName;
 }
 
 /* get the next token given a parser state */
