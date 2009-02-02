@@ -243,30 +243,30 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
         Lexer->Pos++;
         switch (ThisChar)
         {
-            case '"': GotToken = LexGetStringConstant(Lexer, *Value);
-            case '\'': GotToken = LexGetCharacterConstant(Lexer, *Value);
-            case '(': GotToken = TokenOpenBracket;
-            case ')': GotToken = TokenCloseBracket;
-            case '=': NEXTIS('=', TokenEquality, TokenAssign);
-            case '+': NEXTIS3('=', TokenAddAssign, '+', TokenIncrement, TokenPlus);
-            case '-': NEXTIS4('=', TokenSubtractAssign, '>', TokenArrow, '-', TokenDecrement, TokenMinus);
-            case '*': GotToken = TokenAsterisk;
-            case '/': if (NextChar == '/' || NextChar == '*') LexSkipComment(Lexer, NextChar); else GotToken = TokenSlash;
-            case '<': NEXTIS('=', TokenLessEqual, TokenLessThan);
-            case '>': NEXTIS('=', TokenGreaterEqual, TokenGreaterThan);
-            case ';': GotToken = TokenSemicolon;
-            case '&': NEXTIS('&', TokenLogicalAnd, TokenAmpersand);
-            case '|': NEXTIS('|', TokenLogicalOr, TokenArithmeticOr);
-            case '{': GotToken = TokenLeftBrace;
-            case '}': GotToken = TokenRightBrace;
-            case '[': GotToken = TokenLeftSquareBracket;
-            case ']': GotToken = TokenRightSquareBracket;
-            case '!': GotToken = TokenUnaryNot;
-            case '^': GotToken = TokenArithmeticExor;
-            case '~': GotToken = TokenUnaryExor;
-            case ',': GotToken = TokenComma;
-            case '.': GotToken = TokenDot;
-            default:  LexFail(Lexer, "illegal character '%c'", ThisChar);
+            case '"': GotToken = LexGetStringConstant(Lexer, *Value); break;
+            case '\'': GotToken = LexGetCharacterConstant(Lexer, *Value); break;
+            case '(': GotToken = TokenOpenBracket; break;
+            case ')': GotToken = TokenCloseBracket; break;
+            case '=': NEXTIS('=', TokenEquality, TokenAssign); break;
+            case '+': NEXTIS3('=', TokenAddAssign, '+', TokenIncrement, TokenPlus); break;
+            case '-': NEXTIS4('=', TokenSubtractAssign, '>', TokenArrow, '-', TokenDecrement, TokenMinus); break;
+            case '*': GotToken = TokenAsterisk; break;
+            case '/': if (NextChar == '/' || NextChar == '*') LexSkipComment(Lexer, NextChar); else GotToken = TokenSlash; break;
+            case '<': NEXTIS('=', TokenLessEqual, TokenLessThan); break;
+            case '>': NEXTIS('=', TokenGreaterEqual, TokenGreaterThan); break;
+            case ';': GotToken = TokenSemicolon; break;
+            case '&': NEXTIS('&', TokenLogicalAnd, TokenAmpersand); break;
+            case '|': NEXTIS('|', TokenLogicalOr, TokenArithmeticOr); break;
+            case '{': GotToken = TokenLeftBrace; break;
+            case '}': GotToken = TokenRightBrace; break;
+            case '[': GotToken = TokenLeftSquareBracket; break;
+            case ']': GotToken = TokenRightSquareBracket; break;
+            case '!': GotToken = TokenUnaryNot; break;
+            case '^': GotToken = TokenArithmeticExor; break;
+            case '~': GotToken = TokenUnaryExor; break;
+            case ',': GotToken = TokenComma; break;
+            case '.': GotToken = TokenDot; break;
+            default:  LexFail(Lexer, "illegal character '%c'", ThisChar); break;
         }
     } while (GotToken == TokenNone);
     
