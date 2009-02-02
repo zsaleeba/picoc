@@ -280,7 +280,7 @@ void *LexTokenise(struct LexState *Lexer)
     void *HeapMem;
     struct Value *GotValue;
     int MemAvailable;
-    int MemUsed;
+    int MemUsed = 0;
     void *TokenSpace = HeapStackGetFreeSpace(&MemAvailable);
     
     do
