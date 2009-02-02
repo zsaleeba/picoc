@@ -16,7 +16,6 @@ int ParseArguments(struct ParseState *Parser, int RunIt);
 /* initialise the parser */
 void ParseInit()
 {
-    StrInit();
     VariableInit();
     IntrinsicInit(&GlobalTable);
     TypeInit();

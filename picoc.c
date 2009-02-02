@@ -65,6 +65,7 @@ int main(int argc, char **argv)
     
     HeapInit();
     StrInit();
+    VariableInit();
     LexInit();
     ParseInit();
     
