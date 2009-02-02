@@ -76,7 +76,7 @@ static int TableSearchIdentifier(struct Table *Tbl, const char *Key, int Len, in
     
     for (Entry = Tbl->HashTable[HashValue]; Entry != NULL; Entry = Entry->Next)
     {
-        if (strncmp(Entry->p.Key, Key, Len) == 0 && Entry->p.Key[Len] == '\0')
+        if (strncmp(&Entry->p.Key[0], Key, Len) == 0 && Entry->p.Key[Len] == '\0')
             return HashValue;   /* found */
     }
     
@@ -91,13 +91,13 @@ const char *TableSetIdentifier(struct Table *Tbl, const char *Ident, int IdentLe
     int HashPos = TableSearchIdentifier(Tbl, Ident, IdentLen, &AddAt);
     
     if (HashPos != -1)
-        return Tbl->HashTable[HashPos]->p.Key;
+        return &Tbl->HashTable[HashPos]->p.Key[0];
     else
     {   /* add it to the table - we economise by not allocating the whole structure here */
         struct TableEntry *NewEntry = HeapAlloc(sizeof(struct TableEntry *) + IdentLen + 1);
-        strncpy((char *)NewEntry->p.Key, Ident, IdentLen);
+        strncpy((char *)&NewEntry->p.Key[0], Ident, IdentLen);
         NewEntry->Next = Tbl->HashTable[AddAt];
         Tbl->HashTable[AddAt] = NewEntry;
-        return NewEntry->p.Key;
+        return &NewEntry->p.Key[0];
     }
 }
