@@ -8,11 +8,13 @@
 
 struct Table StringTable;
 struct TableEntry *StringHashTable[STRING_TABLE_SIZE];
+const char *StrEmpty = NULL;
 
 /* initialise the shared string system */
 void StrInit()
 {
     TableInit(&StringTable, &StringHashTable[0], STRING_TABLE_SIZE, TRUE);
+    StrEmpty = StrRegister("");
 }
 
 /* register a string in the shared string store */

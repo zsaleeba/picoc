@@ -14,13 +14,13 @@ struct ValueType Type_Type;
 
 
 /* add a new type to the set of types we know about */
-struct ValueType *TypeAdd(struct LexState *Lexer, struct ValueType *ParentType, enum BaseType Base, int ArraySize, Str *Identifier, int Sizeof)
+struct ValueType *TypeAdd(struct ParseState *Parser, struct ValueType *ParentType, enum BaseType Base, int ArraySize, const char *Identifier, int Sizeof)
 {
-    struct ValueType *NewType = VariableAlloc(Lexer, sizeof(struct ValueType), TRUE);
+    struct ValueType *NewType = VariableAlloc(Parser, sizeof(struct ValueType), TRUE);
     NewType->Base = Base;
     NewType->ArraySize = ArraySize;
     NewType->Sizeof = Sizeof;
-    NewType->Identifier = *Identifier;
+    NewType->Identifier = Identifier;
     NewType->Members = NULL;
     NewType->FromType = ParentType;
     NewType->DerivedTypeList = NULL;
@@ -31,11 +31,11 @@ struct ValueType *TypeAdd(struct LexState *Lexer, struct ValueType *ParentType, 
 }
 
 /* given a parent type, get a matching derived type and make one if necessary */
-struct ValueType *TypeGetMatching(struct LexState *Lexer, struct ValueType *ParentType, enum BaseType Base, int ArraySize, Str *Identifier)
+struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *ParentType, enum BaseType Base, int ArraySize, const char *Identifier)
 {
     int Sizeof;
     struct ValueType *ThisType = ParentType->DerivedTypeList;
-    while (ThisType != NULL && (ThisType->Base != Base || ThisType->ArraySize != ArraySize || !StrEqual(&ThisType->Identifier, Identifier)))
+    while (ThisType != NULL && (ThisType->Base != Base || ThisType->ArraySize != ArraySize || ThisType->Identifier != Identifier))
         ThisType = ThisType->Next;
     
     if (ThisType != NULL)
@@ -49,7 +49,7 @@ struct ValueType *TypeGetMatching(struct LexState *Lexer, struct ValueType *Pare
         default:            Sizeof = 0; break;      /* structs and unions will get bigger when we add members to them */
     }
 
-    return TypeAdd(Lexer, ParentType, Base, ArraySize, Identifier, Sizeof);
+    return TypeAdd(Parser, ParentType, Base, ArraySize, Identifier, Sizeof);
 }
 
 /* add a base type */
@@ -72,7 +72,7 @@ void TypeInit()
     UberType.DerivedTypeList = NULL;
     TypeAddBaseType(&IntType, TypeInt, sizeof(int));
     TypeAddBaseType(&CharType, TypeChar, sizeof(char));
-    TypeAddBaseType(&StringType, TypeString, sizeof(Str));
+    TypeAddBaseType(&StringType, TypeString, sizeof(const char *));
     TypeAddBaseType(&FPType, TypeFP, sizeof(double));
     TypeAddBaseType(&VoidType, TypeVoid, 0);
     TypeAddBaseType(&FunctionType, TypeFunction, sizeof(int));
@@ -81,30 +81,30 @@ void TypeInit()
 }
 
 /* parse a struct or union declaration */
-void TypeParseStruct(struct LexState *Lexer, struct ValueType **Typ, int IsStruct)
+void TypeParseStruct(struct ParseState *Parser, struct ValueType **Typ, int IsStruct)
 {
     struct Value *LexValue;
     struct ValueType *MemberType;
-    Str MemberIdentifier;
+    const char *MemberIdentifier;
     struct Value *MemberValue;
     
-    if (LexGetToken(Lexer, &LexValue) != TokenIdentifier)
-        ProgramFail(Lexer, "struct/union name required");
+    if (LexGetToken(Parser, &LexValue, TRUE) != TokenIdentifier)
+        ProgramFail(Parser, "struct/union name required");
     
-    if (LexGetPlainToken(Lexer) != TokenLeftBrace)
-        ProgramFail(Lexer, "'{' expected");
+    if (LexGetToken(Parser, NULL, TRUE) != TokenLeftBrace)
+        ProgramFail(Parser, "'{' expected");
     
     if (TopStackFrame != NULL)
-        ProgramFail(Lexer, "struct/union definitions can only be globals");
+        ProgramFail(Parser, "struct/union definitions can only be globals");
         
-    *Typ = TypeGetMatching(Lexer, &UberType, IsStruct ? TypeStruct : TypeUnion, 0, &LexValue->Val->String);
-    (*Typ)->Members = VariableAlloc(Lexer, sizeof(struct Table) + STRUCT_TABLE_SIZE * sizeof(struct TableEntry), TRUE);
+    *Typ = TypeGetMatching(Parser, &UberType, IsStruct ? TypeStruct : TypeUnion, 0, LexValue->Val->String);
+    (*Typ)->Members = VariableAlloc(Parser, sizeof(struct Table) + STRUCT_TABLE_SIZE * sizeof(struct TableEntry), TRUE);
     (*Typ)->Members->HashTable = (void *)(*Typ)->Members + sizeof(struct Table);
     
     do {
-        TypeParse(Lexer, &MemberType, &MemberIdentifier);
+        TypeParse(Parser, &MemberType, &MemberIdentifier);
         
-        MemberValue = VariableAllocValueAndData(Lexer, sizeof(int), TRUE);
+        MemberValue = VariableAllocValueAndData(Parser, sizeof(int), TRUE);
         MemberValue->Typ = MemberType;
         if (IsStruct)
         { /* allocate this member's location in the struct */
@@ -118,27 +118,28 @@ void TypeParseStruct(struct LexState *Lexer, struct ValueType **Typ, int IsStruc
                 (*Typ)->Sizeof = MemberValue->Typ->Sizeof;
         }
         
-        if (!TableSet((*Typ)->Members, &MemberIdentifier, MemberValue))
-            ProgramFail(Lexer, "member '%S' already defined", &MemberIdentifier);
+        if (!TableSet((*Typ)->Members, MemberIdentifier, MemberValue))
+            ProgramFail(Parser, "member '%S' already defined", &MemberIdentifier);
                     
-    } while (LexPeekPlainToken(Lexer) != TokenRightBrace);
+    } while (LexGetToken(Parser, NULL, FALSE) != TokenRightBrace);
     
-    LexGetPlainToken(Lexer);
+    LexGetToken(Parser, NULL, TRUE);
 }
 
 /* parse a type */
-void TypeParse(struct LexState *Lexer, struct ValueType **Typ, Str *Identifier)
+void TypeParse(struct ParseState *Parser, struct ValueType **Typ, const char **Identifier)
 {
-    struct LexState Before;
+    struct ParseState Before;
     enum LexToken Token;
     struct Value *LexValue;
     int Done = FALSE;
     *Typ = NULL;
+    *Identifier = StrEmpty;
     
     while (!Done)
     {
-        Before = *Lexer;
-        Token = LexGetToken(Lexer, &LexValue);
+        Before = *Parser;
+        Token = LexGetToken(Parser, &LexValue, TRUE);
         switch (Token)
         {
             case TokenIntType: case TokenLongType: case TokenShortType: *Typ = &IntType; break;
@@ -148,65 +149,65 @@ void TypeParse(struct LexState *Lexer, struct ValueType **Typ, Str *Identifier)
             
             case TokenStructType: case TokenUnionType: 
                 if (*Typ != NULL)
-                    ProgramFail(Lexer, "bad type declaration");
+                    ProgramFail(Parser, "bad type declaration");
                     
-                TypeParseStruct(Lexer, Typ, Token == TokenStructType);
+                TypeParseStruct(Parser, Typ, Token == TokenStructType);
                 break;
 
             case TokenOpenBracket:
                 if (*Typ != NULL)
-                    ProgramFail(Lexer, "bad type declaration");
+                    ProgramFail(Parser, "bad type declaration");
                 
-                TypeParse(Lexer, Typ, Identifier);
-                if (LexGetPlainToken(Lexer) != TokenCloseBracket)
-                    ProgramFail(Lexer, "')' expected");
+                TypeParse(Parser, Typ, Identifier);
+                if (LexGetToken(Parser, NULL, TRUE) != TokenCloseBracket)
+                    ProgramFail(Parser, "')' expected");
                 break;
                 
             case TokenAsterisk:
                 if (*Typ == NULL)
-                    ProgramFail(Lexer, "bad type declaration");
+                    ProgramFail(Parser, "bad type declaration");
 
-                *Typ = TypeGetMatching(Lexer, *Typ, TypePointer, 0, &StrEmpty);
+                *Typ = TypeGetMatching(Parser, *Typ, TypePointer, 0, StrEmpty);
                 break;
             
             case TokenIdentifier:
-                if (*Typ == NULL || Identifier->Len != 0)
-                    ProgramFail(Lexer, "bad type declaration");
+                if (*Typ == NULL || *Identifier == StrEmpty)
+                    ProgramFail(Parser, "bad type declaration");
                 
                 *Identifier = LexValue->Val->String;
                 Done = TRUE;
                 break;
                 
-            default: *Lexer = Before; Done = TRUE; break;
+            default: *Parser = Before; Done = TRUE; break;
         }
     }
     
     if (*Typ == NULL)
-        ProgramFail(Lexer, "bad type declaration");
+        ProgramFail(Parser, "bad type declaration");
 
-    if (Identifier->Len != 0)
+    if (*Identifier != StrEmpty)
     { /* parse stuff after the identifier */
         Done = FALSE;
         while (!Done)
         {
-            Before = *Lexer;
-            switch (LexGetPlainToken(Lexer))
+            Before = *Parser;
+            switch (LexGetToken(Parser, NULL, TRUE))
             {
                 case TokenLeftSquareBracket:
                     {
-                        int ArraySize = ParseIntExpression(Lexer, TRUE);
+                        int ArraySize = ParseIntExpression(Parser, TRUE);
                         
-                        if (LexGetPlainToken(Lexer) != TokenRightSquareBracket)
-                            ProgramFail(Lexer, "']' expected");
+                        if (LexGetToken(Parser, NULL, TRUE) != TokenRightSquareBracket)
+                            ProgramFail(Parser, "']' expected");
                             
-                        *Typ = TypeGetMatching(Lexer, *Typ, TypeArray, ArraySize, &StrEmpty);
+                        *Typ = TypeGetMatching(Parser, *Typ, TypeArray, ArraySize, StrEmpty);
                     }
                     break;
                     
                 case TokenOpenBracket:
                     break;  // XXX - finish this
                 
-                default: *Lexer = Before; Done = TRUE; break;
+                default: *Parser = Before; Done = TRUE; break;
             }
         }
     }    

@@ -201,6 +201,7 @@ extern struct ValueType FPType;
 extern struct ValueType VoidType;
 extern struct ValueType FunctionType;
 extern struct ValueType MacroType;
+extern const char *StrEmpty;
 
 /* picoc.c */
 void ProgramFail(struct ParseState *Parser, const char *Message, ...);
