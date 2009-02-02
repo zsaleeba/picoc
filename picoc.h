@@ -4,7 +4,7 @@
 #include <stdarg.h>
 
 /* configurable options */
-#define HEAP_SIZE 2048                      /* space for the heap and the stack */
+#define HEAP_SIZE 8192                      /* space for the heap and the stack */
 #define LARGE_INT_POWER_OF_TEN 1000000000   /* the largest power of ten which fits in an int on this architecture */
 #define ARCH_ALIGN_WORDSIZE sizeof(int)     /* memory alignment boundary on this architecture */
 
