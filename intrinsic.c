@@ -45,5 +45,6 @@ void IntrinsicInit(struct Table *GlobalTable)
         TypeParse(&Parser, &ReturnType, &Identifier);
         NewValue = ParseFunctionDefinition(&Parser, ReturnType, Identifier, TRUE);
         NewValue->Val->FuncDef.Intrinsic = Intrinsics[Count].Func;
+        HeapFree(Tokens);
     }
 }
