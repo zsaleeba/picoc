@@ -302,6 +302,7 @@ void *LexTokenise(struct LexState *Lexer)
     do
     { /* store the token at the end of the stack area */
         Token = LexScanGetToken(Lexer, &GotValue);
+        printf("Token: %02x\n", Token);
         *(char *)TokenSpace = Token;
         TokenSpace++;
         MemUsed++;
@@ -326,7 +327,14 @@ void *LexTokenise(struct LexState *Lexer)
         LexFail(Lexer, "out of memory while lexing");
         
     HeapMem = HeapAlloc(MemUsed);
-    memcpy(HeapMem, HeapStackGetFreeSpace(&MemAvailable), MemUsed);    
+    memcpy(HeapMem, HeapStackGetFreeSpace(&MemAvailable), MemUsed);  
+    {
+        int Count;
+        for (Count = 0; Count < MemUsed; Count++)
+            printf("%02x ", *(unsigned char *)(HeapMem+Count));
+        printf("\n");
+    }
+    
     return HeapMem;
 }
 
@@ -377,7 +385,7 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
                 default: break;
             }
             
-            memcpy(LexValue.Val, Parser->Pos, ValueSize);
+            memcpy(LexValue.Val, Parser->Pos+1, ValueSize);
             LexValue.ValOnHeap = FALSE;
             LexValue.ValOnStack = FALSE;
             *Value = &LexValue;
@@ -392,6 +400,7 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
             Parser->Pos++;
     }
     
+    printf("Got token=%02x inc=%d\n", Token, IncPos);
     return Token;
 }
 
