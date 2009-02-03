@@ -65,7 +65,7 @@ enum LexToken
 /* used in dynamic memory allocation */
 struct AllocNode
 {
-    int Size;
+    unsigned int Size;
     struct AllocNode *NextFree;
 };
 
