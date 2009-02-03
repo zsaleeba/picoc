@@ -171,7 +171,7 @@ void TypeParse(struct ParseState *Parser, struct ValueType **Typ, const char **I
                 break;
             
             case TokenIdentifier:
-                if (*Typ == NULL || *Identifier == StrEmpty)
+                if (*Typ == NULL || *Identifier != StrEmpty)
                     ProgramFail(Parser, "bad type declaration");
                 
                 *Identifier = LexValue->Val->String;
