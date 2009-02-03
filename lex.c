@@ -215,9 +215,14 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
     do
     {
         if (Lexer->Pos == Lexer->End)
-        {
-            char LineBuffer[LINEBUFFER_MAX];
-            if (fgets(&LineBuffer[0], LINEBUFFER_MAX, stdin) == NULL)
+        { /* end of input */
+            if (Lexer->FileName == StrEmpty)
+            { /* get interactive input */
+                char LineBuffer[LINEBUFFER_MAX];
+                if (fgets(&LineBuffer[0], LINEBUFFER_MAX, stdin) == NULL)
+                    return TokenEOF;
+            }
+            else
                 return TokenEOF;
         }
         
