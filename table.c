@@ -1,13 +1,22 @@
 #include <string.h>
 #include "picoc.h"
 
-/* quick hash function */
-static unsigned int TableHash(const char *Key, int KeyLen)
+/* hash function for strings */
+static unsigned int TableHash(const char *Key, int Len)
 {
-    if (KeyLen == 0)
-        return 0;
-    else
-        return ((*Key << 24) | (Key[KeyLen-1] << 16) | (Key[KeyLen >> 1] << 8)) ^ KeyLen;
+    unsigned int Hash = Len;
+    int Offset;
+    int Count;
+    
+    for (Count = 0, Offset = 8; Count < Len; Count++, Offset+=7)
+    {
+        if (Offset > sizeof(unsigned int) * 8 - 7)
+            Offset -= sizeof(unsigned int) * 8 - 6;
+            
+        Hash ^= *Key++ << Offset;
+    }
+    
+    return Hash;
 }
 
 /* initialise a table */
