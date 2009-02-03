@@ -11,8 +11,6 @@
 #define isCidstart(c) (isalpha(c) || (c)=='_' || (c)=='#')
 #define isCident(c) (isalnum(c) || (c)=='_')
 
-#define ISVALUETOKEN(t) ((t) >= TokenIdentifier && (t) <= TokenCharacterConstant)
-
 #define NEXTIS(c,x,y) { if (NextChar == (c)) { Lexer->Pos++; GotToken = (x); } else GotToken = (y); }
 #define NEXTIS3(c,x,d,y,z) { if (NextChar == (c)) { Lexer->Pos++; GotToken = (x); } else NEXTIS(d,y,z) }
 #define NEXTIS4(c,x,d,y,e,z,a) { if (NextChar == (c)) { Lexer->Pos++; GotToken = (x); } else NEXTIS3(d,y,e,z,a) }
@@ -273,6 +271,18 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
     return GotToken;
 }
 
+/* what size value goes with each token */
+int LexTokenSize(enum LexToken Token)
+{
+    switch (Token)
+    {
+        case TokenIdentifier: case TokenStringConstant: return sizeof(char *);
+        case TokenIntegerConstant: case TokenCharacterConstant: return sizeof(int);
+        case TokenFPConstant: return sizeof(double);
+        default: return 0;
+    }
+}
+
 /* produce tokens from the lexer and return a heap buffer with the result - used for scanning */
 void *LexTokenise(struct LexState *Lexer)
 {
@@ -281,6 +291,7 @@ void *LexTokenise(struct LexState *Lexer)
     struct Value *GotValue;
     int MemAvailable;
     int MemUsed = 0;
+    int ValueSize;
     void *TokenSpace = HeapStackGetFreeSpace(&MemAvailable);
     
     do
@@ -290,13 +301,13 @@ void *LexTokenise(struct LexState *Lexer)
         TokenSpace++;
         MemUsed++;
 
-        if (ISVALUETOKEN(Token))
+        ValueSize = LexTokenSize(Token);
+        if (ValueSize > 0)
         { /* store a value as well */
-            int ValueSize = sizeof(struct Value) + GotValue->Typ->Sizeof;
             if (MemAvailable - MemUsed <= ValueSize)
                 LexFail(Lexer, "out of memory while lexing");
 
-            memcpy(TokenSpace, GotValue, ValueSize);
+            memcpy(TokenSpace, GotValue->Val, ValueSize);
             TokenSpace += ValueSize;
             MemUsed += ValueSize;
         }
@@ -338,6 +349,7 @@ void LexInitParser(struct ParseState *Parser, void *TokenSource, const char *Fil
 enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int IncPos)
 {
     enum LexToken Token;
+    int ValueSize;
         
     while ((enum LexToken)*(unsigned char *)Parser->Pos == TokenEndOfLine)
     { /* skip leading newlines */
@@ -346,17 +358,28 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
     }
     
     Token = (enum LexToken)*(unsigned char *)Parser->Pos;
-    if (ISVALUETOKEN(Token))
-    { /* this token requires a value */
-        int ValueLen = sizeof(struct Value) + ((struct Value *)Parser->Pos)->Typ->Sizeof;
+    ValueSize = LexTokenSize(Token);
+    if (ValueSize > 0)
+    { /* this token requires a value - unpack it */
         if (Value != NULL)
-        { /* copy the value out (aligns it in the process) */
-            memcpy(&LexValue, (struct Value *)Parser->Pos, ValueLen);
+        { 
+            switch (Token)
+            {
+                case TokenStringConstant: case TokenIdentifier: LexValue.Typ = &StringType; break;
+                case TokenIntegerConstant:      LexValue.Typ = &IntType; break;
+                case TokenCharacterConstant:    LexValue.Typ = &CharType; break;
+                case TokenFPConstant:           LexValue.Typ = &FPType; break;
+                default: break;
+            }
+            
+            memcpy(LexValue.Val, Parser->Pos, ValueSize);
+            LexValue.ValOnHeap = FALSE;
+            LexValue.ValOnStack = FALSE;
             *Value = &LexValue;
         }
         
         if (IncPos)
-            Parser->Pos += ValueLen + 1;
+            Parser->Pos += ValueSize + 1;
     }
     else
     {
