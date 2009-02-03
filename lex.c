@@ -214,18 +214,6 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
     
     do
     {
-        if (Lexer->Pos == Lexer->End)
-        { /* end of input */
-            if (Lexer->FileName == StrEmpty)
-            { /* get interactive input */
-                char LineBuffer[LINEBUFFER_MAX];
-                if (fgets(&LineBuffer[0], LINEBUFFER_MAX, stdin) == NULL)
-                    return TokenEOF;
-            }
-            else
-                return TokenEOF;
-        }
-        
         *Value = &LexValue;
         while (Lexer->Pos != Lexer->End && isspace(*Lexer->Pos))
         {
@@ -233,6 +221,20 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
                 Lexer->Line++;
     
             Lexer->Pos++;
+        }
+        
+        if (Lexer->Pos == Lexer->End)
+        { /* end of input */
+            if (Lexer->FileName == StrEmpty)
+            { /* get interactive input */
+                char LineBuffer[LINEBUFFER_MAX];
+                if (fgets(&LineBuffer[0], LINEBUFFER_MAX, stdin) == NULL)
+                    return TokenEOF;
+                
+                // XXX - finish this
+            }
+            else
+                return TokenEOF;
         }
         
         ThisChar = *Lexer->Pos;
