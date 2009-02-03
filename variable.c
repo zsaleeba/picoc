@@ -36,7 +36,7 @@ void *VariableAlloc(struct ParseState *Parser, int Size, int OnHeap)
 /* allocate a value either on the heap or the stack using space dependent on what type we want */
 struct Value *VariableAllocValueAndData(struct ParseState *Parser, int DataSize, int OnHeap)
 {
-    struct Value *NewValue = VariableAlloc(Parser, DataSize, OnHeap);
+    struct Value *NewValue = VariableAlloc(Parser, sizeof(struct Value) + DataSize, OnHeap);
     NewValue->Val = (union AnyValue *)((void *)NewValue + sizeof(struct Value));
     NewValue->ValOnHeap = OnHeap;
     NewValue->ValOnStack = !OnHeap;

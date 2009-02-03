@@ -361,7 +361,7 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
         FuncValue->Val->FuncDef.ParamName[ParamCount] = ParamIdentifier;
         
         Token = LexGetToken(&ParamParser, NULL, TRUE);
-        if (Token != TokenComma)
+        if (Token != TokenComma && ParamCount != FuncValue->Val->FuncDef.NumParams-1)
             ProgramFail(&ParamParser, "comma expected");
     }
     

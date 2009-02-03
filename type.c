@@ -204,8 +204,8 @@ void TypeParse(struct ParseState *Parser, struct ValueType **Typ, const char **I
                     }
                     break;
                     
-                case TokenOpenBracket:
-                    break;  // XXX - finish this
+//                case TokenOpenBracket:
+//                    break;  // XXX - finish this
                 
                 default: *Parser = Before; Done = TRUE; break;
             }
