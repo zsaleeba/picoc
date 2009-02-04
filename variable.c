@@ -30,6 +30,11 @@ void *VariableAlloc(struct ParseState *Parser, int Size, int OnHeap)
     if (NewValue == NULL)
         ProgramFail(Parser, "out of memory");
     
+#ifdef DEBUG_HEAP
+    if (!OnHeap)
+        printf("pushing %d at 0x%lx\n", Size, (unsigned long)NewValue);
+#endif
+        
     return NewValue;
 }
 
@@ -97,8 +102,13 @@ void VariableStackPop(struct ParseState *Parser, struct Value *Var)
 {
     int Success;
     
+#ifdef DEBUG_HEAP
+    if (Var->ValOnStack)
+        printf("popping %d at 0x%lx\n", sizeof(struct Value) + Var->Typ->Sizeof, (unsigned long)Var);
+#endif
+        
     if (Var->ValOnHeap)
-    {
+    { // XXX - is this a mismatch with allocation?
         HeapFree(Var->Val);
         Success = HeapPopStack(Var, sizeof(struct Value));                       /* free from heap */
     }
@@ -130,7 +140,7 @@ void VariableStackFramePop(struct ParseState *Parser)
     if (TopStackFrame == NULL)
         ProgramFail(Parser, "stack is empty - can't go back");
         
-    TopStackFrame = TopStackFrame->PreviousStackFrame;
     *Parser = TopStackFrame->ReturnParser;
+    TopStackFrame = TopStackFrame->PreviousStackFrame;
     HeapPopStackFrame();
 }

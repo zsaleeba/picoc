@@ -66,6 +66,9 @@ void *HeapStackGetFreeSpace(int *MemAvailable)
 /* push a new stack frame on to the stack */
 void HeapPushStackFrame()
 {
+#ifdef DEBUG_HEAP
+    printf("Adding stack frame at 0x%lx\n", (unsigned long)StackTop);
+#endif
     *(void **)StackTop = StackFrame;
     StackFrame = StackTop;
     StackTop += sizeof(void *);
@@ -74,10 +77,13 @@ void HeapPushStackFrame()
 /* pop the current stack frame, freeing all memory in the frame. can return NULL */
 int HeapPopStackFrame()
 {
-    if (*(void **)StackFrame == NULL)
+    if (*(void **)StackFrame != NULL)
     {
         StackTop = StackFrame;
         StackFrame = *(void **)StackFrame;
+#ifdef DEBUG_HEAP
+        printf("Popping stack frame back to 0x%lx\n", (unsigned long)StackTop);
+#endif
         return TRUE;
     }
     else

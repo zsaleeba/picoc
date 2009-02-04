@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -g -DDEBUG_HEAP
+CFLAGS=-Wall -g
 LIBS=-lm
 
 TARGET	= picoc

@@ -32,6 +32,12 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, int Res
         VariableGet(Parser, FuncName, &FuncValue);
         if (FuncValue->Typ->Base != TypeFunction)
             ProgramFail(Parser, "not a function - can't call");
+    
+        *Result = VariableAllocValueFromType(Parser, FuncValue->Val->FuncDef.ReturnType, ResultOnHeap);
+        if (FuncValue->Val->FuncDef.Intrinsic == NULL)
+            VariableStackFrameAdd(Parser);
+        else
+            HeapPushStackFrame();
     }
         
     /* parse arguments */
@@ -43,7 +49,7 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, int Res
                 ProgramFail(Parser, "parameter %d to %s is the wrong type", ParameterUsed, FuncName);
                 
             ParameterUsed++;
-            if (RunIt && ParameterUsed >= FuncValue->Val->FuncDef.NumParams)
+            if (RunIt && ParameterUsed > FuncValue->Val->FuncDef.NumParams)
                 ProgramFail(Parser, "too many arguments");
                 
             Token = LexGetToken(Parser, NULL, TRUE);
@@ -62,9 +68,6 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, int Res
     { /* run the function */
         int Count;
         
-        VariableStackFrameAdd(Parser);
-
-        *Result = VariableAllocValueFromType(Parser, FuncValue->Val->FuncDef.ReturnType, ResultOnHeap);
         if (FuncValue->Val->FuncDef.Intrinsic == NULL)
         { /* run a user-defined function */
             struct ParseState FuncParser = FuncValue->Val->FuncDef.Body;
@@ -77,24 +80,26 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, int Res
         
             if (FuncValue->Val->FuncDef.ReturnType != (*Result)->Typ)
                 ProgramFail(&FuncParser, "bad type of return value");
+
+            VariableStackFramePop(Parser);
         }
         else
+        {
             FuncValue->Val->FuncDef.Intrinsic();
-        
-        VariableStackFramePop(Parser);
-            
-        for (Count = ParameterUsed-1; Count >= 0; Count--)  /* free stack space used by parameters */
-            VariableStackPop(Parser, Parameter[Count]);
+            HeapPopStackFrame();
+        }
     }
 }
 
 /* parse a single value */
-int ParseValue(struct ParseState *Parser, struct Value **Result, int ResultOnHeap, int RunIt)
+int ParseValue(struct ParseState *Parser, struct Value **Result, int ResultOnHeap, struct Value **LValue, int RunIt)
 {
     struct ParseState PreState = *Parser;
     struct Value *LexValue;
     int IntValue;
     enum LexToken Token = LexGetToken(Parser, &LexValue, TRUE);
+    struct Value *LocalLValue = NULL;
+    int Success = TRUE;
     
     switch (Token)
     {
@@ -136,27 +141,32 @@ int ParseValue(struct ParseState *Parser, struct Value **Result, int ResultOnHea
             {
                 if (RunIt)
                 {
-                    struct Value *IdentValue;
-                    VariableGet(Parser, LexValue->Val->String, &IdentValue);
-                    if (IdentValue->Typ->Base == TypeMacro)
+                    VariableGet(Parser, LexValue->Val->String, &LocalLValue);
+                    if (LocalLValue->Typ->Base == TypeMacro)
                     {
-                        struct ParseState MacroLexer = IdentValue->Val->Parser;
+                        struct ParseState MacroLexer = LocalLValue->Val->Parser;
                         
                         if (!ParseExpression(&MacroLexer, Result, ResultOnHeap, TRUE))
                             ProgramFail(&MacroLexer, "expression expected");
                     }
-                    else if (!ISVALUETYPE(IdentValue->Typ))
+                    else if (!ISVALUETYPE(LocalLValue->Typ))
                         ProgramFail(Parser, "bad variable type");
+                    else
+                        *Result = VariableAllocValueAndCopy(Parser, LocalLValue, ResultOnHeap);
                 }
             }
             break;
             
         default:
             *Parser = PreState;
-            return FALSE;
+            Success = FALSE;
+            break;
     }
     
-    return TRUE;
+    if (LValue != NULL)
+        *LValue = LocalLValue;
+        
+    return Success;
 }
 
 struct Value *ParsePushFP(struct ParseState *Parser, int ResultOnHeap, double NewFP)
@@ -178,8 +188,9 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result, int Result
 {
     struct Value *CurrentValue;
     struct Value *TotalValue;
+    struct Value *LValue;
     
-    if (!ParseValue(Parser, &TotalValue, ResultOnHeap, RunIt))
+    if (!ParseValue(Parser, &TotalValue, ResultOnHeap, &LValue, RunIt))
         return FALSE;
     
     while (TRUE)
@@ -202,16 +213,17 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result, int Result
                 
                 if (RunIt)
                 {
-                    if (CurrentValue->Typ->Base != TypeInt || TotalValue->Typ->Base != TypeInt)
+                    if (CurrentValue->Typ->Base != TypeInt || LValue == NULL || LValue->Typ->Base != TypeInt)
                         ProgramFail(Parser, "can't assign");
 
                     switch (Token)
                     {
-                        case TokenAddAssign: TotalValue->Val->Integer += CurrentValue->Val->Integer; break;
-                        case TokenSubtractAssign: TotalValue->Val->Integer -= CurrentValue->Val->Integer; break;
-                        default: TotalValue->Val->Integer = CurrentValue->Val->Integer; break;
+                        case TokenAddAssign: LValue->Val->Integer += CurrentValue->Val->Integer; break;
+                        case TokenSubtractAssign: LValue->Val->Integer -= CurrentValue->Val->Integer; break;
+                        default: LValue->Val->Integer = CurrentValue->Val->Integer; break;
                     }
                     VariableStackPop(Parser, CurrentValue);
+                    TotalValue->Val->Integer = LValue->Val->Integer;
                 }
                 // fallthrough
             
@@ -221,7 +233,7 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result, int Result
                 return TRUE;
         }
         
-        if (!ParseValue(Parser, &CurrentValue, ResultOnHeap, RunIt))
+        if (!ParseValue(Parser, &CurrentValue, ResultOnHeap, NULL, RunIt))
             return FALSE;
 
         if (RunIt)

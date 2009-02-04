@@ -402,7 +402,7 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
     }
     else
     {
-        if (IncPos && Token != TokenEndOfLine)
+        if (IncPos && Token != TokenEOF)
             Parser->Pos++;
     }
     
