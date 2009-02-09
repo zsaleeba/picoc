@@ -202,10 +202,33 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result, int Result
             case TokenEquality: case TokenLessThan: case TokenGreaterThan:
             case TokenLessEqual: case TokenGreaterEqual: case TokenLogicalAnd:
             case TokenLogicalOr: case TokenAmpersand: case TokenArithmeticOr: 
-            case TokenArithmeticExor: case TokenDot:
+            case TokenArithmeticExor: 
                 LexGetToken(Parser, NULL, TRUE);
                 break;
+            
+            case TokenDot:
+            {
+                struct Value *Ident;
+                
+                LexGetToken(Parser, NULL, TRUE);
+                if (LexGetToken(Parser, &Ident, TRUE) != TokenIdentifier)
+                    ProgramFail(Parser, "need an structure or union member after '.'");
+
+                if (RunIt)
+                {                
+                    void *TotalValueData = (void *)TotalValue->Val;
+
+                    if (TotalValue->Typ->Base != TypeStruct || TotalValue->Typ->Base != TypeUnion)
+                        ProgramFail(Parser, "can't use '.' on something that's not a struct or union");
                         
+                    if (!TableGet(TotalValue->Typ->Members, Ident->Val->String, &CurrentValue))
+                        ProgramFail(Parser, "structure doesn't have a member called '%s'", Ident->Val->String);
+                    
+                    VariableStackPop(Parser, TotalValue);
+                    TotalValue = VariableAllocValueFromExistingData(Parser, CurrentValue->Typ, TotalValueData + CurrentValue->Val->Integer, ResultOnHeap);
+                }
+                break;
+            }
             case TokenAssign: case TokenAddAssign: case TokenSubtractAssign:
                 LexGetToken(Parser, NULL, TRUE);
                 if (!ParseExpression(Parser, &CurrentValue, ResultOnHeap, RunIt))
@@ -274,7 +297,6 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result, int Result
                     case TokenLessEqual:    TotalValue = ParsePushInt(Parser, ResultOnHeap, FPTotal <= FPCurrent); break;
                     case TokenGreaterEqual: TotalValue = ParsePushInt(Parser, ResultOnHeap, FPTotal >= FPCurrent); break;
                     case TokenLogicalAnd: case TokenLogicalOr: case TokenAmpersand: case TokenArithmeticOr: case TokenArithmeticExor: ProgramFail(Parser, "bad type for operator"); break;
-                    case TokenDot: ProgramFail(Parser, "operator not supported"); break;
                     default: break;
                 }
             }
@@ -300,7 +322,6 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result, int Result
                     case TokenAmpersand: TotalValue->Val->Integer = TotalValue->Val->Integer & CurrentValue->Val->Integer; break;
                     case TokenArithmeticOr: TotalValue->Val->Integer = TotalValue->Val->Integer | CurrentValue->Val->Integer; break;
                     case TokenArithmeticExor: TotalValue->Val->Integer = TotalValue->Val->Integer ^ CurrentValue->Val->Integer; break;
-                    case TokenDot: ProgramFail(Parser, "operator not supported"); break;
                     default: break;
                 }
             }

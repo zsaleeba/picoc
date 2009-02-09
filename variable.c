@@ -66,6 +66,18 @@ struct Value *VariableAllocValueAndCopy(struct ParseState *Parser, struct Value 
     return NewValue;
 }
 
+/* allocate a value either on the heap or the stack from an existing AnyValue and type */
+struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, struct ValueType *Typ, union AnyValue *FromValue, int OnHeap)
+{
+    struct Value *NewValue = VariableAlloc(Parser, sizeof(struct Value), OnHeap);
+    NewValue->Typ = Typ;
+    NewValue->Val = FromValue;
+    NewValue->ValOnHeap = FALSE;
+    NewValue->ValOnStack = FALSE;
+    
+    return NewValue;
+}
+
 /* define a variable */
 void VariableDefine(struct ParseState *Parser, const char *Ident, struct Value *InitValue)
 {

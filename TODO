@@ -20,3 +20,5 @@ Also:
 * Check for Alloc returns checking NULL
 * Do we really need OnHeap? Isn't every value on the stack anyway?
 * Remove Var parameter from HeapPopStack() once we're certain it all works
+* Allocating a variable on the heap isn't correct since we need the struct Value to be on the stack anyway
+
