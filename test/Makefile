@@ -1,9 +1,11 @@
 TESTS=	00_assignment.test \
 	01_comment.test \
 	02_printf.test \
-        03_struct.test
+	03_struct.test \
+	04_for.test \
+	05_array.test
 
-%.test: %.expect %.c ../picoc
+%.test: %.expect %.c
 	@echo Test: $*...
 	-@../picoc $*.c 2>&1 >$*.output
 	@if [ "x`diff -qu $*.expect $*.output`" != "x" ]; \
@@ -15,9 +17,6 @@ TESTS=	00_assignment.test \
 	fi; \
        	rm -f $*.output
 	
-%.output: %.c ../picoc
-	@../picoc $< 2>&1 >$@
-
 all: test
 
 test: $(TESTS)
