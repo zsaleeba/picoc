@@ -1,3 +1,6 @@
+#ifdef DEBUG_HEAP
+#include <stdio.h>
+#endif
 #include <string.h>
 
 #include "picoc.h"

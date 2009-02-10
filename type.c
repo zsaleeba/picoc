@@ -87,22 +87,34 @@ void TypeParseStruct(struct ParseState *Parser, struct ValueType **Typ, int IsSt
     struct ValueType *MemberType;
     const char *MemberIdentifier;
     struct Value *MemberValue;
-    
-    if (LexGetToken(Parser, &LexValue, TRUE) != TokenIdentifier)
-        ProgramFail(Parser, "struct/union name required");
-    
-    if (LexGetToken(Parser, NULL, TRUE) != TokenLeftBrace)
-        ProgramFail(Parser, "'{' expected");
+    enum LexToken Token;
     
     if (TopStackFrame != NULL)
         ProgramFail(Parser, "struct/union definitions can only be globals");
         
+    if (LexGetToken(Parser, &LexValue, TRUE) != TokenIdentifier)
+        ProgramFail(Parser, "struct/union name required");
+    
     *Typ = TypeGetMatching(Parser, &UberType, IsStruct ? TypeStruct : TypeUnion, 0, LexValue->Val->String);
+
+    Token = LexGetToken(Parser, NULL, FALSE);
+    if (Token != TokenLeftBrace)
+    { /* use the already defined structure */
+        if ((*Typ)->Members == NULL)
+            ProgramFail(Parser, "structure '%s' isn't defined", LexValue->Val->String);
+            
+        return;
+    }
+    
+    LexGetToken(Parser, NULL, TRUE);    
     (*Typ)->Members = VariableAlloc(Parser, sizeof(struct Table) + STRUCT_TABLE_SIZE * sizeof(struct TableEntry), TRUE);
     (*Typ)->Members->HashTable = (void *)(*Typ)->Members + sizeof(struct Table);
+    TableInit((*Typ)->Members, (void *)(*Typ)->Members + sizeof(struct Table), STRUCT_TABLE_SIZE, TRUE);
     
     do {
         TypeParse(Parser, &MemberType, &MemberIdentifier);
+        if (MemberType == NULL || MemberIdentifier == NULL)
+            ProgramFail(Parser, "invalid type in struct");
         
         MemberValue = VariableAllocValueAndData(Parser, sizeof(int), TRUE);
         MemberValue->Typ = MemberType;
@@ -120,6 +132,9 @@ void TypeParseStruct(struct ParseState *Parser, struct ValueType **Typ, int IsSt
         
         if (!TableSet((*Typ)->Members, MemberIdentifier, MemberValue))
             ProgramFail(Parser, "member '%s' already defined", &MemberIdentifier);
+            
+        if (LexGetToken(Parser, NULL, TRUE) != TokenSemicolon)
+            ProgramFail(Parser, "semicolon expected");
                     
     } while (LexGetToken(Parser, NULL, FALSE) != TokenRightBrace);
     

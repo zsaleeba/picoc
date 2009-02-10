@@ -149,10 +149,10 @@ int ParseValue(struct ParseState *Parser, struct Value **Result, int ResultOnHea
                         if (!ParseExpression(&MacroLexer, Result, ResultOnHeap, TRUE))
                             ProgramFail(&MacroLexer, "expression expected");
                     }
-                    else if (!ISVALUETYPE(LocalLValue->Typ))
-                        ProgramFail(Parser, "bad variable type");
+                    else if (LocalLValue->Typ == TypeVoid)
+                        ProgramFail(Parser, "a void value isn't much use here");
                     else
-                        *Result = VariableAllocValueAndCopy(Parser, LocalLValue, ResultOnHeap);
+                        *Result = VariableAllocValueFromExistingData(Parser, LocalLValue->Typ, LocalLValue->Val, ResultOnHeap);
                 }
             }
             break;
@@ -218,7 +218,7 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result, int Result
                 {                
                     void *TotalValueData = (void *)TotalValue->Val;
 
-                    if (TotalValue->Typ->Base != TypeStruct || TotalValue->Typ->Base != TypeUnion)
+                    if (TotalValue->Typ->Base != TypeStruct && TotalValue->Typ->Base != TypeUnion)
                         ProgramFail(Parser, "can't use '.' on something that's not a struct or union");
                         
                     if (!TableGet(TotalValue->Typ->Members, Ident->Val->String, &CurrentValue))
@@ -226,8 +226,9 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result, int Result
                     
                     VariableStackPop(Parser, TotalValue);
                     TotalValue = VariableAllocValueFromExistingData(Parser, CurrentValue->Typ, TotalValueData + CurrentValue->Val->Integer, ResultOnHeap);
+                    LValue = TotalValue;
                 }
-                break;
+                continue;
             }
             case TokenAssign: case TokenAddAssign: case TokenSubtractAssign:
                 LexGetToken(Parser, NULL, TRUE);
@@ -563,16 +564,24 @@ int ParseStatement(struct ParseState *Parser, int RunIt)
         case TokenFloatType:
         case TokenDoubleType:
         case TokenVoidType:
+        case TokenStructType:
+        case TokenUnionType:
             *Parser = PreState;
             TypeParse(Parser, &Typ, &Identifier);
-            if (Identifier == StrEmpty)
+            if (Token == TokenVoidType && Identifier != StrEmpty)
+                ProgramFail(Parser, "can't define a void variable");
+                
+            if ((Token != TokenVoidType && Token != TokenStructType && Token != TokenUnionType) && Identifier == StrEmpty)
                 ProgramFail(Parser, "identifier expected");
                 
-            /* handle function definitions */
-            if (LexGetToken(Parser, NULL, FALSE) == TokenOpenBracket)
-                ParseFunctionDefinition(Parser, Typ, Identifier, FALSE);
-            else
-                VariableDefine(Parser, Identifier, VariableAllocValueFromType(Parser, Typ, FALSE));
+            if (Identifier != StrEmpty)
+            {
+                /* handle function definitions */
+                if (LexGetToken(Parser, NULL, FALSE) == TokenOpenBracket)
+                    ParseFunctionDefinition(Parser, Typ, Identifier, FALSE);
+                else
+                    VariableDefine(Parser, Identifier, VariableAllocValueFromType(Parser, Typ, FALSE));
+            }
             break;
         
         case TokenHashDefine:
