@@ -1,6 +1,7 @@
 TESTS=	00_assignment.test \
 	01_comment.test \
-	02_printf.test
+	02_printf.test \
+        03_struct.test
 
 %.test: %.expect %.c ../picoc
 	@echo Test: $*...
@@ -9,6 +10,7 @@ TESTS=	00_assignment.test \
 	then \
         	echo "error in test $*"; \
         	diff -u $*.expect $*.output; \
+       		rm -f $*.output; \
 		exit 1; \
 	fi; \
        	rm -f $*.output
