@@ -131,9 +131,18 @@ int ParseValue(struct ParseState *Parser, struct Value **Result, int ResultOnHea
             break;
                 
         case TokenAsterisk:
-        case TokenAmpersand:
             ProgramFail(Parser, "not implemented");
 
+        case TokenAmpersand:
+            if (!ParseValue(Parser, Result, ResultOnHeap, &LocalLValue, RunIt) || LocalLValue == NULL)
+                ProgramFail(Parser, "can't get the address of this");
+            
+            VariableStackPop(Parser, *Result);
+            *Result = VariableAllocValueFromType(Parser, Typ, TypeGetMatching(Parser, *Result, TypePointer, 0, StrEmpty));
+            (*Result)->Val->Pointer.Segment = LocalLValue;
+            (*Result)->Val->Pointer.Offset = 0;
+            break;
+            
         case TokenIdentifier:
             if (LexGetToken(Parser, NULL, FALSE) == TokenOpenBracket)
                 ParseFunctionCall(Parser, Result, ResultOnHeap, LexValue->Val->String, RunIt);
