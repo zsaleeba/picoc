@@ -138,9 +138,9 @@ int ParseValue(struct ParseState *Parser, struct Value **Result, int ResultOnHea
                 ProgramFail(Parser, "can't get the address of this");
             
             VariableStackPop(Parser, *Result);
-            *Result = VariableAllocValueFromType(Parser, Typ, TypeGetMatching(Parser, *Result, TypePointer, 0, StrEmpty));
+            *Result = VariableAllocValueFromType(Parser, TypeGetMatching(Parser, (*Result)->Typ, TypePointer, 0, StrEmpty), ResultOnHeap);
             (*Result)->Val->Pointer.Segment = LocalLValue;
-            (*Result)->Val->Pointer.Offset = 0;
+            (*Result)->Val->Pointer.Data.Offset = 0;
             break;
             
         case TokenIdentifier:

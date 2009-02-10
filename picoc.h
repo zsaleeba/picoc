@@ -231,6 +231,7 @@ void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt);
 void TypeInit();
 int TypeSizeof(struct ValueType *Typ);
 void TypeParse(struct ParseState *Parser, struct ValueType **Typ, const char **Identifier);
+struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *ParentType, enum BaseType Base, int ArraySize, const char *Identifier);
 
 /* intrinsic.c */
 void IntrinsicInit(struct Table *GlobalTable);
