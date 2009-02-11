@@ -99,6 +99,7 @@ int ParseValue(struct ParseState *Parser, struct Value **Result, int ResultOnHea
     int IntValue;
     enum LexToken Token = LexGetToken(Parser, &LexValue, TRUE);
     struct Value *LocalLValue = NULL;
+    struct ValueType *VType;
     int Success = TRUE;
     
     switch (Token)
@@ -131,14 +132,24 @@ int ParseValue(struct ParseState *Parser, struct Value **Result, int ResultOnHea
             break;
                 
         case TokenAsterisk:
-            ProgramFail(Parser, "not implemented");
+            if (!ParseExpression(Parser, Result, ResultOnHeap, RunIt))
+                ProgramFail(Parser, "invalid expression");
+            
+            if ((*Result)->Typ->Base != TypePointer)
+                ProgramFail(Parser, "can't dereference this non-pointer");
+            
+            LocalLValue = (*Result)->Val->Pointer.Segment;
+            VariableStackPop(Parser, *Result);
+            *Result = VariableAllocValueFromExistingData(Parser, LocalLValue->Typ, LocalLValue->Val, ResultOnHeap);
+            break;
 
         case TokenAmpersand:
             if (!ParseValue(Parser, Result, ResultOnHeap, &LocalLValue, RunIt) || LocalLValue == NULL)
                 ProgramFail(Parser, "can't get the address of this");
             
+            VType = (*Result)->Typ;
             VariableStackPop(Parser, *Result);
-            *Result = VariableAllocValueFromType(Parser, TypeGetMatching(Parser, (*Result)->Typ, TypePointer, 0, StrEmpty), ResultOnHeap);
+            *Result = VariableAllocValueFromType(Parser, TypeGetMatching(Parser, VType, TypePointer, 0, StrEmpty), ResultOnHeap);
             (*Result)->Val->Pointer.Segment = LocalLValue;
             (*Result)->Val->Pointer.Data.Offset = 0;
             break;
