@@ -254,6 +254,7 @@ struct Value *VariableAllocValueAndData(struct ParseState *Parser, int DataSize,
 struct Value *VariableAllocValueAndCopy(struct ParseState *Parser, struct Value *FromValue, int OnHeap);
 struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct ValueType *Typ, int OnHeap);
 struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, struct ValueType *Typ, union AnyValue *FromValue, int OnHeap);
+struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *FromValue, int OnHeap);
 void VariableDefine(struct ParseState *Parser, const char *Ident, struct Value *InitValue);
 int VariableDefined(const char *Ident);
 void VariableGet(struct ParseState *Parser, const char *Ident, struct Value **LVal);

@@ -140,7 +140,7 @@ int ParseValue(struct ParseState *Parser, struct Value **Result, int ResultOnHea
             
             LocalLValue = (*Result)->Val->Pointer.Segment;
             VariableStackPop(Parser, *Result);
-            *Result = VariableAllocValueFromExistingData(Parser, LocalLValue->Typ, LocalLValue->Val, ResultOnHeap);
+            *Result = VariableAllocValueShared(Parser, LocalLValue, ResultOnHeap);
             break;
 
         case TokenAmpersand:
@@ -172,7 +172,7 @@ int ParseValue(struct ParseState *Parser, struct Value **Result, int ResultOnHea
                     else if (LocalLValue->Typ == TypeVoid)
                         ProgramFail(Parser, "a void value isn't much use here");
                     else
-                        *Result = VariableAllocValueFromExistingData(Parser, LocalLValue->Typ, LocalLValue->Val, ResultOnHeap);
+                        *Result = VariableAllocValueShared(Parser, LocalLValue, ResultOnHeap);
                 }
             }
             break;

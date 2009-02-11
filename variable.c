@@ -81,6 +81,12 @@ struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, stru
     return NewValue;
 }
 
+/* allocate a value either on the heap or the stack from an existing Value, sharing the value */
+struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *FromValue, int OnHeap)
+{
+    return VariableAllocValueFromExistingData(Parser, FromValue->Typ, FromValue->Val, OnHeap);
+}
+
 /* define a variable */
 void VariableDefine(struct ParseState *Parser, const char *Ident, struct Value *InitValue)
 {
