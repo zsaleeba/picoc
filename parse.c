@@ -172,7 +172,28 @@ int ParseValue(struct ParseState *Parser, struct Value **Result, int ResultOnHea
                     else if (LocalLValue->Typ == TypeVoid)
                         ProgramFail(Parser, "a void value isn't much use here");
                     else
-                        *Result = VariableAllocValueShared(Parser, LocalLValue, ResultOnHeap);
+                    { /* it's a value variable */
+                        *Result = VariableAllocValueAndCopy(Parser, LocalLValue, ResultOnHeap);
+                    }
+                }
+                
+                /* see if there's a postfix operator */
+                Token = LexGetToken(Parser, &LexValue, FALSE);
+                if (Token == TokenIncrement || Token == TokenDecrement)
+                { /* it's a postincrement or postdecrement */
+                    LexGetToken(Parser, &LexValue, TRUE);
+                    if (RunIt)
+                    {
+                        if (LocalLValue == NULL || (*Result)->Typ->Base != TypeInt) 
+                            ProgramFail(Parser, "can't %s this", (Token == TokenIncrement) ? "increment" : "decrement");
+                            
+                        if (Token == TokenIncrement)
+                            LocalLValue->Val->Integer++;
+                        else
+                            LocalLValue->Val->Integer--;
+                        
+                        LocalLValue = NULL;
+                    }
                 }
             }
             break;
@@ -450,6 +471,7 @@ void ParseMacroDefinition(struct ParseState *Parser)
         ProgramFail(Parser, "'%s' is already defined", &MacroName->Val->String);
 }
 
+/* parse a "for" statement */
 void ParseFor(struct ParseState *Parser, int RunIt)
 {
     int Condition;
@@ -463,6 +485,9 @@ void ParseFor(struct ParseState *Parser, int RunIt)
                         
     if (!ParseStatement(Parser, RunIt))
         ProgramFail(Parser, "statement expected");
+    
+    if (LexGetToken(Parser, NULL, TRUE) != TokenSemicolon)
+        ProgramFail(Parser, "';' expected");
     
     PreConditional = *Parser;
     Condition = ParseIntExpression(Parser, RunIt);
@@ -518,7 +543,8 @@ int ParseStatement(struct ParseState *Parser, int RunIt)
         case TokenIdentifier: 
             *Parser = PreState;
             ParseExpression(Parser, &CValue, FALSE, RunIt);
-            if (RunIt) VariableStackPop(Parser, CValue);
+            if (RunIt) 
+                VariableStackPop(Parser, CValue);
             break;
             
         case TokenLeftBrace:
