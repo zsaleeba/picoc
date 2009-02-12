@@ -218,7 +218,11 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
         while (Lexer->Pos != Lexer->End && isspace(*Lexer->Pos))
         {
             if (*Lexer->Pos == '\n')
+            {
                 Lexer->Line++;
+                Lexer->Pos++;
+                return TokenEndOfLine;
+            }
     
             Lexer->Pos++;
         }
