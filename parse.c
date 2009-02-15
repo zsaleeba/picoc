@@ -297,7 +297,7 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result, int Result
         {
             if (CurrentValue->Typ->Base == TypeFP || TotalValue->Typ->Base == TypeFP)
             {
-                double FPTotal, FPCurrent;
+                double FPTotal, FPCurrent, FPResult;
 
                 if (CurrentValue->Typ->Base != TypeFP || TotalValue->Typ->Base != TypeFP)
                 { /* convert both to floating point */
@@ -321,45 +321,54 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result, int Result
                 
                 switch (Token)
                 {
-                    case TokenPlus:         TotalValue = ParsePushFP(Parser, ResultOnHeap, FPTotal + FPCurrent); break;
-                    case TokenMinus:        TotalValue = ParsePushFP(Parser, ResultOnHeap, FPTotal - FPCurrent); break;
-                    case TokenAsterisk:     TotalValue = ParsePushFP(Parser, ResultOnHeap, FPTotal * FPCurrent); break;
-                    case TokenSlash:        TotalValue = ParsePushFP(Parser, ResultOnHeap, FPTotal / FPCurrent); break;
-                    case TokenEquality:     TotalValue = ParsePushInt(Parser, ResultOnHeap, FPTotal == FPCurrent); break;
-                    case TokenLessThan:     TotalValue = ParsePushInt(Parser, ResultOnHeap, FPTotal < FPCurrent); break;
-                    case TokenGreaterThan:  TotalValue = ParsePushInt(Parser, ResultOnHeap, FPTotal > FPCurrent); break;
-                    case TokenLessEqual:    TotalValue = ParsePushInt(Parser, ResultOnHeap, FPTotal <= FPCurrent); break;
-                    case TokenGreaterEqual: TotalValue = ParsePushInt(Parser, ResultOnHeap, FPTotal >= FPCurrent); break;
+                    case TokenPlus:         FPResult = FPTotal + FPCurrent; break;
+                    case TokenMinus:        FPResult = FPTotal - FPCurrent; break;
+                    case TokenAsterisk:     FPResult = FPTotal * FPCurrent; break;
+                    case TokenSlash:        FPResult = FPTotal / FPCurrent; break;
+                    case TokenEquality:     FPResult = FPTotal == FPCurrent; break;
+                    case TokenLessThan:     FPResult = FPTotal < FPCurrent; break;
+                    case TokenGreaterThan:  FPResult = FPTotal > FPCurrent; break;
+                    case TokenLessEqual:    FPResult = FPTotal <= FPCurrent; break;
+                    case TokenGreaterEqual: FPResult = FPTotal >= FPCurrent; break;
                     case TokenLogicalAnd: case TokenLogicalOr: case TokenAmpersand: case TokenArithmeticOr: case TokenArithmeticExor: ProgramFail(Parser, "bad type for operator"); break;
                     default: break;
                 }
+                TotalValue = ParsePushFP(Parser, ResultOnHeap, FPResult);
             }
             else
             {
+                int IntX, IntY, IntResult;
+                
                 if (CurrentValue->Typ->Base != TypeInt || TotalValue->Typ->Base != TypeInt)
                     ProgramFail(Parser, "bad operand types");
             
+                IntX = TotalValue->Val->Integer;
+                IntY = CurrentValue->Val->Integer;
+                VariableStackPop(Parser, CurrentValue);
+                VariableStackPop(Parser, TotalValue);
+                
                 /* integer arithmetic */
                 switch (Token)
                 {
-                    case TokenPlus: TotalValue->Val->Integer += CurrentValue->Val->Integer; break;
-                    case TokenMinus: TotalValue->Val->Integer -= CurrentValue->Val->Integer; break;
-                    case TokenAsterisk: TotalValue->Val->Integer *= CurrentValue->Val->Integer; break;
-                    case TokenSlash: TotalValue->Val->Integer /= CurrentValue->Val->Integer; break;
-                    case TokenEquality: TotalValue->Val->Integer = TotalValue->Val->Integer == CurrentValue->Val->Integer; break;
-                    case TokenLessThan: TotalValue->Val->Integer = TotalValue->Val->Integer < CurrentValue->Val->Integer; break;
-                    case TokenGreaterThan: TotalValue->Val->Integer = TotalValue->Val->Integer > CurrentValue->Val->Integer; break;
-                    case TokenLessEqual: TotalValue->Val->Integer = TotalValue->Val->Integer <= CurrentValue->Val->Integer; break;
-                    case TokenGreaterEqual: TotalValue->Val->Integer = TotalValue->Val->Integer >= CurrentValue->Val->Integer; break;
-                    case TokenLogicalAnd: TotalValue->Val->Integer = TotalValue->Val->Integer && CurrentValue->Val->Integer; break;
-                    case TokenLogicalOr: TotalValue->Val->Integer = TotalValue->Val->Integer || CurrentValue->Val->Integer; break;
-                    case TokenAmpersand: TotalValue->Val->Integer = TotalValue->Val->Integer & CurrentValue->Val->Integer; break;
-                    case TokenArithmeticOr: TotalValue->Val->Integer = TotalValue->Val->Integer | CurrentValue->Val->Integer; break;
-                    case TokenArithmeticExor: TotalValue->Val->Integer = TotalValue->Val->Integer ^ CurrentValue->Val->Integer; break;
+                    case TokenPlus:             IntResult = IntX + IntY; break;
+                    case TokenMinus:            IntResult = IntX - IntY; break;
+                    case TokenAsterisk:         IntResult = IntX * IntY; break;
+                    case TokenSlash:            IntResult = IntX / IntY; break;
+                    case TokenEquality:         IntResult = IntX == IntY; break;
+                    case TokenLessThan:         IntResult = IntX < IntY; break;
+                    case TokenGreaterThan:      IntResult = IntX > IntY; break;
+                    case TokenLessEqual:        IntResult = IntX <= IntY; break;
+                    case TokenGreaterEqual:     IntResult = IntX >= IntY; break;
+                    case TokenLogicalAnd:       IntResult = IntX && IntY; break;
+                    case TokenLogicalOr:        IntResult = IntX || IntY; break;
+                    case TokenAmpersand:        IntResult = IntX & IntY; break;
+                    case TokenArithmeticOr:     IntResult = IntX | IntY; break;
+                    case TokenArithmeticExor:   IntResult = IntX ^ IntY; break;
                     default: break;
                 }
+                TotalValue = ParsePushInt(Parser, ResultOnHeap, IntResult);
             }
-            VariableStackPop(Parser, CurrentValue);
+            
             *Result = TotalValue;
         }
     }
