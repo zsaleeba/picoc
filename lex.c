@@ -398,6 +398,7 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
             memcpy(LexValue.Val, Parser->Pos+1, ValueSize);
             LexValue.ValOnHeap = FALSE;
             LexValue.ValOnStack = FALSE;
+            LexValue.IsLValue = FALSE;
             *Value = &LexValue;
         }
         

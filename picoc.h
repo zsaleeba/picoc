@@ -154,6 +154,7 @@ struct Value
     union AnyValue *Val;
     char ValOnHeap;
     char ValOnStack;
+    char IsLValue;
 };
 
 /* hash table data structure */
@@ -250,10 +251,10 @@ void HeapFree(void *Mem);
 void VariableInit();
 void *VariableAlloc(struct ParseState *Parser, int Size, int OnHeap);
 void VariableStackPop(struct ParseState *Parser, struct Value *Var);
-struct Value *VariableAllocValueAndData(struct ParseState *Parser, int DataSize, int OnHeap);
+struct Value *VariableAllocValueAndData(struct ParseState *Parser, int DataSize, int IsLValue, int OnHeap);
 struct Value *VariableAllocValueAndCopy(struct ParseState *Parser, struct Value *FromValue, int OnHeap);
-struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct ValueType *Typ, int OnHeap);
-struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, struct ValueType *Typ, union AnyValue *FromValue, int OnHeap);
+struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct ValueType *Typ, int IsLValue, int OnHeap);
+struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, struct ValueType *Typ, union AnyValue *FromValue, int IsLValue, int OnHeap);
 struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *FromValue, int OnHeap);
 void VariableDefine(struct ParseState *Parser, const char *Ident, struct Value *InitValue);
 int VariableDefined(const char *Ident);
