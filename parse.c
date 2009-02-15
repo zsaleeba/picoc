@@ -193,6 +193,25 @@ int ParseValue(struct ParseState *Parser, struct Value **Result, int ResultOnHea
                             (*Result)->Val->Integer--;
                     }
                 }
+                else if (Token == TokenLeftSquareBracket)
+                { /* array access */
+                    LexGetToken(Parser, &LexValue, TRUE);
+                    IntValue = ParseIntExpression(Parser, RunIt);
+                    if (LexGetToken(Parser, &LexValue, TRUE) != TokenRightSquareBracket)
+                        ProgramFail(Parser, "expected ']'");
+                    
+                    if (RunIt)
+                    { /* look up the array element */
+                        if ((*Result)->Typ->Base != TypeArray)
+                            ProgramFail(Parser, "not an array");
+                        
+                        if (IntValue < 0 || IntValue >= (*Result)->Typ->ArraySize)
+                            ProgramFail(Parser, "illegal array index");
+                        
+                        VariableStackPop(Parser, *Result);
+                        LocalLValue = VariableAllocValueFromExistingData(Parser, (*Result)->Typ->FromType, (union AnyValue *)((void *)(&(*Result)->Val) + (*Result)->Typ->FromType->Sizeof * IntValue), TRUE, ResultOnHeap);
+                    }
+                }
             }
             break;
             
@@ -296,7 +315,7 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result, int Result
         if (RunIt)
         {
             if (CurrentValue->Typ->Base == TypeFP || TotalValue->Typ->Base == TypeFP)
-            {
+            { /* floating point expression */
                 double FPTotal, FPCurrent, FPResult;
 
                 if (CurrentValue->Typ->Base != TypeFP || TotalValue->Typ->Base != TypeFP)
@@ -336,7 +355,7 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result, int Result
                 TotalValue = ParsePushFP(Parser, ResultOnHeap, FPResult);
             }
             else
-            {
+            { /* integer expression */
                 int IntX, IntY, IntResult;
                 
                 if (CurrentValue->Typ->Base != TypeInt || TotalValue->Typ->Base != TypeInt)
