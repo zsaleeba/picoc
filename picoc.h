@@ -150,11 +150,11 @@ union AnyValue
 
 struct Value
 {
-    struct ValueType *Typ;
-    union AnyValue *Val;
-    char ValOnHeap;
-    char ValOnStack;
-    char IsLValue;
+    struct ValueType *Typ;      /* the type of this value */
+    union AnyValue *Val;        /* pointer to the AnyValue which holds the actual content */
+    char ValOnHeap;             /* the AnyValue is on the heap (but this Value is on the stack) */
+    char ValOnStack;            /* the AnyValue is on the stack along with this Value */
+    char IsLValue;              /* is modifiable and is allocated somewhere we can usefully modify it */
 };
 
 /* hash table data structure */

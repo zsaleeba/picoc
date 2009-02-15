@@ -209,7 +209,7 @@ int ParseValue(struct ParseState *Parser, struct Value **Result, int ResultOnHea
                             ProgramFail(Parser, "illegal array index");
                         
                         VariableStackPop(Parser, *Result);
-                        LocalLValue = VariableAllocValueFromExistingData(Parser, (*Result)->Typ->FromType, (union AnyValue *)((void *)(&(*Result)->Val) + (*Result)->Typ->FromType->Sizeof * IntValue), TRUE, ResultOnHeap);
+                        *Result = VariableAllocValueFromExistingData(Parser, (*Result)->Typ->FromType, (union AnyValue *)((void *)(*Result)->Val + (*Result)->Typ->FromType->Sizeof * IntValue), TRUE, ResultOnHeap);
                     }
                 }
             }
