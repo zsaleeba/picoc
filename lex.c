@@ -32,6 +32,7 @@ static struct ReservedWord ReservedWords[] =
     { "break", TokenBreak, NULL },
     { "case", TokenCase, NULL },
     { "char", TokenCharType, NULL },
+    { "continue", TokenContinue, NULL },
     { "default", TokenDefault, NULL },
     { "do", TokenDo, NULL },
     { "double", TokenDoubleType, NULL },

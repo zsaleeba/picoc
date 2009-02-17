@@ -576,8 +576,14 @@ int ParseStatement(struct ParseState *Parser, int RunIt)
             break;
             
         case TokenIf:
+            if (!LexGetToken(Parser, NULL, TRUE) != TokenOpenBracket)
+                ProgramFail(Parser, "'(' expected");
+                
             Condition = ParseIntExpression(Parser, RunIt);
             
+            if (!LexGetToken(Parser, NULL, TRUE) != TokenCloseBracket)
+                ProgramFail(Parser, "')' expected");
+
             if (!ParseStatement(Parser, RunIt && Condition))
                 ProgramFail(Parser, "statement expected");
             
@@ -665,11 +671,47 @@ int ParseStatement(struct ParseState *Parser, int RunIt)
         }
 
         case TokenSwitch:
+            if (!LexGetToken(Parser, NULL, TRUE) != TokenOpenBracket)
+                ProgramFail(Parser, "'(' expected");
+                
+            Condition = ParseIntExpression(Parser, RunIt);
+            
+            if (!LexGetToken(Parser, NULL, TRUE) != TokenCloseBracket)
+                ProgramFail(Parser, "')' expected");
+            
+            if (!LexGetToken(Parser, NULL, FALSE) != TokenLeftBrace)
+                ProgramFail(Parser, "'{' expected");
+            
+            if (!ParseStatement(Parser, RunIt && Condition))
+                ProgramFail(Parser, "statement expected");
+            // XXX - implement switch
+            break;
+
         case TokenCase:
-        case TokenBreak:
-        case TokenReturn:
+            if (!LexGetToken(Parser, &CValue, TRUE) != TokenIdentifier)
+                ProgramFail(Parser, "case label expected");
+
+            if (!LexGetToken(Parser, NULL, TRUE) != TokenColon)
+                ProgramFail(Parser, "':' expected");
+            // XXX - implement case
+            break;
+            
         case TokenDefault:
-            ProgramFail(Parser, "not implemented yet");
+            if (!LexGetToken(Parser, NULL, TRUE) != TokenColon)
+                ProgramFail(Parser, "':' expected");
+            // XXX - implement default
+            break;
+
+        case TokenBreak:
+            // XXX - implement break
+            break;
+            
+        case TokenContinue:
+            // XXX - implement continue
+            break;
+            
+        case TokenReturn:
+            // XXX - implement return
             break;
             
         default:
