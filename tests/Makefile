@@ -3,7 +3,8 @@ TESTS=	00_assignment.test \
 	02_printf.test \
 	03_struct.test \
 	04_for.test \
-	05_array.test
+	05_array.test \
+	06_case.test
 
 %.test: %.expect %.c
 	@echo Test: $*...
