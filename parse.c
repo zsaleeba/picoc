@@ -590,12 +590,12 @@ int ParseStatement(struct ParseState *Parser)
             break;
             
         case TokenIf:
-            if (!LexGetToken(Parser, NULL, TRUE) != TokenOpenBracket)
+            if (LexGetToken(Parser, NULL, TRUE) != TokenOpenBracket)
                 ProgramFail(Parser, "'(' expected");
                 
             Condition = ParseIntExpression(Parser);
             
-            if (!LexGetToken(Parser, NULL, TRUE) != TokenCloseBracket)
+            if (LexGetToken(Parser, NULL, TRUE) != TokenCloseBracket)
                 ProgramFail(Parser, "')' expected");
 
             if (!ParseStatementMaybeRun(Parser, Condition))
@@ -685,18 +685,18 @@ int ParseStatement(struct ParseState *Parser)
         }
 
         case TokenSwitch:
-            if (!LexGetToken(Parser, NULL, TRUE) != TokenOpenBracket)
+            if (LexGetToken(Parser, NULL, TRUE) != TokenOpenBracket)
                 ProgramFail(Parser, "'(' expected");
                 
             Condition = ParseIntExpression(Parser);
             
-            if (!LexGetToken(Parser, NULL, TRUE) != TokenCloseBracket)
+            if (LexGetToken(Parser, NULL, TRUE) != TokenCloseBracket)
                 ProgramFail(Parser, "')' expected");
             
-            if (!LexGetToken(Parser, NULL, FALSE) != TokenLeftBrace)
+            if (LexGetToken(Parser, NULL, FALSE) != TokenLeftBrace)
                 ProgramFail(Parser, "'{' expected");
             
-            {
+            { /* new block so we can store parser state */
                 enum RunMode OldMode = Parser->Mode;
                 int OldSearchLabel = Parser->SearchLabel;
                 Parser->Mode = RunModeCaseSearch;
@@ -712,7 +712,7 @@ int ParseStatement(struct ParseState *Parser)
 
         case TokenCase:
             Condition = ParseIntExpression(Parser);
-            if (!LexGetToken(Parser, NULL, TRUE) != TokenColon)
+            if (LexGetToken(Parser, NULL, TRUE) != TokenColon)
                 ProgramFail(Parser, "':' expected");
             
             if (Parser->Mode == RunModeCaseSearch && Condition == Parser->SearchLabel)
@@ -720,7 +720,7 @@ int ParseStatement(struct ParseState *Parser)
             break;
             
         case TokenDefault:
-            if (!LexGetToken(Parser, NULL, TRUE) != TokenColon)
+            if (LexGetToken(Parser, NULL, TRUE) != TokenColon)
                 ProgramFail(Parser, "':' expected");
             
             if (Parser->Mode == RunModeCaseSearch)
