@@ -49,7 +49,7 @@ enum LexToken
     TokenOpenBracket, TokenCloseBracket,
     TokenAssign, TokenPlus, TokenMinus, TokenAsterisk, TokenSlash,
     TokenEquality, TokenLessThan, TokenGreaterThan, TokenLessEqual, TokenGreaterEqual,
-    TokenSemicolon, TokenComma, TokenDot,
+    TokenSemicolon, TokenComma, TokenDot, TokenColon,
     TokenArrow, TokenAmpersand,
     TokenLeftBrace, TokenRightBrace,
     TokenLeftSquareBracket, TokenRightSquareBracket,
@@ -69,12 +69,25 @@ struct AllocNode
     struct AllocNode *NextFree;
 };
 
+/* whether we're running or skipping code */
+enum RunMode
+{
+    RunModeRun,                 /* we're running code as we parse it */
+    RunModeSkip,                /* skipping code, not running */
+    RunModeReturn,              /* returning from a function */
+    RunModeCaseSearch,          /* searching for a case label */
+    RunModeBreak,               /* breaking out of a switch/while/do */
+    RunModeContinue             /* as above but repeat the loop */
+};
+
 /* parser state - has all this detail so we can parse nested files */
 struct ParseState
 {
     const void *Pos;
     int Line;
     const char *FileName;
+    enum RunMode Mode;          /* whether to skip or run code */
+    int SearchLabel;            /* what case label we're searching for */
 };
 
 /* values */
@@ -217,14 +230,14 @@ const char *TableSetIdentifier(struct Table *Tbl, const char *Ident, int IdentLe
 /* lex.c */
 void LexInit(void);
 void *LexAnalyse(const char *FileName, const char *Source, int SourceLen);
-void LexInitParser(struct ParseState *Parser, void *TokenSource, const char *FileName, int Line);
+void LexInitParser(struct ParseState *Parser, void *TokenSource, const char *FileName, int Line, int RunIt);
 enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int IncPos);
 
 /* parse.c */
 void ParseInit(void);
-int ParseExpression(struct ParseState *Parser, struct Value **Result, int ResultOnHeap, int RunIt);
-int ParseIntExpression(struct ParseState *Parser, int RunIt);
-int ParseStatement(struct ParseState *Parser, int RunIt);
+int ParseExpression(struct ParseState *Parser, struct Value **Result, int ResultOnHeap);
+int ParseIntExpression(struct ParseState *Parser);
+int ParseStatement(struct ParseState *Parser);
 struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *ReturnType, const char *Identifier, int IsProtoType);
 void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt);
 

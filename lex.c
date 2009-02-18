@@ -276,6 +276,7 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
             case '~': GotToken = TokenUnaryExor; break;
             case ',': GotToken = TokenComma; break;
             case '.': GotToken = TokenDot; break;
+            case ':': GotToken = TokenColon; break;
             default:  LexFail(Lexer, "illegal character '%c'", ThisChar); break;
         }
     } while (GotToken == TokenNone);
@@ -362,11 +363,13 @@ void *LexAnalyse(const char *FileName, const char *Source, int SourceLen)
 }
 
 /* prepare to parse a pre-tokenised buffer */
-void LexInitParser(struct ParseState *Parser, void *TokenSource, const char *FileName, int Line)
+void LexInitParser(struct ParseState *Parser, void *TokenSource, const char *FileName, int Line, int RunIt)
 {
     Parser->Pos = TokenSource;
     Parser->Line = Line;
     Parser->FileName = FileName;
+    Parser->Mode = RunIt ? RunModeRun : RunModeSkip;
+    Parser->SearchLabel = 0;
 }
 
 /* get the next token given a parser state */

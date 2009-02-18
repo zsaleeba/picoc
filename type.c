@@ -210,7 +210,10 @@ void TypeParse(struct ParseState *Parser, struct ValueType **Typ, const char **I
             {
                 case TokenLeftSquareBracket:
                     {
-                        int ArraySize = ParseIntExpression(Parser, TRUE);
+                        enum RunMode OldMode = Parser->Mode;
+                        Parser->Mode = RunModeRun;
+                        int ArraySize = ParseIntExpression(Parser);
+                        Parser->Mode = OldMode;
                         
                         if (LexGetToken(Parser, NULL, TRUE) != TokenRightSquareBracket)
                             ProgramFail(Parser, "']' expected");

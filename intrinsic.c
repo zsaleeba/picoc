@@ -41,7 +41,7 @@ void IntrinsicInit(struct Table *GlobalTable)
     for (Count = 0; Count < sizeof(Intrinsics) / sizeof(struct IntrinsicFunction); Count++)
     {
         Tokens = LexAnalyse(IntrinsicName, Intrinsics[Count].Prototype, strlen(Intrinsics[Count].Prototype));
-        LexInitParser(&Parser, Tokens, IntrinsicName, Count+1);
+        LexInitParser(&Parser, Tokens, IntrinsicName, Count+1, TRUE);
         TypeParse(&Parser, &ReturnType, &Identifier);
         NewValue = ParseFunctionDefinition(&Parser, ReturnType, Identifier, TRUE);
         NewValue->Val->FuncDef.Intrinsic = Intrinsics[Count].Func;
