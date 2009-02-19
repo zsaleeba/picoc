@@ -490,6 +490,13 @@ void ParseMacroDefinition(struct ParseState *Parser)
         ProgramFail(Parser, "'%s' is already defined", &MacroName->Val->String);
 }
 
+/* copy where we're at in the parsing */
+void ParserCopyPos(struct ParseState *To, struct ParseState *From)
+{
+    To->Pos = From->Pos;
+    To->Line = From->Line;
+}
+
 /* parse a "for" statement */
 void ParseFor(struct ParseState *Parser)
 {
@@ -508,40 +515,49 @@ void ParseFor(struct ParseState *Parser)
     if (LexGetToken(Parser, NULL, TRUE) != TokenSemicolon)
         ProgramFail(Parser, "';' expected");
     
-    PreConditional = *Parser;
+    ParserCopyPos(&PreConditional, Parser);
     Condition = ParseIntExpression(Parser);
     
     if (LexGetToken(Parser, NULL, TRUE) != TokenSemicolon)
         ProgramFail(Parser, "';' expected");
     
-    PreIncrement = *Parser;
+    ParserCopyPos(&PreIncrement, Parser);
     ParseStatementMaybeRun(Parser, FALSE);
     
     if (LexGetToken(Parser, NULL, TRUE) != TokenCloseBracket)
         ProgramFail(Parser, "')' expected");
     
-    PreStatement = *Parser;
+    ParserCopyPos(&PreStatement, Parser);
     if (!ParseStatementMaybeRun(Parser, Condition))
         ProgramFail(Parser, "statement expected");
     
-    After = *Parser;
-    
+    if (Parser->Mode == RunModeContinue)
+        Parser->Mode = RunModeRun;
+        
+    ParserCopyPos(&After, Parser);
+        
     while (Condition && Parser->Mode == RunModeRun)
     {
-        *Parser = PreIncrement;
+        ParserCopyPos(Parser, &PreIncrement);
         ParseStatement(Parser);
                         
-        *Parser = PreConditional;
+        ParserCopyPos(Parser, &PreConditional);
         Condition = ParseIntExpression(Parser);
         
         if (Condition)
         {
-            *Parser = PreStatement;
+            ParserCopyPos(Parser, &PreStatement);
             ParseStatement(Parser);
+            
+            if (Parser->Mode == RunModeContinue)
+                Parser->Mode = RunModeRun;                
         }
     }
     
-    *Parser = After;
+    if (Parser->Mode == RunModeBreak)
+        Parser->Mode = RunModeRun;
+        
+    ParserCopyPos(Parser, &After);
 }
 
 /* parse a statement, but only run it if Condition is TRUE */
@@ -557,6 +573,32 @@ int ParseStatementMaybeRun(struct ParseState *Parser, int Condition)
     }
     else
         return ParseStatement(Parser);
+}
+
+/* parse a block of code and return what mode it returned in */
+enum RunMode ParseBlock(struct ParseState *Parser, int AbsorbOpenBrace, int Condition)
+{
+    if (AbsorbOpenBrace && LexGetToken(Parser, NULL, TRUE) != TokenLeftBrace)
+        ProgramFail(Parser, "'{' expected");
+    
+    if (Parser->Mode != RunModeSkip && !Condition)
+    { /* condition failed - skip this block instead */
+        enum RunMode OldMode = Parser->Mode;
+        Parser->Mode = RunModeSkip;
+        while (ParseStatement(Parser))
+        {}
+        Parser->Mode = OldMode;
+    }
+    else
+    { /* just run it in its current mode */
+        while (ParseStatement(Parser))
+        {}
+    }
+    
+    if (LexGetToken(Parser, NULL, TRUE) != TokenRightBrace)
+        ProgramFail(Parser, "'}' expected");
+        
+    return Parser->Mode;
 }
 
 /* parse a statement */
@@ -582,11 +624,7 @@ int ParseStatement(struct ParseState *Parser)
             break;
             
         case TokenLeftBrace:
-            while (ParseStatement(Parser))
-            {}
-            
-            if (LexGetToken(Parser, NULL, TRUE) != TokenRightBrace)
-                ProgramFail(Parser, "'}' expected");
+            ParseBlock(Parser, FALSE, TRUE);
             break;
             
         case TokenIf:
@@ -611,31 +649,40 @@ int ParseStatement(struct ParseState *Parser)
         
         case TokenWhile:
             {
-                struct ParseState PreConditional = *Parser;
+                struct ParseState PreConditional;
+                ParserCopyPos(&PreConditional, Parser);
                 do
                 {
-                    *Parser = PreConditional;
+                    ParserCopyPos(Parser, &PreConditional);
                     Condition = ParseIntExpression(Parser);
+                    ParseBlock(Parser, TRUE, Condition);
+                    if (Parser->Mode == RunModeContinue)
+                        Parser->Mode = RunModeRun;
+                    
+                } while (Parser->Mode == RunModeRun && Condition);
                 
-                    if (!ParseStatementMaybeRun(Parser, Condition))
-                        ProgramFail(Parser, "statement expected");
-                        
-                } while (Parser->Mode == RunModeRun && Condition);                
+                if (Parser->Mode == RunModeBreak)
+                    Parser->Mode = RunModeRun;
             }
             break;
                 
         case TokenDo:
             {
-                struct ParseState PreStatement = *Parser;
+                struct ParseState PreStatement;
+                ParserCopyPos(&PreStatement, Parser);
                 do
                 {
-                    *Parser = PreStatement;
-                    if (!ParseStatement(Parser))
-                        ProgramFail(Parser, "statement expected");
-                        
+                    ParserCopyPos(Parser, &PreStatement);
+                    ParseBlock(Parser, TRUE, TRUE);
+                    if (Parser->Mode == RunModeContinue)
+                        Parser->Mode = RunModeRun;
+
                     Condition = ParseIntExpression(Parser);
                 
                 } while (Condition && Parser->Mode == RunModeRun);           
+                
+                if (Parser->Mode == RunModeBreak)
+                    Parser->Mode = RunModeRun;
             }
             break;
                 
@@ -702,8 +749,7 @@ int ParseStatement(struct ParseState *Parser)
                 Parser->Mode = RunModeCaseSearch;
                 Parser->SearchLabel = Condition;
                 
-                if (!ParseStatement(Parser))
-                    ProgramFail(Parser, "statement expected");
+                ParseBlock(Parser, TRUE, TRUE);
                 
                 Parser->Mode = OldMode;
                 Parser->SearchLabel = OldSearchLabel;
@@ -711,7 +757,15 @@ int ParseStatement(struct ParseState *Parser)
             break;
 
         case TokenCase:
-            Condition = ParseIntExpression(Parser);
+            if (Parser->Mode == RunModeCaseSearch)
+            {
+                Parser->Mode = RunModeRun;
+                Condition = ParseIntExpression(Parser);
+                Parser->Mode = RunModeCaseSearch;
+            }
+            else
+                Condition = ParseIntExpression(Parser);
+                
             if (LexGetToken(Parser, NULL, TRUE) != TokenColon)
                 ProgramFail(Parser, "':' expected");
             
