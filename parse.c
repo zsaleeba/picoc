@@ -677,6 +677,9 @@ int ParseStatement(struct ParseState *Parser)
                     if (Parser->Mode == RunModeContinue)
                         Parser->Mode = RunModeRun;
 
+                    if (LexGetToken(Parser, NULL, TRUE) != TokenWhile)
+                        ProgramFail(Parser, "'while' expected");
+                    
                     Condition = ParseIntExpression(Parser);
                 
                 } while (Condition && Parser->Mode == RunModeRun);           
