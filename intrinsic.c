@@ -2,24 +2,24 @@
 #include <string.h>
 #include "picoc.h"
 
-void IntrinsicPrintInt(void)
+void IntrinsicPrintInt(struct Value *ReturnValue, struct Value **Param)
 {
-    printf("%d\n", TopStackFrame->Parameter[0]->Val->Integer);
+    printf("%d\n", Param[0]->Val->Integer);
 }
 
-void IntrinsicPrintf(void)
+void IntrinsicPrintf(struct Value *ReturnValue, struct Value **Param)
 {
     printf("IntrinsicPrintf\n");
 }
 
-void IntrinsicSayHello(void)
+void IntrinsicSayHello(struct Value *ReturnValue, struct Value **Param)
 {
     printf("Hello\n");
 }
 
 struct IntrinsicFunction
 {
-    void (*Func)(void);
+    void (*Func)(struct Value *, struct Value **);
     const char *Prototype;
 } Intrinsics[] =
 {

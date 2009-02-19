@@ -20,6 +20,7 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, const c
 {
     struct Value *FuncValue;
     struct Value *Param;
+    struct Value **IntrinsicParam;
     int ArgCount;
     enum LexToken Token = LexGetToken(Parser, NULL, TRUE);    /* open bracket */
     
@@ -30,8 +31,9 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, const c
             ProgramFail(Parser, "not a function - can't call");
     
         *Result = VariableAllocValueFromType(Parser, FuncValue->Val->FuncDef.ReturnType, FALSE);
-        VariableStackFrameAdd(Parser, FuncValue->Val->FuncDef.Intrinsic ? FuncValue->Val->FuncDef.NumParams : 0);
-        TopStackFrame->ReturnValue = *Result;
+        HeapPushStackFrame();
+        if (FuncValue->Val->FuncDef.Intrinsic)
+            IntrinsicParam = HeapAllocStack(sizeof(struct Value *) * FuncValue->Val->FuncDef.NumParams);
     }
         
     /* parse arguments */
@@ -48,7 +50,7 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, const c
                     ProgramFail(Parser, "parameter %d to %s() is the wrong type", ArgCount, FuncName);
 
                 if (FuncValue->Val->FuncDef.Intrinsic)
-                    TopStackFrame->Parameter[ArgCount] = Param;
+                    IntrinsicParam[ArgCount] = Param;
                 else
                     VariableDefine(Parser, FuncValue->Val->FuncDef.ParamName[ArgCount], Param);
             }
@@ -71,21 +73,25 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, const c
         if (ArgCount < FuncValue->Val->FuncDef.NumParams)
             ProgramFail(Parser, "not enough arguments to '%s'", FuncName);
         
-        TopStackFrame->NumParams = ArgCount;
         if (FuncValue->Val->FuncDef.Intrinsic == NULL)
         { /* run a user-defined function */
             struct ParseState FuncParser = FuncValue->Val->FuncDef.Body;
-            
+            VariableStackFrameAdd(Parser, FuncValue->Val->FuncDef.Intrinsic ? FuncValue->Val->FuncDef.NumParams : 0);
+            TopStackFrame->NumParams = ArgCount;
+            TopStackFrame->ReturnValue = *Result;
+                
             if (!ParseStatement(&FuncParser))
                 ProgramFail(&FuncParser, "function body expected");
         
             if (FuncValue->Val->FuncDef.ReturnType != (*Result)->Typ)
                 ProgramFail(&FuncParser, "bad type of return value");
+
+            VariableStackFramePop(Parser);
         }
         else
-            FuncValue->Val->FuncDef.Intrinsic();
+            FuncValue->Val->FuncDef.Intrinsic(*Result, IntrinsicParam);
 
-        VariableStackFramePop(Parser);
+        HeapPopStackFrame();
     }
 }
 
