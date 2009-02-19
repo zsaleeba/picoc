@@ -182,6 +182,8 @@ unsigned char LexUnEscapeCharacter(const char **From, const char *End)
             case 'r':  return '\r';
             case 't':  return '\t';
             case 'v':  return '\v';
+            /* case '0': XXX - implement octal character constants */
+            /* case 'x': XXX - implement hex character constants */
             default:   return ThisChar;
         }
     }
