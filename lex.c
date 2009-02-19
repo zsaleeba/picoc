@@ -151,16 +151,56 @@ enum LexToken LexGetWord(struct LexState *Lexer, struct Value *Value)
     return TokenIdentifier;
 }
 
+/* unescape a character from a string or character constant */
+unsigned char LexUnEscapeCharacter(const char **From, const char *End)
+{
+    unsigned char ThisChar;
+    
+    while ( *From != End && **From == '\\' && 
+            &(*From)[1] != End && (*From)[1] == '\n')
+        (*From) += 2;       /* skip escaped end of lines */
+    
+    if (*From == End)
+        return '\\';
+    
+    if (**From == '\\')
+    { /* it's escaped */
+        (*From)++;
+        if (*From == End)
+            return '\\';
+        
+        ThisChar = *(*From)++;
+        switch (ThisChar)
+        {
+            case '\\': return '\\'; 
+            case '\'': return '\'';
+            case '"':  return '"';
+            case 'a':  return '\a';
+            case 'b':  return '\b';
+            case 'f':  return '\f';
+            case 'n':  return '\n';
+            case 'r':  return '\r';
+            case 't':  return '\t';
+            case 'v':  return '\v';
+            default:   return ThisChar;
+        }
+    }
+    else
+        return *(*From)++;
+}
+
 /* get a string constant - used while scanning */
 enum LexToken LexGetStringConstant(struct LexState *Lexer, struct Value *Value)
 {
     int Escape = FALSE;
     const char *StartPos = Lexer->Pos;
+    const char *EndPos;
+    char *EscBuf;
+    char *EscBufPos;
     
-    // XXX - do escaping here
     Value->Typ = &StringType;
     while (Lexer->Pos != Lexer->End && (*Lexer->Pos != '"' || Escape))
-    {
+    { /* find the end */
         if (Escape)
             Escape = FALSE;
         else if (*Lexer->Pos == '\\')
@@ -168,7 +208,14 @@ enum LexToken LexGetStringConstant(struct LexState *Lexer, struct Value *Value)
             
         Lexer->Pos++;
     }
-    Value->Val->String = (char *)StrRegister2(StartPos, Lexer->Pos - StartPos);
+    EndPos = Lexer->Pos;
+    
+    EscBuf = HeapAllocStack(EndPos - StartPos);
+    for (EscBufPos = EscBuf, Lexer->Pos = StartPos; Lexer->Pos != EndPos;)
+        *EscBufPos++ = LexUnEscapeCharacter(&Lexer->Pos, EndPos);
+    
+    Value->Val->String = (char *)StrRegister2(EscBuf, EscBufPos - EscBuf);
+    HeapPopStack(EscBuf, EndPos - StartPos);
     if (*Lexer->Pos == '"')
         Lexer->Pos++;
     
@@ -179,11 +226,12 @@ enum LexToken LexGetStringConstant(struct LexState *Lexer, struct Value *Value)
 enum LexToken LexGetCharacterConstant(struct LexState *Lexer, struct Value *Value)
 {
     Value->Typ = &IntType;
-    Value->Val->Integer = Lexer->Pos[1];
-    if (Lexer->Pos[2] != '\'')
-        LexFail(Lexer, "illegal character '%c'", Lexer->Pos[2]);
+    Lexer->Pos++;
+    Value->Val->Integer = LexUnEscapeCharacter(&Lexer->Pos, Lexer->End);
+    if (Lexer->Pos != Lexer->End || *Lexer->Pos != '\'')
+        LexFail(Lexer, "expected \"'\"");
         
-    Lexer->Pos += 3;
+    Lexer->Pos++;
     return TokenCharacterConstant;
 }
 
