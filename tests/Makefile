@@ -4,7 +4,10 @@ TESTS=	00_assignment.test \
 	03_struct.test \
 	04_for.test \
 	05_array.test \
-	06_case.test
+	06_case.test \
+	07_function.test \
+	08_while.test \
+	09_do_while.test
 
 %.test: %.expect %.c
 	@echo Test: $*...
