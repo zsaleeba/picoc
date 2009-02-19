@@ -197,6 +197,9 @@ struct Table
 struct StackFrame
 {
     struct ParseState ReturnParser;         /* how we got here */
+    struct Value *ReturnValue;              /* copy the return value here */
+    struct Value **Parameter;               /* array of parameter values */
+    int NumParams;                          /* the number of parameters */
     struct Table LocalTable;                /* the local variables and parameters */
     struct TableEntry *LocalHashTable[LOCAL_TABLE_SIZE];
     struct StackFrame *PreviousStackFrame;  /* the next lower stack frame */
@@ -204,10 +207,7 @@ struct StackFrame
 
 /* globals */
 extern struct Table GlobalTable;
-extern struct Value *Parameter[PARAMETER_MAX];
-extern int ParameterUsed;
 extern struct StackFrame *TopStackFrame;
-extern struct Value *ReturnValue;
 extern struct ValueType IntType;
 extern struct ValueType CharType;
 extern struct ValueType StringType;
@@ -235,7 +235,7 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
 
 /* parse.c */
 void ParseInit(void);
-int ParseExpression(struct ParseState *Parser, struct Value **Result, int ResultOnHeap);
+int ParseExpression(struct ParseState *Parser, struct Value **Result);
 int ParseIntExpression(struct ParseState *Parser);
 int ParseStatement(struct ParseState *Parser);
 struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *ReturnType, const char *Identifier, int IsProtoType);
@@ -266,13 +266,13 @@ void *VariableAlloc(struct ParseState *Parser, int Size, int OnHeap);
 void VariableStackPop(struct ParseState *Parser, struct Value *Var);
 struct Value *VariableAllocValueAndData(struct ParseState *Parser, int DataSize, int IsLValue, int OnHeap);
 struct Value *VariableAllocValueAndCopy(struct ParseState *Parser, struct Value *FromValue, int OnHeap);
-struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct ValueType *Typ, int IsLValue, int OnHeap);
-struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, struct ValueType *Typ, union AnyValue *FromValue, int IsLValue, int OnHeap);
-struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *FromValue, int OnHeap);
+struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct ValueType *Typ, int IsLValue);
+struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, struct ValueType *Typ, union AnyValue *FromValue, int IsLValue);
+struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *FromValue);
 void VariableDefine(struct ParseState *Parser, const char *Ident, struct Value *InitValue);
 int VariableDefined(const char *Ident);
 void VariableGet(struct ParseState *Parser, const char *Ident, struct Value **LVal);
-void VariableStackFrameAdd(struct ParseState *Parser);
+void VariableStackFrameAdd(struct ParseState *Parser, int NumParams);
 void VariableStackFramePop(struct ParseState *Parser);
 
 /* str.c */

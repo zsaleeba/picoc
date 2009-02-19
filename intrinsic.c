@@ -4,7 +4,7 @@
 
 void IntrinsicPrintInt(void)
 {
-    printf("%d\n", Parameter[0]->Val->Integer);
+    printf("%d\n", TopStackFrame->Parameter[0]->Val->Integer);
 }
 
 void IntrinsicPrintf(void)

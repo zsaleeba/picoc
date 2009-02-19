@@ -54,9 +54,9 @@ struct Value *VariableAllocValueAndData(struct ParseState *Parser, int DataSize,
 }
 
 /* allocate a value given its type */
-struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct ValueType *Typ, int IsLValue, int OnHeap)
+struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct ValueType *Typ, int IsLValue)
 {
-    struct Value *NewValue = VariableAllocValueAndData(Parser, Typ->Sizeof, IsLValue, OnHeap);
+    struct Value *NewValue = VariableAllocValueAndData(Parser, Typ->Sizeof, IsLValue, FALSE);
     NewValue->Typ = Typ;
     return NewValue;
 }
@@ -71,9 +71,9 @@ struct Value *VariableAllocValueAndCopy(struct ParseState *Parser, struct Value 
 }
 
 /* allocate a value either on the heap or the stack from an existing AnyValue and type */
-struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, struct ValueType *Typ, union AnyValue *FromValue, int IsLValue, int OnHeap)
+struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, struct ValueType *Typ, union AnyValue *FromValue, int IsLValue)
 {
-    struct Value *NewValue = VariableAlloc(Parser, sizeof(struct Value), OnHeap);
+    struct Value *NewValue = VariableAlloc(Parser, sizeof(struct Value), FALSE);
     NewValue->Typ = Typ;
     NewValue->Val = FromValue;
     NewValue->ValOnHeap = FALSE;
@@ -84,9 +84,9 @@ struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, stru
 }
 
 /* allocate a value either on the heap or the stack from an existing Value, sharing the value */
-struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *FromValue, int OnHeap)
+struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *FromValue)
 {
-    return VariableAllocValueFromExistingData(Parser, FromValue->Typ, FromValue->Val, FromValue->IsLValue, OnHeap);
+    return VariableAllocValueFromExistingData(Parser, FromValue->Typ, FromValue->Val, FromValue->IsLValue);
 }
 
 /* define a variable */
@@ -145,13 +145,14 @@ void VariableStackPop(struct ParseState *Parser, struct Value *Var)
 }
 
 /* add a stack frame when doing a function call */
-void VariableStackFrameAdd(struct ParseState *Parser)
+void VariableStackFrameAdd(struct ParseState *Parser, int NumParams)
 {
     struct StackFrame *NewFrame;
     
     HeapPushStackFrame();
-    NewFrame = HeapAllocStack(sizeof(struct StackFrame));
+    NewFrame = HeapAllocStack(sizeof(struct StackFrame) + sizeof(struct Value *) * NumParams);
     NewFrame->ReturnParser = *Parser;
+    NewFrame->Parameter = (NumParams > 0) ? ((void *)NewFrame + sizeof(struct StackFrame)) : NULL;
     TableInit(&NewFrame->LocalTable, &NewFrame->LocalHashTable[0], LOCAL_TABLE_SIZE, FALSE);
     NewFrame->PreviousStackFrame = TopStackFrame;
     TopStackFrame = NewFrame;
