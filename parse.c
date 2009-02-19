@@ -44,13 +44,13 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, int Res
     do {
         if (ParseExpression(Parser, &Parameter[ParameterUsed], FALSE))
         {
+            if (Parser->Mode == RunModeRun && ParameterUsed >= FuncValue->Val->FuncDef.NumParams)
+                ProgramFail(Parser, "too many arguments");
+                
             if (Parser->Mode == RunModeRun && FuncValue->Val->FuncDef.ParamType[ParameterUsed] != Parameter[ParameterUsed]->Typ)
                 ProgramFail(Parser, "parameter %d to %s is the wrong type", ParameterUsed, FuncName);
                 
             ParameterUsed++;
-            if (Parser->Mode == RunModeRun && ParameterUsed > FuncValue->Val->FuncDef.NumParams)
-                ProgramFail(Parser, "too many arguments");
-                
             Token = LexGetToken(Parser, NULL, TRUE);
             if (Token != TokenComma && Token != TokenCloseBracket)
                 ProgramFail(Parser, "comma expected");
