@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "picoc.h"
 
@@ -20,7 +21,7 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, const c
 {
     struct Value *FuncValue;
     struct Value *Param;
-    struct Value **IntrinsicParam;
+    struct Value **ParamArray;
     int ArgCount;
     enum LexToken Token = LexGetToken(Parser, NULL, TRUE);    /* open bracket */
     
@@ -32,8 +33,7 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, const c
     
         *Result = VariableAllocValueFromType(Parser, FuncValue->Val->FuncDef.ReturnType, FALSE);
         HeapPushStackFrame();
-        if (FuncValue->Val->FuncDef.Intrinsic)
-            IntrinsicParam = HeapAllocStack(sizeof(struct Value *) * FuncValue->Val->FuncDef.NumParams);
+        ParamArray = HeapAllocStack(sizeof(struct Value *) * FuncValue->Val->FuncDef.NumParams);
     }
         
     /* parse arguments */
@@ -49,10 +49,7 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, const c
                 if (FuncValue->Val->FuncDef.ParamType[ArgCount] != Param->Typ)
                     ProgramFail(Parser, "parameter %d to %s() is the wrong type", ArgCount, FuncName);
 
-                if (FuncValue->Val->FuncDef.Intrinsic)
-                    IntrinsicParam[ArgCount] = Param;
-                else
-                    VariableDefine(Parser, FuncValue->Val->FuncDef.ParamName[ArgCount], Param);
+                ParamArray[ArgCount] = Param;
             }
             
             ArgCount++;
@@ -76,9 +73,13 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, const c
         if (FuncValue->Val->FuncDef.Intrinsic == NULL)
         { /* run a user-defined function */
             struct ParseState FuncParser = FuncValue->Val->FuncDef.Body;
+            int Count;
+            
             VariableStackFrameAdd(Parser, FuncValue->Val->FuncDef.Intrinsic ? FuncValue->Val->FuncDef.NumParams : 0);
             TopStackFrame->NumParams = ArgCount;
             TopStackFrame->ReturnValue = *Result;
+            for (Count = 0; Count < ArgCount; Count++)
+                VariableDefine(Parser, FuncValue->Val->FuncDef.ParamName[Count], ParamArray[Count]);
                 
             if (!ParseStatement(&FuncParser))
                 ProgramFail(&FuncParser, "function body expected");
@@ -89,7 +90,7 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, const c
             VariableStackFramePop(Parser);
         }
         else
-            FuncValue->Val->FuncDef.Intrinsic(*Result, IntrinsicParam);
+            FuncValue->Val->FuncDef.Intrinsic(*Result, ParamArray);
 
         HeapPopStackFrame();
     }
@@ -802,9 +803,15 @@ int ParseStatement(struct ParseState *Parser)
         case TokenReturn:
             if (Parser->Mode == RunModeRun)
             {
-                // XXX - check return type
-                // XXX - set return value
-                Parser->Mode = RunModeContinue;
+                if (!ParseExpression(Parser, &CValue) && TopStackFrame->ReturnValue->Typ->Base != TypeVoid)
+                    ProgramFail(Parser, "value required in return");
+                    
+                if (CValue->Typ != TopStackFrame->ReturnValue->Typ)
+                    ProgramFail(Parser, "wrong return type");
+                    
+                // XXX - make assignment a separate function
+                memcpy(TopStackFrame->ReturnValue->Val, CValue->Val, TopStackFrame->ReturnValue->Typ->Sizeof);
+                Parser->Mode = RunModeReturn;
             }
             break;
             
