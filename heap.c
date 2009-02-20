@@ -56,13 +56,6 @@ int HeapPopStack(void *Addr, int Size)
     return TRUE;
 }
 
-/* get all the free space from the top of the stack - only suitable for temporary work */
-void *HeapStackGetFreeSpace(int *MemAvailable)
-{
-    *MemAvailable = HeapBottom - StackTop;
-    return StackTop;
-}
-
 /* push a new stack frame on to the stack */
 void HeapPushStackFrame()
 {

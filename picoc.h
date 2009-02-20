@@ -255,7 +255,6 @@ void IntrinsicInit(struct Table *GlobalTable);
 void HeapInit();
 void *HeapAllocStack(int Size);
 int HeapPopStack(void *Addr, int Size);
-void *HeapStackGetFreeSpace(int *MemAvailable);
 void HeapPushStackFrame();
 int HeapPopStackFrame();
 void *HeapAlloc(int Size);

@@ -353,10 +353,13 @@ void *LexTokenise(struct LexState *Lexer)
     enum LexToken Token;
     void *HeapMem;
     struct Value *GotValue;
-    int MemAvailable;
     int MemUsed = 0;
     int ValueSize;
-    void *TokenSpace = HeapStackGetFreeSpace(&MemAvailable);
+    int ReserveSpace = (Lexer->End - Lexer->Pos) * 3 + 1; 
+    void *TokenSpace = HeapAllocStack(ReserveSpace);
+    void *TokenPos = TokenSpace;
+    if (TokenSpace == NULL)
+        LexFail(Lexer, "out of memory");
     
     do
     { /* store the token at the end of the stack area */
@@ -364,31 +367,26 @@ void *LexTokenise(struct LexState *Lexer)
 #ifdef DEBUG_LEXER
         printf("Token: %02x\n", Token);
 #endif
-        *(char *)TokenSpace = Token;
-        TokenSpace++;
+        *(unsigned char *)TokenPos = Token;
+        TokenPos++;
         MemUsed++;
 
         ValueSize = LexTokenSize(Token);
         if (ValueSize > 0)
         { /* store a value as well */
-            if (MemAvailable - MemUsed <= ValueSize)
-                LexFail(Lexer, "out of memory while lexing");
-
-            memcpy(TokenSpace, GotValue->Val, ValueSize);
-            TokenSpace += ValueSize;
+            memcpy(TokenPos, GotValue->Val, ValueSize);
+            TokenPos += ValueSize;
             MemUsed += ValueSize;
         }
-        
-        if (MemAvailable <= MemUsed)
-            LexFail(Lexer, "out of memory while lexing");
             
     } while (Token != TokenEOF);
     
-    if (MemAvailable < MemUsed*2 + sizeof(struct AllocNode))   /* need memory for stack copy + heap copy */
-        LexFail(Lexer, "out of memory while lexing");
-        
     HeapMem = HeapAlloc(MemUsed);
-    memcpy(HeapMem, HeapStackGetFreeSpace(&MemAvailable), MemUsed);  
+    if (HeapMem == NULL)
+        LexFail(Lexer, "out of memory");
+        
+    memcpy(HeapMem, TokenSpace, MemUsed);
+    HeapPopStack(TokenSpace, ReserveSpace);
 #ifdef DEBUG_LEXER
     {
         int Count;
