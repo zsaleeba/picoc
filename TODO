@@ -1,13 +1,10 @@
 TODO
 
 * pointers
-* switch
 * operator precedence
 * enum
 * interactive mode
 
 
 Also:
-* Do we really need OnHeap? Isn't every value on the stack anyway?
 * Remove Var parameter from HeapPopStack() once we're certain it all works
-* Clean up the two types of stack frame
