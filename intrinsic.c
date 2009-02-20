@@ -23,9 +23,9 @@ struct IntrinsicFunction
     const char *Prototype;
 } Intrinsics[] =
 {
-    { IntrinsicSayHello,    "void sayhello()" },    /* -1 */
-    { IntrinsicPrintf,      "void printf()" },      /* -2 */
-    { IntrinsicPrintInt,    "void printint(int)" }, /* -3 */
+    { IntrinsicSayHello,    "void sayhello()" },
+    { IntrinsicPrintf,      "void printf(char *, ...)" },
+    { IntrinsicPrintInt,    "void printint(int)" },
 };
 
 void IntrinsicInit(struct Table *GlobalTable)

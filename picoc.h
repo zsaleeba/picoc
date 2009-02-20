@@ -49,7 +49,7 @@ enum LexToken
     TokenOpenBracket, TokenCloseBracket,
     TokenAssign, TokenPlus, TokenMinus, TokenAsterisk, TokenSlash,
     TokenEquality, TokenLessThan, TokenGreaterThan, TokenLessEqual, TokenGreaterEqual,
-    TokenSemicolon, TokenComma, TokenDot, TokenColon,
+    TokenSemicolon, TokenComma, TokenDot, TokenColon, TokenEllipsis,
     TokenArrow, TokenAmpersand,
     TokenLeftBrace, TokenRightBrace,
     TokenLeftSquareBracket, TokenRightSquareBracket,
@@ -126,6 +126,7 @@ struct FuncDef
 {
     struct ValueType *ReturnType;   /* the return value type */
     int NumParams;                  /* the number of parameters */
+    int VarArgs;                    /* has a variable number of arguments after the explicitly specified ones */
     struct ValueType **ParamType;   /* array of parameter types */
     const char **ParamName;         /* array of parameter names */
     void (*Intrinsic)();            /* intrinsic call address or NULL */

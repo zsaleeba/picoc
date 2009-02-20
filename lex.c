@@ -14,6 +14,7 @@
 #define NEXTIS(c,x,y) { if (NextChar == (c)) { Lexer->Pos++; GotToken = (x); } else GotToken = (y); }
 #define NEXTIS3(c,x,d,y,z) { if (NextChar == (c)) { Lexer->Pos++; GotToken = (x); } else NEXTIS(d,y,z) }
 #define NEXTIS4(c,x,d,y,e,z,a) { if (NextChar == (c)) { Lexer->Pos++; GotToken = (x); } else NEXTIS3(d,y,e,z,a) }
+#define NEXTISEXACTLY3(c,d,y,z) { if (NextChar == (c) && Lexer->Pos[1] == (d)) { Lexer->Pos += 2; GotToken = (y); } else GotToken = (z); }
 
 static union AnyValue LexAnyValue;
 static struct Value LexValue = { TypeVoid, &LexAnyValue, FALSE, FALSE };
@@ -325,7 +326,7 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
             case '^': GotToken = TokenArithmeticExor; break;
             case '~': GotToken = TokenUnaryExor; break;
             case ',': GotToken = TokenComma; break;
-            case '.': GotToken = TokenDot; break;
+            case '.': NEXTISEXACTLY3('.', '.', TokenEllipsis, TokenDot); break;
             case ':': GotToken = TokenColon; break;
             default:  LexFail(Lexer, "illegal character '%c'", ThisChar); break;
         }

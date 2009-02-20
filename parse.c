@@ -43,13 +43,14 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, const c
         {
             if (Parser->Mode == RunModeRun)
             { 
-                if (ArgCount >= FuncValue->Val->FuncDef.NumParams)
+                if (ArgCount >= FuncValue->Val->FuncDef.NumParams && !FuncValue->Val->FuncDef.VarArgs)
                     ProgramFail(Parser, "too many arguments to %s()", FuncName);
                 
                 if (FuncValue->Val->FuncDef.ParamType[ArgCount] != Param->Typ)
-                    ProgramFail(Parser, "parameter %d to %s() is the wrong type", ArgCount, FuncName);
+                    ProgramFail(Parser, "parameter %d to %s() is the wrong type", ArgCount+1, FuncName);
 
-                ParamArray[ArgCount] = Param;
+                if (ArgCount < FuncValue->Val->FuncDef.NumParams)
+                    ParamArray[ArgCount] = Param;
             }
             
             ArgCount++;
@@ -58,7 +59,7 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, const c
                 ProgramFail(Parser, "comma expected");
         }
         else
-        {
+        { /* end of argument list? */
             Token = LexGetToken(Parser, NULL, TRUE);
             if (!TokenCloseBracket)
                 ProgramFail(Parser, "bad argument");
@@ -78,7 +79,7 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, const c
             VariableStackFrameAdd(Parser, FuncValue->Val->FuncDef.Intrinsic ? FuncValue->Val->FuncDef.NumParams : 0);
             TopStackFrame->NumParams = ArgCount;
             TopStackFrame->ReturnValue = *Result;
-            for (Count = 0; Count < ArgCount; Count++)
+            for (Count = 0; Count < FuncValue->Val->FuncDef.NumParams; Count++)
                 VariableDefine(Parser, FuncValue->Val->FuncDef.ParamName[Count], ParamArray[Count]);
                 
             if (!ParseStatement(&FuncParser))
@@ -90,7 +91,7 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, const c
             VariableStackFramePop(Parser);
         }
         else
-            FuncValue->Val->FuncDef.Intrinsic(*Result, ParamArray);
+            FuncValue->Val->FuncDef.Intrinsic(*Result, ParamArray, ArgCount);
 
         HeapPopStackFrame();
     }
@@ -450,18 +451,28 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
     FuncValue->Typ = &FunctionType;
     FuncValue->Val->FuncDef.ReturnType = ReturnType;
     FuncValue->Val->FuncDef.NumParams = ParamCount;
+    FuncValue->Val->FuncDef.VarArgs = FALSE;
     FuncValue->Val->FuncDef.ParamType = (void *)FuncValue->Val + sizeof(struct FuncDef);
     FuncValue->Val->FuncDef.ParamName = (void *)FuncValue->Val->FuncDef.ParamType + sizeof(struct ValueType *) * ParamCount;
     FuncValue->Val->FuncDef.Body = *Parser;
    
     for (ParamCount = 0; ParamCount < FuncValue->Val->FuncDef.NumParams; ParamCount++)
     { /* harvest the parameters into the function definition */
-        TypeParse(&ParamParser, &ParamType, &ParamIdentifier);
-        FuncValue->Val->FuncDef.ParamType[ParamCount] = ParamType;
-        FuncValue->Val->FuncDef.ParamName[ParamCount] = ParamIdentifier;
+        if (ParamCount == FuncValue->Val->FuncDef.NumParams-1 && LexGetToken(&ParamParser, NULL, FALSE) == TokenEllipsis)
+        { /* ellipsis at end */
+            FuncValue->Val->FuncDef.NumParams--;
+            FuncValue->Val->FuncDef.VarArgs = TRUE;
+            break;
+        }
+        else
+        { /* add a parameter */
+            TypeParse(&ParamParser, &ParamType, &ParamIdentifier);
+            FuncValue->Val->FuncDef.ParamType[ParamCount] = ParamType;
+            FuncValue->Val->FuncDef.ParamName[ParamCount] = ParamIdentifier;
+        }
         
         Token = LexGetToken(&ParamParser, NULL, TRUE);
-        if (Token != TokenComma && ParamCount != FuncValue->Val->FuncDef.NumParams-1)
+        if (Token != TokenComma && ParamCount < FuncValue->Val->FuncDef.NumParams-1)
             ProgramFail(&ParamParser, "comma expected");
     }
     
