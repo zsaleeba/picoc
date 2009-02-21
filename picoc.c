@@ -15,11 +15,11 @@ void ProgramFail(struct ParseState *Parser, const char *Message, ...)
     va_list Args;
 
     if (Parser != NULL)
-        printf("%s:%d: ", Parser->FileName, Parser->Line);   
+        IntrinsicHostPrintf("%s:%d: ", Parser->FileName, Parser->Line);   
         
     va_start(Args, Message);
-    vprintf(Message, Args);
-    printf("\n");
+    IntrinsicHostVPrintf(Message, Args);
+    IntrinsicHostPrintf("\n");
     exit(1);
 }
 
@@ -28,10 +28,10 @@ void LexFail(struct LexState *Lexer, const char *Message, ...)
 {
     va_list Args;
 
-    printf("%s:%d: ", Lexer->FileName, Lexer->Line);      
+    IntrinsicHostPrintf("%s:%d: ", Lexer->FileName, Lexer->Line);      
     va_start(Args, Message);
-    vprintf(Message, Args);
-    printf("\n");
+    IntrinsicHostVPrintf(Message, Args);
+    IntrinsicHostPrintf("\n");
     exit(1);
 }
 

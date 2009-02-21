@@ -175,16 +175,14 @@ void IntrinsicInit(struct Table *GlobalTable)
     }
 }
 
-#if 0
 void IntrinsicHostPrintf(const char *Format, ...)
 {
     va_list Args;
     
     va_start(Args, Format);
-    vStrPrintf(Format, Args);
+    IntrinsicHostVPrintf(Format, Args);
     va_end(Args);
 }
-#endif
 
 /* printf for compiler error reporting */
 void IntrinsicHostVPrintf(const char *Format, va_list Args)

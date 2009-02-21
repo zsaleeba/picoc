@@ -97,7 +97,7 @@ void TypeInit()
     TypeAddBaseType(&MacroType, TypeMacro, sizeof(int));
     TypeAddBaseType(&Type_Type, TypeType, sizeof(struct ValueType *));
     TypeAddBaseType(&CharType, TypeChar, sizeof(char));
-    CharPtrType = TypeAdd(NULL, &CharType, TypePointer, 0, StrEmpty, sizeof(char));
+    CharPtrType = TypeAdd(NULL, &CharType, TypePointer, 0, StrEmpty, sizeof(struct PointerValue));
     CharArrayType = TypeAdd(NULL, &CharType, TypeArray, 0, StrEmpty, sizeof(char));
 }
 

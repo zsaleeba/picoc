@@ -262,6 +262,7 @@ struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *P
 
 /* intrinsic.c */
 void IntrinsicInit(struct Table *GlobalTable);
+void IntrinsicHostPrintf(const char *Format, ...);
 void IntrinsicHostVPrintf(const char *Format, va_list Args);
 
 /* heap.c */

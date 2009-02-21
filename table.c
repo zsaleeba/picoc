@@ -8,7 +8,7 @@ char *StrEmpty = NULL;
 /* initialise the shared string system */
 void TableInit()
 {
-    TableInit(&StringTable, &StringHashTable[0], STRING_TABLE_SIZE, TRUE);
+    TableInitTable(&StringTable, &StringHashTable[0], STRING_TABLE_SIZE, TRUE);
     StrEmpty = TableStrRegister("");
 }
 
