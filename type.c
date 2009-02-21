@@ -4,13 +4,15 @@
 struct ValueType UberType;
 struct ValueType IntType;
 struct ValueType CharType;
-struct ValueType StringType;
+struct ValueType WordType;
 struct ValueType FPType;
 struct ValueType VoidType;
 struct ValueType FunctionType;
 struct ValueType MacroType;
 struct ValueType EnumType;
 struct ValueType Type_Type;
+struct ValueType *CharPtrType;
+struct ValueType *CharArrayType;
 
 
 /* add a new type to the set of types we know about */
@@ -52,6 +54,24 @@ struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *P
     return TypeAdd(Parser, ParentType, Base, ArraySize, Identifier, Sizeof);
 }
 
+/* memory used by a value */
+int TypeSizeValue(struct Value *Val)
+{
+    if (Val->Typ->Base != TypeArray)
+        return Val->Typ->Sizeof;
+    else
+        return Val->Typ->FromType->Sizeof * Val->Val->Array.Size;
+}
+
+/* memory used by a variable given its type and array size */
+int TypeSize(struct ValueType *Typ, int ArraySize)
+{
+    if (Typ->Base != TypeArray)
+        return Typ->Sizeof;
+    else
+        return Typ->FromType->Sizeof * ArraySize;
+}
+
 /* add a base type */
 void TypeAddBaseType(struct ValueType *TypeNode, enum BaseType Base, int Sizeof)
 {
@@ -71,13 +91,14 @@ void TypeInit()
 {
     UberType.DerivedTypeList = NULL;
     TypeAddBaseType(&IntType, TypeInt, sizeof(int));
-    TypeAddBaseType(&CharType, TypeChar, sizeof(char));
-    TypeAddBaseType(&StringType, TypeString, sizeof(const char *));
     TypeAddBaseType(&FPType, TypeFP, sizeof(double));
     TypeAddBaseType(&VoidType, TypeVoid, 0);
     TypeAddBaseType(&FunctionType, TypeFunction, sizeof(int));
     TypeAddBaseType(&MacroType, TypeMacro, sizeof(int));
     TypeAddBaseType(&Type_Type, TypeType, sizeof(struct ValueType *));
+    TypeAddBaseType(&CharType, TypeChar, sizeof(char));
+    CharPtrType = TypeAdd(NULL, &CharType, TypePointer, 0, StrEmpty, sizeof(char));
+    CharArrayType = TypeAdd(NULL, &CharType, TypeArray, 0, StrEmpty, sizeof(char));
 }
 
 /* parse a struct or union declaration */
@@ -85,7 +106,7 @@ void TypeParseStruct(struct ParseState *Parser, struct ValueType **Typ, int IsSt
 {
     struct Value *LexValue;
     struct ValueType *MemberType;
-    const char *MemberIdentifier;
+    char *MemberIdentifier;
     struct Value *MemberValue;
     enum LexToken Token;
     
@@ -95,13 +116,13 @@ void TypeParseStruct(struct ParseState *Parser, struct ValueType **Typ, int IsSt
     if (LexGetToken(Parser, &LexValue, TRUE) != TokenIdentifier)
         ProgramFail(Parser, "struct/union name required");
     
-    *Typ = TypeGetMatching(Parser, &UberType, IsStruct ? TypeStruct : TypeUnion, 0, LexValue->Val->String);
+    *Typ = TypeGetMatching(Parser, &UberType, IsStruct ? TypeStruct : TypeUnion, 0, LexValue->Val->Identifier);
 
     Token = LexGetToken(Parser, NULL, FALSE);
     if (Token != TokenLeftBrace)
     { /* use the already defined structure */
         if ((*Typ)->Members == NULL)
-            ProgramFail(Parser, "structure '%s' isn't defined", LexValue->Val->String);
+            ProgramFail(Parser, "structure '%s' isn't defined", LexValue->Val->Identifier);
             
         return;
     }
@@ -109,7 +130,7 @@ void TypeParseStruct(struct ParseState *Parser, struct ValueType **Typ, int IsSt
     LexGetToken(Parser, NULL, TRUE);    
     (*Typ)->Members = VariableAlloc(Parser, sizeof(struct Table) + STRUCT_TABLE_SIZE * sizeof(struct TableEntry), TRUE);
     (*Typ)->Members->HashTable = (void *)(*Typ)->Members + sizeof(struct Table);
-    TableInit((*Typ)->Members, (void *)(*Typ)->Members + sizeof(struct Table), STRUCT_TABLE_SIZE, TRUE);
+    TableInitTable((*Typ)->Members, (void *)(*Typ)->Members + sizeof(struct Table), STRUCT_TABLE_SIZE, TRUE);
     
     do {
         TypeParse(Parser, &MemberType, &MemberIdentifier);
@@ -142,7 +163,7 @@ void TypeParseStruct(struct ParseState *Parser, struct ValueType **Typ, int IsSt
 }
 
 /* parse a type */
-void TypeParse(struct ParseState *Parser, struct ValueType **Typ, const char **Identifier)
+void TypeParse(struct ParseState *Parser, struct ValueType **Typ, char **Identifier)
 {
     struct ParseState Before;
     enum LexToken Token;
@@ -189,7 +210,7 @@ void TypeParse(struct ParseState *Parser, struct ValueType **Typ, const char **I
                 if (*Typ == NULL || *Identifier != StrEmpty)
                     ProgramFail(Parser, "bad type declaration");
                 
-                *Identifier = LexValue->Val->String;
+                *Identifier = LexValue->Val->Identifier;
                 Done = TRUE;
                 break;
                 

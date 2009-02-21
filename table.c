@@ -1,6 +1,17 @@
 #include <string.h>
 #include "picoc.h"
 
+struct Table StringTable;
+struct TableEntry *StringHashTable[STRING_TABLE_SIZE];
+char *StrEmpty = NULL;
+
+/* initialise the shared string system */
+void TableInit()
+{
+    TableInit(&StringTable, &StringHashTable[0], STRING_TABLE_SIZE, TRUE);
+    StrEmpty = TableStrRegister("");
+}
+
 /* hash function for strings */
 static unsigned int TableHash(const char *Key, int Len)
 {
@@ -20,7 +31,7 @@ static unsigned int TableHash(const char *Key, int Len)
 }
 
 /* initialise a table */
-void TableInit(struct Table *Tbl, struct TableEntry **HashTable, int Size, int OnHeap)
+void TableInitTable(struct Table *Tbl, struct TableEntry **HashTable, int Size, int OnHeap)
 {
     Tbl->Size = Size;
     Tbl->OnHeap = OnHeap;
@@ -45,8 +56,8 @@ static int TableSearch(struct Table *Tbl, const char *Key, int *AddAt)
 }
 
 /* set an identifier to a value. returns FALSE if it already exists. 
- * Key must be a shared string from StrRegister() */
-int TableSet(struct Table *Tbl, const char *Key, struct Value *Val)
+ * Key must be a shared string from TableStrRegister() */
+int TableSet(struct Table *Tbl, char *Key, struct Value *Val)
 {
     int AddAt;
     int HashPos = TableSearch(Tbl, Key, &AddAt);
@@ -65,7 +76,7 @@ int TableSet(struct Table *Tbl, const char *Key, struct Value *Val)
 }
 
 /* find a value in a table. returns FALSE if not found. 
- * Key must be a shared string from StrRegister() */
+ * Key must be a shared string from TableStrRegister() */
 int TableGet(struct Table *Tbl, const char *Key, struct Value **Val)
 {
     int AddAt;
@@ -94,7 +105,7 @@ static int TableSearchIdentifier(struct Table *Tbl, const char *Key, int Len, in
 }
 
 /* set an identifier and return the identifier. share if possible */
-const char *TableSetIdentifier(struct Table *Tbl, const char *Ident, int IdentLen)
+char *TableSetIdentifier(struct Table *Tbl, const char *Ident, int IdentLen)
 {
     int AddAt;
     int HashPos = TableSearchIdentifier(Tbl, Ident, IdentLen, &AddAt);
@@ -104,9 +115,23 @@ const char *TableSetIdentifier(struct Table *Tbl, const char *Ident, int IdentLe
     else
     {   /* add it to the table - we economise by not allocating the whole structure here */
         struct TableEntry *NewEntry = HeapAlloc(sizeof(struct TableEntry *) + IdentLen + 1);
+        if (NewEntry == NULL)
+            ProgramFail(NULL, "out of memory");
+            
         strncpy((char *)&NewEntry->p.Key[0], Ident, IdentLen);
         NewEntry->Next = Tbl->HashTable[AddAt];
         Tbl->HashTable[AddAt] = NewEntry;
         return &NewEntry->p.Key[0];
     }
+}
+
+/* register a string in the shared string store */
+char *TableStrRegister2(const char *Str, int Len)
+{
+    return TableSetIdentifier(&StringTable, Str, Len);
+}
+
+char *TableStrRegister(const char *Str)
+{
+    return TableStrRegister2(Str, strlen(Str));
 }

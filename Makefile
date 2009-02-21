@@ -3,7 +3,7 @@ CFLAGS=-Wall -g #-DDEBUG_LEXER #-DDEBUG_HEAP -DDEBUG_LEXER
 LIBS=-lm
 
 TARGET	= picoc
-SRCS	= picoc.c table.c lex.c parse.c intrinsic.c heap.c type.c variable.c str.c
+SRCS	= picoc.c table.c lex.c parse.c intrinsic.c heap.c type.c variable.c
 OBJS	:= $(SRCS:%.c=%.o)
 
 all: $(TARGET)

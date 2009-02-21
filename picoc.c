@@ -23,6 +23,18 @@ void ProgramFail(struct ParseState *Parser, const char *Message, ...)
     exit(1);
 }
 
+/* exit with a message */
+void LexFail(struct LexState *Lexer, const char *Message, ...)
+{
+    va_list Args;
+
+    printf("%s:%d: ", Lexer->FileName, Lexer->Line);      
+    va_start(Args, Message);
+    vprintf(Message, Args);
+    printf("\n");
+    exit(1);
+}
+
 /* read a file into memory */
 char *ReadFile(const char *FileName)
 {
@@ -33,7 +45,7 @@ char *ReadFile(const char *FileName)
     if (stat(FileName, &FileInfo))
         ProgramFail(NULL, "can't read file %s\n", FileName);
     
-    ReadText = HeapAlloc(FileInfo.st_size + 1);
+    ReadText = malloc(FileInfo.st_size + 1);
     if (ReadText == NULL)
         ProgramFail(NULL, "out of memory\n");
         
@@ -55,7 +67,7 @@ void ScanFile(const char *FileName)
 {
     char *SourceStr = ReadFile(FileName);
     Parse(FileName, SourceStr, strlen(SourceStr), TRUE);
-    HeapFree(SourceStr);
+    free(SourceStr);
 }
 
 int main(int argc, char **argv)
@@ -64,7 +76,7 @@ int main(int argc, char **argv)
         ProgramFail(NULL, "Format: picoc <program.c> <args>...\n");
     
     HeapInit();
-    StrInit();
+    TableInit();
     VariableInit();
     LexInit();
     ParseInit();

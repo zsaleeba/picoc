@@ -12,8 +12,8 @@ int ParseStatementMaybeRun(struct ParseState *Parser, int Condition);
 void ParseInit()
 {
     VariableInit();
-    IntrinsicInit(&GlobalTable);
     TypeInit();
+    IntrinsicInit(&GlobalTable);
 }
 
 /* do a function call */
@@ -34,6 +34,8 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, const c
         *Result = VariableAllocValueFromType(Parser, FuncValue->Val->FuncDef.ReturnType, FALSE);
         HeapPushStackFrame();
         ParamArray = HeapAllocStack(sizeof(struct Value *) * FuncValue->Val->FuncDef.NumParams);
+        if (ParamArray == NULL)
+            ProgramFail(Parser, "out of memory");
     }
         
     /* parse arguments */
@@ -162,12 +164,12 @@ int ParseValue(struct ParseState *Parser, struct Value **Result)
             
         case TokenIdentifier:
             if (LexGetToken(Parser, NULL, FALSE) == TokenOpenBracket)
-                ParseFunctionCall(Parser, Result, LexValue->Val->String);
+                ParseFunctionCall(Parser, Result, LexValue->Val->Identifier);
             else
             {
                 if (Parser->Mode == RunModeRun)
                 {
-                    VariableGet(Parser, LexValue->Val->String, &LocalLValue);
+                    VariableGet(Parser, LexValue->Val->Identifier, &LocalLValue);
                     if (LocalLValue->Typ->Base == TypeMacro)
                     {
                         struct ParseState MacroLexer = LocalLValue->Val->Parser;
@@ -211,11 +213,11 @@ int ParseValue(struct ParseState *Parser, struct Value **Result)
                         if ((*Result)->Typ->Base != TypeArray)
                             ProgramFail(Parser, "not an array");
                         
-                        if (IntValue < 0 || IntValue >= (*Result)->Typ->ArraySize)
+                        if (IntValue < 0 || IntValue >= (*Result)->Val->Array.Size)
                             ProgramFail(Parser, "illegal array index");
                         
                         VariableStackPop(Parser, *Result);
-                        *Result = VariableAllocValueFromExistingData(Parser, (*Result)->Typ->FromType, (union AnyValue *)((void *)(*Result)->Val + (*Result)->Typ->FromType->Sizeof * IntValue), TRUE);
+                        *Result = VariableAllocValueFromExistingData(Parser, (*Result)->Typ->FromType, (union AnyValue *)((void *)(*Result)->Val + TypeSize((*Result)->Typ->FromType, 0)), TRUE);
                     }
                 }
             }
@@ -281,8 +283,8 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result)
                     if (TotalValue->Typ->Base != TypeStruct && TotalValue->Typ->Base != TypeUnion)
                         ProgramFail(Parser, "can't use '.' on something that's not a struct or union");
                         
-                    if (!TableGet(TotalValue->Typ->Members, Ident->Val->String, &CurrentValue))
-                        ProgramFail(Parser, "structure doesn't have a member called '%s'", Ident->Val->String);
+                    if (!TableGet(TotalValue->Typ->Members, Ident->Val->Identifier, &CurrentValue))
+                        ProgramFail(Parser, "structure doesn't have a member called '%s'", Ident->Val->Identifier);
                     
                     VariableStackPop(Parser, TotalValue);
                     TotalValue = VariableAllocValueFromExistingData(Parser, CurrentValue->Typ, TotalValueData + CurrentValue->Val->Integer, TRUE);
@@ -423,10 +425,10 @@ int ParseIntExpression(struct ParseState *Parser)
 }
 
 /* parse a function definition and store it for later */
-struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *ReturnType, const char *Identifier, int IsPrototype)
+struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *ReturnType, char *Identifier, int IsPrototype)
 {
     struct ValueType *ParamType;
-    const char *ParamIdentifier;
+    char *ParamIdentifier;
     enum LexToken Token;
     struct Value *FuncValue;
     struct ParseState ParamParser;
@@ -503,8 +505,8 @@ void ParseMacroDefinition(struct ParseState *Parser)
     MacroValue->Val->Parser = *Parser;
     MacroValue->Typ = &MacroType;
     
-    if (!TableSet(&GlobalTable, MacroName->Val->String, MacroValue))
-        ProgramFail(Parser, "'%s' is already defined", &MacroName->Val->String);
+    if (!TableSet(&GlobalTable, MacroName->Val->Identifier, MacroValue))
+        ProgramFail(Parser, "'%s' is already defined", &MacroName->Val->Identifier);
 }
 
 /* copy where we're at in the parsing */
@@ -624,7 +626,7 @@ int ParseStatement(struct ParseState *Parser)
     struct Value *CValue;
     int Condition;
     struct ParseState PreState = *Parser;
-    const char *Identifier;
+    char *Identifier;
     struct ValueType *Typ;
     enum LexToken Token = LexGetToken(Parser, NULL, TRUE);
     
@@ -747,7 +749,7 @@ int ParseStatement(struct ParseState *Parser)
             if (LexGetToken(Parser, &LexerValue, TRUE) != TokenStringConstant)
                 ProgramFail(Parser, "\"filename.h\" expected");
             
-            ScanFile(LexerValue->Val->String);
+            //ScanFile(LexerValue->Val->String); // XXX - need to dereference char * here
             break;
         }
 
@@ -821,7 +823,7 @@ int ParseStatement(struct ParseState *Parser)
                     ProgramFail(Parser, "wrong return type");
                     
                 // XXX - make assignment a separate function
-                memcpy(TopStackFrame->ReturnValue->Val, CValue->Val, TopStackFrame->ReturnValue->Typ->Sizeof);
+                memcpy(TopStackFrame->ReturnValue->Val, CValue->Val, TypeSizeValue(CValue));
                 Parser->Mode = RunModeReturn;
             }
             break;

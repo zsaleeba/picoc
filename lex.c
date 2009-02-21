@@ -56,14 +56,6 @@ static struct ReservedWord ReservedWords[] =
     { "while", TokenWhile, NULL }
 };
 
-struct LexState
-{
-    const char *Pos;
-    const char *End;
-    int Line;
-    const char *FileName;
-};
-
 
 /* initialise the lexer */
 void LexInit()
@@ -71,19 +63,7 @@ void LexInit()
     int Count;
     
     for (Count = 0; Count < sizeof(ReservedWords) / sizeof(struct ReservedWord); Count++)
-        ReservedWords[Count].SharedWord = StrRegister(ReservedWords[Count].Word);
-}
-
-/* exit with a message */
-void LexFail(struct LexState *Lexer, const char *Message, ...)
-{
-    va_list Args;
-
-    printf("%s:%d: ", Lexer->FileName, Lexer->Line);      
-    va_start(Args, Message);
-    vprintf(Message, Args);
-    printf("\n");
-    exit(1);
+        ReservedWords[Count].SharedWord = TableStrRegister(ReservedWords[Count].Word);
 }
 
 /* check if a word is a reserved word - used while scanning */
@@ -141,11 +121,11 @@ enum LexToken LexGetWord(struct LexState *Lexer, struct Value *Value)
     while (Lexer->Pos != Lexer->End && isCident(*Pos))
         Pos++;
     
-    Value->Typ = &StringType;
-    Value->Val->String = (char *)StrRegister2(Lexer->Pos, Pos - Lexer->Pos);
+    Value->Typ = NULL;
+    Value->Val->Identifier = TableStrRegister2(Lexer->Pos, Pos - Lexer->Pos);
     Lexer->Pos = Pos;
     
-    Token = LexCheckReservedWord(Value->Val->String);
+    Token = LexCheckReservedWord(Value->Val->Identifier);
     if (Token != TokenNone)
         return Token;
     
@@ -200,8 +180,8 @@ enum LexToken LexGetStringConstant(struct LexState *Lexer, struct Value *Value)
     const char *EndPos;
     char *EscBuf;
     char *EscBufPos;
+    struct Value *ArrayValue;
     
-    Value->Typ = &StringType;
     while (Lexer->Pos != Lexer->End && (*Lexer->Pos != '"' || Escape))
     { /* find the end */
         if (Escape)
@@ -214,11 +194,21 @@ enum LexToken LexGetStringConstant(struct LexState *Lexer, struct Value *Value)
     EndPos = Lexer->Pos;
     
     EscBuf = HeapAllocStack(EndPos - StartPos);
+    if (EscBuf == NULL)
+        LexFail(Lexer, "out of memory");
+    
     for (EscBufPos = EscBuf, Lexer->Pos = StartPos; Lexer->Pos != EndPos;)
         *EscBufPos++ = LexUnEscapeCharacter(&Lexer->Pos, EndPos);
     
-    Value->Val->String = (char *)StrRegister2(EscBuf, EscBufPos - EscBuf);
+    ArrayValue = VariableAllocValueAndData(NULL, sizeof(struct ArrayValue), FALSE, TRUE);
+    ArrayValue->Typ = CharArrayType;
+    ArrayValue->Val->Array.Size = EscBufPos - EscBuf + 1;
+    ArrayValue->Val->Array.Data = TableStrRegister2(EscBuf, EscBufPos - EscBuf);
     HeapPopStack(EscBuf, EndPos - StartPos);
+    Value->Typ = CharPtrType;
+    Value->Val->Pointer.Segment = ArrayValue;
+    Value->Val->Pointer.Data.Offset = 0;
+    
     if (*Lexer->Pos == '"')
         Lexer->Pos++;
     
@@ -441,7 +431,8 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
         { 
             switch (Token)
             {
-                case TokenStringConstant: case TokenIdentifier: LexValue.Typ = &StringType; break;
+                case TokenStringConstant:       LexValue.Typ = CharPtrType; break;
+                case TokenIdentifier:           LexValue.Typ = NULL; break;
                 case TokenIntegerConstant:      LexValue.Typ = &IntType; break;
                 case TokenCharacterConstant:    LexValue.Typ = &CharType; break;
                 case TokenFPConstant:           LexValue.Typ = &FPType; break;

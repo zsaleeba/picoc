@@ -4,7 +4,7 @@
 #include <stdarg.h>
 
 /* configurable options */
-#define HEAP_SIZE 8192                      /* space for the heap and the stack */
+#define HEAP_SIZE 16384                     /* space for the heap and the stack */
 #define LARGE_INT_POWER_OF_TEN 1000000000   /* the largest power of ten which fits in an int on this architecture */
 #define ARCH_ALIGN_WORDSIZE sizeof(int)     /* memory alignment boundary on this architecture */
 
@@ -36,8 +36,6 @@
 #ifndef PATH_MAX
 #define PATH_MAX 1024
 #endif
-
-#define ISVALUETYPE(t) (((t)->Base == TypeInt) || ((t)->Base == TypeFP) || ((t)->Base == TypeString))
 
 struct Table;
 
@@ -97,7 +95,6 @@ enum BaseType
     TypeInt,                    /* integer */
     TypeFP,                     /* floating point */
     TypeChar,                   /* a single character - acts like an integer except in machine memory access */
-    TypeString,                 /* a constant source text string with C string emulation */
     TypeFunction,               /* a function */
     TypeMacro,                  /* a macro */
     TypePointer,                /* a pointer */
@@ -154,7 +151,7 @@ union AnyValue
     short ShortInteger;
     int Integer;
     double FP;
-    char *String;
+    char *Identifier;
     struct ArrayValue Array;
     struct PointerValue Pointer;
     struct ParseState Parser;
@@ -179,11 +176,11 @@ struct TableEntry
     {
         struct ValueEntry
         {
-            const char *Key;    /* points to the shared string table */
+            char *Key;          /* points to the shared string table */
             struct Value *Val;  /* the value we're storing */
         } v;                    /* used for tables of values */
         
-        const char Key[1];      /* dummy size - used for the shared string table */
+        char Key[1];            /* dummy size - used for the shared string table */
     } p;
 };
     
@@ -206,27 +203,41 @@ struct StackFrame
     struct StackFrame *PreviousStackFrame;  /* the next lower stack frame */
 };
 
+/* lexer state */
+struct LexState
+{
+    const char *Pos;
+    const char *End;
+    int Line;
+    const char *FileName;
+};
+
 /* globals */
 extern struct Table GlobalTable;
 extern struct StackFrame *TopStackFrame;
 extern struct ValueType IntType;
 extern struct ValueType CharType;
-extern struct ValueType StringType;
 extern struct ValueType FPType;
 extern struct ValueType VoidType;
 extern struct ValueType FunctionType;
 extern struct ValueType MacroType;
-extern const char *StrEmpty;
+extern struct ValueType *CharPtrType;
+extern struct ValueType *CharArrayType;
+extern char *StrEmpty;
 
 /* picoc.c */
 void ProgramFail(struct ParseState *Parser, const char *Message, ...);
+void LexFail(struct LexState *Lexer, const char *Message, ...);
 void ScanFile(const char *FileName);
 
 /* table.c */
-void TableInit(struct Table *Tbl, struct TableEntry **HashTable, int Size, int OnHeap);
-int TableSet(struct Table *Tbl, const char *Key, struct Value *Val);
+void TableInit();
+char *TableStrRegister(const char *Str);
+char *TableStrRegister2(const char *Str, int Len);
+void TableInitTable(struct Table *Tbl, struct TableEntry **HashTable, int Size, int OnHeap);
+int TableSet(struct Table *Tbl, char *Key, struct Value *Val);
 int TableGet(struct Table *Tbl, const char *Key, struct Value **Val);
-const char *TableSetIdentifier(struct Table *Tbl, const char *Ident, int IdentLen);
+char *TableSetIdentifier(struct Table *Tbl, const char *Ident, int IdentLen);
 
 /* lex.c */
 void LexInit(void);
@@ -239,17 +250,19 @@ void ParseInit(void);
 int ParseExpression(struct ParseState *Parser, struct Value **Result);
 int ParseIntExpression(struct ParseState *Parser);
 int ParseStatement(struct ParseState *Parser);
-struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *ReturnType, const char *Identifier, int IsProtoType);
+struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *ReturnType, char *Identifier, int IsProtoType);
 void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt);
 
 /* type.c */
 void TypeInit();
-int TypeSizeof(struct ValueType *Typ);
-void TypeParse(struct ParseState *Parser, struct ValueType **Typ, const char **Identifier);
+int TypeSize(struct ValueType *Typ, int ArraySize);
+int TypeSizeValue(struct Value *Val);
+void TypeParse(struct ParseState *Parser, struct ValueType **Typ, char **Identifier);
 struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *ParentType, enum BaseType Base, int ArraySize, const char *Identifier);
 
 /* intrinsic.c */
 void IntrinsicInit(struct Table *GlobalTable);
+void IntrinsicHostVPrintf(const char *Format, va_list Args);
 
 /* heap.c */
 void HeapInit();
@@ -269,15 +282,10 @@ struct Value *VariableAllocValueAndCopy(struct ParseState *Parser, struct Value 
 struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct ValueType *Typ, int IsLValue);
 struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, struct ValueType *Typ, union AnyValue *FromValue, int IsLValue);
 struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *FromValue);
-void VariableDefine(struct ParseState *Parser, const char *Ident, struct Value *InitValue);
+void VariableDefine(struct ParseState *Parser, char *Ident, struct Value *InitValue);
 int VariableDefined(const char *Ident);
 void VariableGet(struct ParseState *Parser, const char *Ident, struct Value **LVal);
 void VariableStackFrameAdd(struct ParseState *Parser, int NumParams);
 void VariableStackFramePop(struct ParseState *Parser);
-
-/* str.c */
-void StrInit();
-const char *StrRegister(const char *Str);
-const char *StrRegister2(const char *Str, int Len);
 
 #endif /* PICOC_H */

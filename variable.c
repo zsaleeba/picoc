@@ -2,6 +2,7 @@
 #include <stdio.h>
 #endif
 #include <string.h>
+#include <assert.h>
 
 #include "picoc.h"
 
@@ -16,7 +17,7 @@ struct StackFrame *TopStackFrame = NULL;
 /* initialise the variable system */
 void VariableInit()
 {
-    TableInit(&GlobalTable, &GlobalHashTable[0], GLOBAL_TABLE_SIZE, TRUE);
+    TableInitTable(&GlobalTable, &GlobalHashTable[0], GLOBAL_TABLE_SIZE, TRUE);
     TopStackFrame = NULL;
 }
 
@@ -56,7 +57,9 @@ struct Value *VariableAllocValueAndData(struct ParseState *Parser, int DataSize,
 /* allocate a value given its type */
 struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct ValueType *Typ, int IsLValue)
 {
-    struct Value *NewValue = VariableAllocValueAndData(Parser, Typ->Sizeof, IsLValue, FALSE);
+    int Size = TypeSize(Typ, Typ->ArraySize);
+    struct Value *NewValue = VariableAllocValueAndData(Parser, Size, IsLValue, FALSE);
+    assert(Size > 0 || Typ == &VoidType);
     NewValue->Typ = Typ;
     return NewValue;
 }
@@ -64,9 +67,10 @@ struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct Value
 /* allocate a value either on the heap or the stack and copy its value */
 struct Value *VariableAllocValueAndCopy(struct ParseState *Parser, struct Value *FromValue, int OnHeap)
 {
-    struct Value *NewValue = VariableAllocValueAndData(Parser, FromValue->Typ->Sizeof, FromValue->IsLValue, OnHeap);
+    int CopySize = TypeSizeValue(FromValue);
+    struct Value *NewValue = VariableAllocValueAndData(Parser, CopySize, FromValue->IsLValue, OnHeap);
     NewValue->Typ = FromValue->Typ;
-    memcpy(NewValue->Val, FromValue->Val, FromValue->Typ->Sizeof);
+    memcpy(NewValue->Val, FromValue->Val, CopySize);
     return NewValue;
 }
 
@@ -90,7 +94,7 @@ struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *
 }
 
 /* define a variable */
-void VariableDefine(struct ParseState *Parser, const char *Ident, struct Value *InitValue)
+void VariableDefine(struct ParseState *Parser, char *Ident, struct Value *InitValue)
 {
     if (!TableSet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, Ident, VariableAllocValueAndCopy(Parser, InitValue, TopStackFrame == NULL)))
         ProgramFail(Parser, "'%s' is already defined", Ident);
@@ -127,7 +131,7 @@ void VariableStackPop(struct ParseState *Parser, struct Value *Var)
     
 #ifdef DEBUG_HEAP
     if (Var->ValOnStack)
-        printf("popping %d at 0x%lx\n", sizeof(struct Value) + Var->Typ->Sizeof, (unsigned long)Var);
+        printf("popping %d at 0x%lx\n", sizeof(struct Value) + VariableSizeValue(Var), (unsigned long)Var);
 #endif
         
     if (Var->ValOnHeap)
@@ -136,7 +140,7 @@ void VariableStackPop(struct ParseState *Parser, struct Value *Var)
         Success = HeapPopStack(Var, sizeof(struct Value));                       /* free from heap */
     }
     else if (Var->ValOnStack)
-        Success = HeapPopStack(Var, sizeof(struct Value) + Var->Typ->Sizeof);    /* free from stack */
+        Success = HeapPopStack(Var, sizeof(struct Value) + TypeSizeValue(Var));  /* free from stack */
     else
         Success = HeapPopStack(Var, sizeof(struct Value));                       /* value isn't our problem */
         
@@ -151,9 +155,12 @@ void VariableStackFrameAdd(struct ParseState *Parser, int NumParams)
     
     HeapPushStackFrame();
     NewFrame = HeapAllocStack(sizeof(struct StackFrame) + sizeof(struct Value *) * NumParams);
+    if (NewFrame == NULL)
+        ProgramFail(Parser, "out of memory");
+        
     NewFrame->ReturnParser = *Parser;
     NewFrame->Parameter = (NumParams > 0) ? ((void *)NewFrame + sizeof(struct StackFrame)) : NULL;
-    TableInit(&NewFrame->LocalTable, &NewFrame->LocalHashTable[0], LOCAL_TABLE_SIZE, FALSE);
+    TableInitTable(&NewFrame->LocalTable, &NewFrame->LocalHashTable[0], LOCAL_TABLE_SIZE, FALSE);
     NewFrame->PreviousStackFrame = TopStackFrame;
     TopStackFrame = NewFrame;
 }
