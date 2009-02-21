@@ -45,12 +45,17 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, const c
         {
             if (Parser->Mode == RunModeRun)
             { 
-                if (ArgCount >= FuncValue->Val->FuncDef.NumParams && !FuncValue->Val->FuncDef.VarArgs)
-                    ProgramFail(Parser, "too many arguments to %s()", FuncName);
+                if (ArgCount >= FuncValue->Val->FuncDef.NumParams)
+                {
+                    if (!FuncValue->Val->FuncDef.VarArgs)
+                        ProgramFail(Parser, "too many arguments to %s()", FuncName);
+                }
+                else
+                {
+                    if (FuncValue->Val->FuncDef.ParamType[ArgCount] != Param->Typ)
+                        ProgramFail(Parser, "parameter %d to %s() is the wrong type", ArgCount+1, FuncName);
+                }
                 
-                if (FuncValue->Val->FuncDef.ParamType[ArgCount] != Param->Typ)
-                    ProgramFail(Parser, "parameter %d to %s() is the wrong type", ArgCount+1, FuncName);
-
                 if (ArgCount < FuncValue->Val->FuncDef.NumParams)
                     ParamArray[ArgCount] = Param;
             }

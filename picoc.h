@@ -125,7 +125,7 @@ struct FuncDef
     int NumParams;                  /* the number of parameters */
     int VarArgs;                    /* has a variable number of arguments after the explicitly specified ones */
     struct ValueType **ParamType;   /* array of parameter types */
-    const char **ParamName;         /* array of parameter names */
+    char **ParamName;               /* array of parameter names */
     void (*Intrinsic)();            /* intrinsic call address or NULL */
     struct ParseState Body;         /* lexical tokens of the function body if not intrinsic */
 };
