@@ -1,5 +1,8 @@
 TODO
 
+* move stdio functions into an implementation-specific file
+* make sure everything compiles without much library support
+* make printf() honour memory constraints
 * pointers
 * operator precedence
 * enum
