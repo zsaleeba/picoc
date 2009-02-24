@@ -48,7 +48,7 @@ struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *P
     switch (Base)
     {
         case TypePointer:   Sizeof = sizeof(struct PointerValue); break;
-        case TypeArray:     Sizeof = ArraySize * ParentType->Sizeof; break;
+        case TypeArray:     Sizeof = sizeof(struct ArrayValue) + ArraySize * ParentType->Sizeof; break;
         case TypeEnum:      Sizeof = sizeof(int); break;
         default:            Sizeof = 0; break;      /* structs and unions will get bigger when we add members to them */
     }
@@ -71,7 +71,7 @@ int TypeSize(struct ValueType *Typ, int ArraySize)
     if (Typ->Base != TypeArray)
         return Typ->Sizeof;
     else
-        return Typ->FromType->Sizeof * ArraySize;
+        return sizeof(struct ArrayValue) + Typ->FromType->Sizeof * ArraySize;
 }
 
 /* add a base type */

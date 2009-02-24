@@ -832,6 +832,7 @@ int ParseStatement(struct ParseState *Parser)
                     ProgramFail(Parser, "wrong return type");
                     
                 // XXX - make assignment a separate function
+                // XXX - also arrays need cleverer assignment
                 memcpy(TopStackFrame->ReturnValue->Val, CValue->Val, TypeSizeValue(CValue));
                 Parser->Mode = RunModeReturn;
             }
