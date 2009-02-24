@@ -18,7 +18,7 @@ clean:
 	rm -f $(TARGET) $(OBJS) *~
 
 count:
-	wc $(SRCS) picoc.h
+	wc picoc.h picoc.c table.c lex.c parse.c heap.c type.c variable.c clibrary.c
 
 depend:
 	$(CC) -MM $(SRCS) >.depend
