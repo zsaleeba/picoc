@@ -7,7 +7,10 @@
 
 #include "picoc.h"
 
-
+#ifndef isalpha
+#define isalpha(c) (((c) >= 'a' && (c) <= 'z') || ((c) >= 'A' && (c) <= 'Z'))
+#define isalnum(c) (isalpha(c) || ((c) >= '0' && (c) <= '9'))
+#endif
 #define isCidstart(c) (isalpha(c) || (c)=='_' || (c)=='#')
 #define isCident(c) (isalnum(c) || (c)=='_')
 
@@ -229,9 +232,8 @@ enum LexToken LexGetStringConstant(struct LexState *Lexer, struct Value *Value)
 enum LexToken LexGetCharacterConstant(struct LexState *Lexer, struct Value *Value)
 {
     Value->Typ = &IntType;
-    Lexer->Pos++;
     Value->Val->Integer = LexUnEscapeCharacter(&Lexer->Pos, Lexer->End);
-    if (Lexer->Pos != Lexer->End || *Lexer->Pos != '\'')
+    if (Lexer->Pos != Lexer->End && *Lexer->Pos != '\'')
         LexFail(Lexer, "expected \"'\"");
         
     Lexer->Pos++;
@@ -443,8 +445,7 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
             {
                 case TokenStringConstant:       LexValue.Typ = CharPtrType; break;
                 case TokenIdentifier:           LexValue.Typ = NULL; break;
-                case TokenIntegerConstant:      LexValue.Typ = &IntType; break;
-                case TokenCharacterConstant:    LexValue.Typ = &CharType; break;
+                case TokenIntegerConstant: case TokenCharacterConstant: LexValue.Typ = &IntType; break;
 #ifndef NO_FP
                 case TokenFPConstant:           LexValue.Typ = &FPType; break;
 #endif

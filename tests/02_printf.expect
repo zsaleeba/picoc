@@ -11,3 +11,5 @@ Count = 3
 Count = 4
 Count = 5
 String 'hello', 'there' is 'hello', 'there'
+Character 'A' is 'A'
+Character 'a' is 'a'
