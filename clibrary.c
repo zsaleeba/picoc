@@ -1,7 +1,7 @@
 #include "picoc.h"
 
 /* initialise a library */
-void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct IntrinsicFunction *FuncList[])
+void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct LibraryFunction (*FuncList)[])
 {
     struct ParseState Parser;
     int Count;
@@ -11,19 +11,26 @@ void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct Intr
     void *Tokens;
     const char *IntrinsicName = TableStrRegister("c library");
     
-    for (Count = 0; Count < sizeof(Intrinsics) / sizeof(struct IntrinsicFunction); Count++)
+    for (Count = 0; (*FuncList)[Count].Prototype != NULL; Count++)
     {
-        Tokens = LexAnalyse(IntrinsicName, Intrinsics[Count].Prototype, strlen(Intrinsics[Count].Prototype));
+        Tokens = LexAnalyse(IntrinsicName, (*FuncList)[Count].Prototype, strlen((*FuncList)[Count].Prototype));
         LexInitParser(&Parser, Tokens, IntrinsicName, Count+1, TRUE);
         TypeParse(&Parser, &ReturnType, &Identifier);
         NewValue = ParseFunctionDefinition(&Parser, ReturnType, Identifier, TRUE);
-        NewValue->Val->FuncDef.Intrinsic = Intrinsics[Count].Func;
+        NewValue->Val->FuncDef.Intrinsic = (*FuncList)[Count].Func;
         HeapFree(Tokens);
     }
 }
 
+/* print a string to a stream without using printf/sprintf */
+void PrintStr(const char *Str, CharWriter *PutCh)
+{
+    while (*Str != 0)
+        PutCh(*Str++);
+}
+
 /* print an integer to a stream without using printf/sprintf */
-void PrintInt(int Num, FILE *Stream)
+void PrintInt(int Num, CharWriter *PutCh)
 {
     int Div;
     int Remainder = 0;
@@ -31,12 +38,12 @@ void PrintInt(int Num, FILE *Stream)
     
     if (Num < 0)
     {
-        fputc('-', Stream);
+        PutCh('-');
         Num = -Num;    
     }
     
     if (Num == 0)
-        fputc('0', Stream);
+        PutCh('0');
     else
     {
         Div = LARGE_INT_POWER_OF_TEN;
@@ -45,7 +52,7 @@ void PrintInt(int Num, FILE *Stream)
             Remainder = Num / Div;
             if (Printing || Remainder > 0)
             {
-                fputc('0' + Remainder, Stream);
+                PutCh('0' + Remainder);
                 Printing = TRUE;
             }
             Num -= Remainder * Div;
@@ -56,7 +63,7 @@ void PrintInt(int Num, FILE *Stream)
 
 #ifndef NO_FP
 /* print a double to a stream without using printf/sprintf */
-void PrintFP(double Num, FILE *Stream)
+void PrintFP(double Num, CharWriter *PutCh)
 {
     int Exponent = 0;
     
@@ -66,15 +73,15 @@ void PrintFP(double Num, FILE *Stream)
         Exponent = log(Num) / LOG10E - 0.999999999;
     
     Num /= pow(10.0, Exponent);
-    PrintInt((int)Num, Stream);
-    fputc('.', Stream);
+    PrintInt((int)Num, PutCh);
+    PutCh('.');
     for (Num -= (int)Num; Num != 0.0; Num *= 10.0)
-        fputc('0' + (int)Num, Stream);
+        PutCh('0' + (int)Num);
     
     if (Exponent)
     {
-        fputc('e', Stream);
-        PrintInt(Exponent, Stream);
+        PutCh('e');
+        PrintInt(Exponent, PutCh);
     }
 }
 #endif
@@ -106,20 +113,20 @@ void LibPrintf(struct Value *ReturnValue, struct Value **Param, int NumArgs)
 #ifndef NO_FP
                 case 'f': FormatType = &FPType; break;
 #endif
-                case '%': fputc('%', stdout); FormatType = NULL; break;
+                case '%': PlatformPutc('%'); FormatType = NULL; break;
                 case '\0': FPos--; FormatType = NULL; break;
-                default:  putchar(*FPos); FormatType = NULL; break;
+                default:  PlatformPutc(*FPos); FormatType = NULL; break;
             }
             
             if (FormatType != NULL)
             { /* we have to format something */
                 if (ArgCount >= NumArgs)
-                    fputs("XXX", stdout);   /* not enough parameters for format */
+                    PrintStr("XXX", PlatformPutc);   /* not enough parameters for format */
                 else
                 {
                     NextArg = (struct Value *)((void *)NextArg + sizeof(struct Value) + TypeSizeValue(NextArg));
                     if (NextArg->Typ != FormatType)
-                        fputs("XXX", stdout);   /* bad type for format */
+                        PrintStr("XXX", PlatformPutc);   /* bad type for format */
                     else
                     {
                         switch (*FPos)
@@ -134,13 +141,13 @@ void LibPrintf(struct Value *ReturnValue, struct Value **Param, int NumArgs)
                                 else
                                     Str = CharArray->Val->Array.Data + NextArg->Val->Pointer.Data.Offset;
                                     
-                                fputs(Str, stdout); 
+                                PrintStr(Str, PlatformPutc); 
                                 break;
                             }
-                            case 'd': PrintInt(NextArg->Val->Integer, stdout); break;
-                            case 'c': fputc(NextArg->Val->Integer, stdout); break;
+                            case 'd': PrintInt(NextArg->Val->Integer, PlatformPutc); break;
+                            case 'c': PlatformPutc(NextArg->Val->Integer); break;
 #ifndef NO_FP
-                            case 'f': PrintFP(NextArg->Val->FP, stdout); break;
+                            case 'f': PrintFP(NextArg->Val->FP, PlatformPutc); break;
 #endif
                         }
                     }
@@ -150,11 +157,13 @@ void LibPrintf(struct Value *ReturnValue, struct Value **Param, int NumArgs)
             }
         }
         else
-            putchar(*FPos);
+            PlatformPutc(*FPos);
     }
 }
 
-struct IntrinsicFunction CLibrary[] =
+/* list of all library functions and their prototypes */
+struct LibraryFunction CLibrary[] =
 {
-    { LibPrintf,      "void printf(char *, ...)" },
+    { LibPrintf,        "void printf(char *, ...)" },
+    { NULL,             NULL }
 };

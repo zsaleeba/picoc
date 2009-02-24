@@ -1,4 +1,3 @@
-#include <string.h>
 #include "picoc.h"
 
 struct Table StringTable;

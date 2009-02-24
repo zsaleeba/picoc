@@ -1,7 +1,4 @@
 /* stack grows up from the bottom and heap grows down from the top of heap space */
-#include <stdio.h>
-#include <memory.h>
-#include <assert.h>
 #include "picoc.h"
 
 #define FREELIST_BUCKETS 8                          /* freelists for 4, 8, 12 ... 32 byte allocs */

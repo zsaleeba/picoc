@@ -11,6 +11,7 @@ TODO
 * change heap to use a single consistent freelist node struct
 * periodic heap cleanup
 * fix type comparison to take into account array size
+* fix return of array types
 * expression and auto-cast support for all types
 * octal/hex character constants
 * fix #include

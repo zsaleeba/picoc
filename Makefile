@@ -1,9 +1,9 @@
 CC=gcc
-CFLAGS=-Wall -g #-DNO_FP #-DDEBUG_LEXER #-DDEBUG_HEAP
+CFLAGS=-Wall -g
 LIBS=-lm
 
 TARGET	= picoc
-SRCS	= picoc.c table.c lex.c parse.c intrinsic.c heap.c type.c variable.c
+SRCS	= picoc.c table.c lex.c parse.c heap.c type.c variable.c clibrary.c platform_library.c platform_support.c
 OBJS	:= $(SRCS:%.c=%.o)
 
 all: $(TARGET)

@@ -1,19 +1,7 @@
 #ifndef PICOC_H
 #define PICOC_H
 
-#include <stdarg.h>
-
-/* configurable options */
-#define HEAP_SIZE 16384                     /* space for the heap and the stack */
-#define LARGE_INT_POWER_OF_TEN 1000000000   /* the largest power of ten which fits in an int on this architecture */
-#define ARCH_ALIGN_WORDSIZE sizeof(int)     /* memory alignment boundary on this architecture */
-
-#define GLOBAL_TABLE_SIZE 397               /* global variable table */
-#define STRING_TABLE_SIZE 97                /* shared string table size */
-#define PARAMETER_MAX 16                    /* maximum number of parameters to a function */
-#define LINEBUFFER_MAX 256                  /* maximum number of characters on a line */
-#define LOCAL_TABLE_SIZE 11                 /* size of local variable table (can expand) */
-#define STRUCT_TABLE_SIZE 11                /* size of struct/union member table (can expand) */
+#include "platform.h"
 
 /* handy definitions */
 #ifndef TRUE
@@ -216,6 +204,16 @@ struct LexState
     const char *FileName;
 };
 
+/* library function definition */
+struct LibraryFunction
+{
+    void (*Func)(struct Value *, struct Value **, int);
+    const char *Prototype;
+};
+
+/* platform-specific method for writing characters to the console */
+typedef void CharWriter(unsigned char);
+
 /* globals */
 extern struct Table GlobalTable;
 extern struct StackFrame *TopStackFrame;
@@ -230,11 +228,8 @@ extern struct ValueType MacroType;
 extern struct ValueType *CharPtrType;
 extern struct ValueType *CharArrayType;
 extern char *StrEmpty;
-
-/* picoc.c */
-void ProgramFail(struct ParseState *Parser, const char *Message, ...);
-void LexFail(struct LexState *Lexer, const char *Message, ...);
-void ScanFile(const char *FileName);
+extern struct LibraryFunction CLibrary[];
+extern struct LibraryFunction PlatformLibrary[];
 
 /* table.c */
 void TableInit();
@@ -266,11 +261,6 @@ int TypeSizeValue(struct Value *Val);
 void TypeParse(struct ParseState *Parser, struct ValueType **Typ, char **Identifier);
 struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *ParentType, enum BaseType Base, int ArraySize, const char *Identifier);
 
-/* intrinsic.c */
-void IntrinsicInit(struct Table *GlobalTable);
-void IntrinsicHostPrintf(const char *Format, ...);
-void IntrinsicHostVPrintf(const char *Format, va_list Args);
-
 /* heap.c */
 void HeapInit();
 void *HeapAllocStack(int Size);
@@ -294,5 +284,20 @@ int VariableDefined(const char *Ident);
 void VariableGet(struct ParseState *Parser, const char *Ident, struct Value **LVal);
 void VariableStackFrameAdd(struct ParseState *Parser, int NumParams);
 void VariableStackFramePop(struct ParseState *Parser);
+
+/* library.c */
+void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct LibraryFunction (*FuncList)[]);
+void PrintInt(int Num, CharWriter *PutCh);
+void PrintStr(const char *Str, CharWriter *PutCh);
+void PrintFP(double Num, CharWriter *PutCh);
+
+/* platform_support.c */
+void ProgramFail(struct ParseState *Parser, const char *Message, ...);
+void LexFail(struct LexState *Lexer, const char *Message, ...);
+void PlatformScanFile(const char *FileName);
+char *PlatformGetLine(char *Buf, int MaxLen);
+void PlatformPutc(unsigned char OutCh);
+void PlatformPrintf(const char *Format, ...);
+void PlatformVPrintf(const char *Format, va_list Args);
 
 #endif /* PICOC_H */

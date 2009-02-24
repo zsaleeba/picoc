@@ -1,15 +1,10 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <math.h>
-#include <string.h>
-#include <stdarg.h>
-
 #include "picoc.h"
 
-#ifndef isalpha
+#ifdef NO_CTYPE
 #define isalpha(c) (((c) >= 'a' && (c) <= 'z') || ((c) >= 'A' && (c) <= 'Z'))
-#define isalnum(c) (isalpha(c) || ((c) >= '0' && (c) <= '9'))
+#define isdigit(c) ((c) >= '0' && (c) <= '9')
+#define isalnum(c) (isalpha(c) || isdigit(c))
+#define isspace(c) ((c) == ' ' || (c) == '\t' || (c) == '\r' || (c) == '\n')
 #endif
 #define isCidstart(c) (isalpha(c) || (c)=='_' || (c)=='#')
 #define isCident(c) (isalnum(c) || (c)=='_')
@@ -286,7 +281,7 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
             if (Lexer->FileName == StrEmpty)
             { /* get interactive input */
                 char LineBuffer[LINEBUFFER_MAX];
-                if (fgets(&LineBuffer[0], LINEBUFFER_MAX, stdin) == NULL)
+                if (PlatformGetLine(&LineBuffer[0], LINEBUFFER_MAX) == NULL)
                     return TokenEOF;
                 
                 // XXX - finish this

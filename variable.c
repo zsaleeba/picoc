@@ -1,9 +1,3 @@
-#ifdef DEBUG_HEAP
-#include <stdio.h>
-#endif
-#include <string.h>
-#include <assert.h>
-
 #include "picoc.h"
 
 /* the table of global definitions */

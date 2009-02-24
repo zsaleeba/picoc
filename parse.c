@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <string.h>
-
 #include "picoc.h"
 
 /* local prototypes */
@@ -11,9 +8,6 @@ int ParseStatementMaybeRun(struct ParseState *Parser, int Condition);
 /* initialise the parser */
 void ParseInit()
 {
-    VariableInit();
-    TypeInit();
-    IntrinsicInit(&GlobalTable);
 }
 
 /* do a function call */
