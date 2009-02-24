@@ -1,0 +1,48 @@
+picoc
+-----
+
+PicoC is a very small C interpreter. It's intended for use as a script 
+language for embedded systems. It was originally written to be the
+script language for a UAV on-board flight system and is very suitable 
+for other robotic, embedded and also non-embedded applications.
+
+The core C source code is less than 3000 lines of code. When compiled 
+it only takes a few k of code space and is also very sparing of data 
+space. This means it can work well in small embedded devices. It's also 
+a fun example of how to create a very small language implementation 
+while still keeping the code readable.
+
+
+
+Compiling picoc
+---------------
+
+picoc can be compiled for a UNIX/Linux/POSIX host by typing "make".
+
+The test suite can be run by typing "make test".
+
+
+Porting picoc
+-------------
+
+platform.h is where you select your platform type and specify the includes 
+etc. for your platform.
+
+platform_support.c contains support functions so the compiler can work on 
+your platform, such as how to write characters to the console etc..
+
+platform_library.c contains your library of functions you want to make 
+available to user programs.
+
+There's also a new clibrary.c which contains user library functions like 
+printf() which are platform-independent.
+
+Porting the system will involve setting up suitable includes and defines 
+in platform.h, writing some I/O routines in platform_support.c, putting 
+whatever user functions you want in platform_library.c and then changing 
+the main program in picoc.c to whatever you need to do to get programs 
+into the system.
+
+platform.h is set to UNIX_HOST by default so tests can be easily run on
+a UNIX system. You'll need to specify your own host setup dependent on 
+your target platform.
