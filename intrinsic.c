@@ -36,6 +36,7 @@ void IntrinsicPrintInt(int Num, FILE *Stream)
     }
 }
 
+#ifndef NO_FP
 /* print a double to a stream without using printf/sprintf */
 void IntrinsicPrintFP(double Num, FILE *Stream)
 {
@@ -58,6 +59,7 @@ void IntrinsicPrintFP(double Num, FILE *Stream)
         IntrinsicPrintInt(Exponent, Stream);
     }
 }
+#endif
 
 /* intrinsic functions made available to the language */
 void IntrinsicPrintInteger(struct Value *ReturnValue, struct Value **Param, int NumArgs)
