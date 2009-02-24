@@ -237,12 +237,14 @@ int ParseValue(struct ParseState *Parser, struct Value **Result)
     return Success;
 }
 
+#ifndef NO_FP
 struct Value *ParsePushFP(struct ParseState *Parser, double NewFP)
 {
     struct Value *Val = VariableAllocValueFromType(Parser, &FPType, FALSE);
     Val->Val->FP = NewFP;
     return Val;
 }
+#endif
 
 struct Value *ParsePushInt(struct ParseState *Parser, int NewInt)
 {
@@ -327,6 +329,7 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result)
 
         if (Parser->Mode == RunModeRun)
         {
+#ifndef NO_FP
             if (CurrentValue->Typ->Base == TypeFP || TotalValue->Typ->Base == TypeFP)
             { /* floating point expression */
                 double FPTotal, FPCurrent, FPResult;
@@ -368,6 +371,7 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result)
                 TotalValue = ParsePushFP(Parser, FPResult);
             }
             else
+#endif
             { /* integer expression */
                 int IntX, IntY, IntResult;
                 

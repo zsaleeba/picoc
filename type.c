@@ -5,7 +5,9 @@ struct ValueType UberType;
 struct ValueType IntType;
 struct ValueType CharType;
 struct ValueType WordType;
+#ifndef NO_FP
 struct ValueType FPType;
+#endif
 struct ValueType VoidType;
 struct ValueType FunctionType;
 struct ValueType MacroType;
@@ -91,7 +93,9 @@ void TypeInit()
 {
     UberType.DerivedTypeList = NULL;
     TypeAddBaseType(&IntType, TypeInt, sizeof(int));
+#ifndef NO_FP
     TypeAddBaseType(&FPType, TypeFP, sizeof(double));
+#endif
     TypeAddBaseType(&VoidType, TypeVoid, 0);
     TypeAddBaseType(&FunctionType, TypeFunction, sizeof(int));
     TypeAddBaseType(&MacroType, TypeMacro, sizeof(int));
@@ -180,7 +184,9 @@ void TypeParse(struct ParseState *Parser, struct ValueType **Typ, char **Identif
         {
             case TokenIntType: case TokenLongType: case TokenShortType: *Typ = &IntType; break;
             case TokenCharType: *Typ = &CharType; break;
+#ifndef NO_FP
             case TokenFloatType: case TokenDoubleType: *Typ = &FPType; break;
+#endif
             case TokenVoidType: *Typ = &VoidType; break;
             
             case TokenStructType: case TokenUnionType: 

@@ -93,7 +93,9 @@ enum BaseType
 {
     TypeVoid,                   /* no type */
     TypeInt,                    /* integer */
+#ifndef NO_FP
     TypeFP,                     /* floating point */
+#endif
     TypeChar,                   /* a single character - acts like an integer except in machine memory access */
     TypeFunction,               /* a function */
     TypeMacro,                  /* a macro */
@@ -150,7 +152,9 @@ union AnyValue
     unsigned char Character;
     short ShortInteger;
     int Integer;
+#ifndef NO_FP
     double FP;
+#endif
     char *Identifier;
     struct ArrayValue Array;
     struct PointerValue Pointer;
@@ -217,7 +221,9 @@ extern struct Table GlobalTable;
 extern struct StackFrame *TopStackFrame;
 extern struct ValueType IntType;
 extern struct ValueType CharType;
+#ifndef NO_FP
 extern struct ValueType FPType;
+#endif
 extern struct ValueType VoidType;
 extern struct ValueType FunctionType;
 extern struct ValueType MacroType;

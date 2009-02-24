@@ -36,10 +36,14 @@ static struct ReservedWord ReservedWords[] =
     { "continue", TokenContinue, NULL },
     { "default", TokenDefault, NULL },
     { "do", TokenDo, NULL },
+#ifndef NO_FP
     { "double", TokenDoubleType, NULL },
+#endif
     { "else", TokenElse, NULL },
     { "enum", TokenEnumType, NULL },
+#ifndef NO_FP
     { "float", TokenFloatType, NULL },
+#endif
     { "for", TokenFor, NULL },
     { "if", TokenIf, NULL },
     { "int", TokenIntType, NULL },
@@ -80,18 +84,21 @@ enum LexToken LexCheckReservedWord(const char *Word)
     return TokenNone;
 }
 
-/* skip a comment - used while scanning */
+/* get a numeric constant - used while scanning */
 enum LexToken LexGetNumber(struct LexState *Lexer, struct Value *Value)
 {
     int Result = 0;
+#ifndef NO_FP
     double FPResult;
     double FPDiv;
+#endif
     
     for (; Lexer->Pos != Lexer->End && isdigit(*Lexer->Pos); Lexer->Pos++)
         Result = Result * 10 + (*Lexer->Pos - '0');
 
     Value->Typ = &IntType;
     Value->Val->Integer = Result;
+#ifndef NO_FP
     if (Lexer->Pos == Lexer->End || *Lexer->Pos != '.')
         return TokenIntegerConstant;
 
@@ -110,6 +117,9 @@ enum LexToken LexGetNumber(struct LexState *Lexer, struct Value *Value)
     }
     
     return TokenFPConstant;
+#else
+    return TokenIntegerConstant;
+#endif
 }
 
 /* get a reserved word or identifier - used while scanning */
@@ -435,7 +445,9 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
                 case TokenIdentifier:           LexValue.Typ = NULL; break;
                 case TokenIntegerConstant:      LexValue.Typ = &IntType; break;
                 case TokenCharacterConstant:    LexValue.Typ = &CharType; break;
+#ifndef NO_FP
                 case TokenFPConstant:           LexValue.Typ = &FPType; break;
+#endif
                 default: break;
             }
             

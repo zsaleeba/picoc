@@ -87,9 +87,10 @@ void IntrinsicPrintf(struct Value *ReturnValue, struct Value **Param, int NumArg
             switch (*FPos)
             {
                 case 's': FormatType = CharPtrType; break;
-                case 'd': FormatType = &IntType; break;
-                case 'c': FormatType = &CharType; break;
+                case 'd': case 'c': FormatType = &IntType; break;
+#ifndef NO_FP
                 case 'f': FormatType = &FPType; break;
+#endif
                 case '%': fputc('%', stdout); FormatType = NULL; break;
                 case '\0': FPos--; FormatType = NULL; break;
                 default:  putchar(*FPos); FormatType = NULL; break;
@@ -123,7 +124,9 @@ void IntrinsicPrintf(struct Value *ReturnValue, struct Value **Param, int NumArg
                             }
                             case 'd': IntrinsicPrintInt(NextArg->Val->Integer, stdout); break;
                             case 'c': fputc(NextArg->Val->Integer, stdout); break;
+#ifndef NO_FP
                             case 'f': IntrinsicPrintFP(NextArg->Val->FP, stdout); break;
+#endif
                         }
                     }
                 }
@@ -199,7 +202,9 @@ void IntrinsicHostVPrintf(const char *Format, va_list Args)
             case 's': fputs(va_arg(Args, char *), stdout); break;
             case 'd': IntrinsicPrintInt(va_arg(Args, int), stdout); break;
             case 'c': fputc(va_arg(Args, int), stdout); break;
+#ifndef NO_FP
             case 'f': IntrinsicPrintFP(va_arg(Args, double), stdout); break;
+#endif
             case '%': fputc('%', stdout); break;
             case '\0': FPos--; break;
             }
