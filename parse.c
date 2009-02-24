@@ -222,7 +222,7 @@ int ParseValue(struct ParseState *Parser, struct Value **Result)
                             ProgramFail(Parser, "illegal array index");
                         
                         VariableStackPop(Parser, *Result);
-                        *Result = VariableAllocValueFromExistingData(Parser, (*Result)->Typ->FromType, (union AnyValue *)((*Result)->Val->Array.Data + TypeSize((*Result)->Typ->FromType, 0) * IntValue), TRUE);
+                        *Result = VariableAllocValueFromExistingData(Parser, (*Result)->Typ->FromType, (union AnyValue *)((*Result)->Val->Array.Data + TypeSize((*Result)->Typ->FromType, 0) * IntValue), (*Result)->IsLValue);
                     }
                 }
             }
