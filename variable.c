@@ -61,6 +61,12 @@ struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct Value
     struct Value *NewValue = VariableAllocValueAndData(Parser, Size, IsLValue, FALSE);
     assert(Size > 0 || Typ == &VoidType);
     NewValue->Typ = Typ;
+    if (Typ->Base == TypeArray)
+    {
+        NewValue->Val->Array.Size = Typ->ArraySize;
+        NewValue->Val->Array.Data = (void *)NewValue->Val;
+    }
+    
     return NewValue;
 }
 

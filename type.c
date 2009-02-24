@@ -60,7 +60,7 @@ int TypeSizeValue(struct Value *Val)
     if (Val->Typ->Base != TypeArray)
         return Val->Typ->Sizeof;
     else
-        return Val->Typ->FromType->Sizeof * Val->Val->Array.Size;
+        return sizeof(struct ArrayValue) + Val->Typ->FromType->Sizeof * Val->Val->Array.Size;
 }
 
 /* memory used by a variable given its type and array size */

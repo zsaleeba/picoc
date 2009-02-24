@@ -11,7 +11,8 @@ TODO
 * expression and auto-cast support for all types
 * octal/hex character constants
 * fix #include
-* eliminate host printf/scanf use
+* eliminate host puts use
+* move all system specific includes to a single file
 
 Need test/debug:
 * all break/continue variations
