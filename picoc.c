@@ -11,7 +11,6 @@ void Initialise()
     TypeInit();
     LibraryInit(&GlobalTable, "c library", &CLibrary);
     LibraryInit(&GlobalTable, "platform library", &PlatformLibrary);
-    ParseInit();
 }
 
 /* platform-dependent code for running programs is in this file */

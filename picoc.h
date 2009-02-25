@@ -247,7 +247,6 @@ void LexInitParser(struct ParseState *Parser, void *TokenSource, const char *Fil
 enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int IncPos);
 
 /* parse.c */
-void ParseInit(void);
 int ParseExpression(struct ParseState *Parser, struct Value **Result);
 int ParseIntExpression(struct ParseState *Parser);
 int ParseStatement(struct ParseState *Parser);

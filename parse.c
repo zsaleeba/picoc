@@ -5,11 +5,6 @@ int ParseArguments(struct ParseState *Parser, int RunIt);
 int ParseStatementMaybeRun(struct ParseState *Parser, int Condition);
 
 
-/* initialise the parser */
-void ParseInit()
-{
-}
-
 /* do a function call */
 void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, const char *FuncName)
 {
@@ -157,6 +152,7 @@ int ParseValue(struct ParseState *Parser, struct Value **Result)
             VType = (*Result)->Typ;
             VariableStackPop(Parser, *Result);
             *Result = VariableAllocValueFromType(Parser, TypeGetMatching(Parser, VType, TypePointer, 0, StrEmpty), FALSE);
+            // XXX - need to rethink how to deal with lvalues - I need the original lvalue, not a copy of it for the segment
             (*Result)->Val->Pointer.Segment = LocalLValue;
             (*Result)->Val->Pointer.Data.Offset = 0;
             break;
@@ -292,23 +288,69 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result)
                 }
                 continue;
             }
-            case TokenAssign: case TokenAddAssign: case TokenSubtractAssign:
+            case TokenAssign: 
                 LexGetToken(Parser, NULL, TRUE);
+            
+                if (!ParseExpression(Parser, &CurrentValue))
+                    ProgramFail(Parser, "expression expected");
+                    
+                if (Parser->Mode == RunModeRun)
+                { /* do the assignment */
+                    if (!TotalValue->IsLValue)
+                        ProgramFail(Parser, "can't assign to this");
+
+                    if (CurrentValue->Typ != TotalValue->Typ)
+                        ProgramFail(Parser, "can't assign incompatible types");
+
+                    if (TotalValue->Typ->Base != TypeArray)
+                        memcpy(TotalValue->Val, CurrentValue->Val, TotalValue->Typ->Sizeof);
+                    else
+                    { /* array assignment */
+                        if (TotalValue->Val->Array.Size != CurrentValue->Val->Array.Size)
+                            ProgramFail(Parser, "incompatible array sizes in assignment");
+                        
+                        //memcpy(TotalValue->Val->Array.Data, CurrentValue->Val->Array.Data, CurrentValue->Typ->Sizeof * CurrentValue->Val->Array.Size);
+                    }
+                    VariableStackPop(Parser, CurrentValue);
+                    *Result = TotalValue;
+                }
+                return TRUE;
+                
+            case TokenAddAssign: case TokenSubtractAssign:
+                LexGetToken(Parser, NULL, TRUE);
+            
                 if (!ParseExpression(Parser, &CurrentValue))
                     ProgramFail(Parser, "expression expected");
                 
                 if (Parser->Mode == RunModeRun)
-                {
-                    if (CurrentValue->Typ->Base != TypeInt || !TotalValue->IsLValue || TotalValue->Typ->Base != TypeInt)
+                { /* do the assignment */
+                    if (!TotalValue->IsLValue)
                         ProgramFail(Parser, "can't assign");
 
-                    switch (Token)
+                    if (CurrentValue->Typ->Base == TypeInt && TotalValue->Typ->Base == TypeInt)
                     {
-                        case TokenAddAssign: TotalValue->Val->Integer += CurrentValue->Val->Integer; break;
-                        case TokenSubtractAssign: TotalValue->Val->Integer -= CurrentValue->Val->Integer; break;
-                        default: TotalValue->Val->Integer = CurrentValue->Val->Integer; break;
+                        switch (Token)
+                        {
+                            case TokenAddAssign: TotalValue->Val->Integer += CurrentValue->Val->Integer; break;
+                            case TokenSubtractAssign: TotalValue->Val->Integer -= CurrentValue->Val->Integer; break;
+                            default: break;
+                        }
+                        VariableStackPop(Parser, CurrentValue);
                     }
-                    VariableStackPop(Parser, CurrentValue);
+#ifndef NO_FP
+                    else if (CurrentValue->Typ->Base == TypeFP && TotalValue->Typ->Base == TypeFP)
+                    {
+                        switch (Token)
+                        {
+                            case TokenAddAssign: TotalValue->Val->FP += CurrentValue->Val->FP; break;
+                            case TokenSubtractAssign: TotalValue->Val->FP -= CurrentValue->Val->FP; break;
+                            default: break;
+                        }
+                        VariableStackPop(Parser, CurrentValue);
+                    }
+#endif
+                    else
+                        ProgramFail(Parser, "can't operate and assign these types");
                 }
                 // fallthrough
             
