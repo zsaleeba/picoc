@@ -1,7 +1,0 @@
-void fred()
-{
-    sayhello();
-}
-
-fred();
-
