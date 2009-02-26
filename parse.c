@@ -150,9 +150,10 @@ int ParseValue(struct ParseState *Parser, struct Value **Result)
                 ProgramFail(Parser, "can't get the address of this");
             
             VType = (*Result)->Typ;
+            LocalLValue = (*Result)->LValueFrom;
             VariableStackPop(Parser, *Result);
             *Result = VariableAllocValueFromType(Parser, TypeGetMatching(Parser, VType, TypePointer, 0, StrEmpty), FALSE, NULL);
-            // XXX - need to rethink how to deal with lvalues - I need the original lvalue, not a copy of it for the segment
+            // XXX - handle lvalues of struct and array elements
             (*Result)->Val->Pointer.Segment = LocalLValue;
             (*Result)->Val->Pointer.Data.Offset = 0;
             break;

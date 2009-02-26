@@ -92,7 +92,7 @@ struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, stru
 /* allocate a value either on the heap or the stack from an existing Value, sharing the value */
 struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *FromValue)
 {
-    return VariableAllocValueFromExistingData(Parser, FromValue->Typ, FromValue->Val, FromValue->IsLValue, FromValue->LValueFrom);
+    return VariableAllocValueFromExistingData(Parser, FromValue->Typ, FromValue->Val, FromValue->IsLValue, FromValue->IsLValue ? FromValue : NULL);
 }
 
 /* define a variable */
