@@ -20,7 +20,7 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, const c
         if (FuncValue->Typ->Base != TypeFunction)
             ProgramFail(Parser, "not a function - can't call");
     
-        *Result = VariableAllocValueFromType(Parser, FuncValue->Val->FuncDef.ReturnType, FALSE);
+        *Result = VariableAllocValueFromType(Parser, FuncValue->Val->FuncDef.ReturnType, FALSE, NULL);
         HeapPushStackFrame();
         ParamArray = HeapAllocStack(sizeof(struct Value *) * FuncValue->Val->FuncDef.NumParams);
         if (ParamArray == NULL)
@@ -114,7 +114,7 @@ int ParseValue(struct ParseState *Parser, struct Value **Result)
             IntValue = ParseIntExpression(Parser);
             if (Parser->Mode == RunModeRun)
             {
-                *Result = VariableAllocValueFromType(Parser, &IntType, FALSE);
+                *Result = VariableAllocValueFromType(Parser, &IntType, FALSE, NULL);
                 switch(Token)
                 {
                     case TokenMinus: (*Result)->Val->Integer = -IntValue; break;
@@ -151,7 +151,7 @@ int ParseValue(struct ParseState *Parser, struct Value **Result)
             
             VType = (*Result)->Typ;
             VariableStackPop(Parser, *Result);
-            *Result = VariableAllocValueFromType(Parser, TypeGetMatching(Parser, VType, TypePointer, 0, StrEmpty), FALSE);
+            *Result = VariableAllocValueFromType(Parser, TypeGetMatching(Parser, VType, TypePointer, 0, StrEmpty), FALSE, NULL);
             // XXX - need to rethink how to deal with lvalues - I need the original lvalue, not a copy of it for the segment
             (*Result)->Val->Pointer.Segment = LocalLValue;
             (*Result)->Val->Pointer.Data.Offset = 0;
@@ -212,7 +212,7 @@ int ParseValue(struct ParseState *Parser, struct Value **Result)
                             ProgramFail(Parser, "illegal array index");
                         
                         VariableStackPop(Parser, *Result);
-                        *Result = VariableAllocValueFromExistingData(Parser, (*Result)->Typ->FromType, (union AnyValue *)((*Result)->Val->Array.Data + TypeSize((*Result)->Typ->FromType, 0) * IntValue), (*Result)->IsLValue);
+                        *Result = VariableAllocValueFromExistingData(Parser, (*Result)->Typ->FromType, (union AnyValue *)((*Result)->Val->Array.Data + TypeSize((*Result)->Typ->FromType, 0) * IntValue), (*Result)->IsLValue, (*Result)->LValueFrom);
                     }
                 }
             }
@@ -230,7 +230,7 @@ int ParseValue(struct ParseState *Parser, struct Value **Result)
 #ifndef NO_FP
 struct Value *ParsePushFP(struct ParseState *Parser, double NewFP)
 {
-    struct Value *Val = VariableAllocValueFromType(Parser, &FPType, FALSE);
+    struct Value *Val = VariableAllocValueFromType(Parser, &FPType, FALSE, NULL);
     Val->Val->FP = NewFP;
     return Val;
 }
@@ -238,7 +238,7 @@ struct Value *ParsePushFP(struct ParseState *Parser, double NewFP)
 
 struct Value *ParsePushInt(struct ParseState *Parser, int NewInt)
 {
-    struct Value *Val = VariableAllocValueFromType(Parser, &IntType, FALSE);
+    struct Value *Val = VariableAllocValueFromType(Parser, &IntType, FALSE, NULL);
     Val->Val->Integer = NewInt;
     return Val;
 }
@@ -284,7 +284,7 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result)
                         ProgramFail(Parser, "structure doesn't have a member called '%s'", Ident->Val->Identifier);
                     
                     VariableStackPop(Parser, TotalValue);
-                    TotalValue = VariableAllocValueFromExistingData(Parser, CurrentValue->Typ, TotalValueData + CurrentValue->Val->Integer, TRUE);
+                    TotalValue = VariableAllocValueFromExistingData(Parser, CurrentValue->Typ, TotalValueData + CurrentValue->Val->Integer, TRUE, CurrentValue->LValueFrom);
                 }
                 continue;
             }
@@ -494,7 +494,7 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
     if (ParamCount > PARAMETER_MAX)
         ProgramFail(Parser, "too many parameters");
     
-    FuncValue = VariableAllocValueAndData(Parser, sizeof(struct FuncDef) + sizeof(struct ValueType *) * ParamCount + sizeof(const char *) * ParamCount, FALSE, TRUE);
+    FuncValue = VariableAllocValueAndData(Parser, sizeof(struct FuncDef) + sizeof(struct ValueType *) * ParamCount + sizeof(const char *) * ParamCount, FALSE, NULL, TRUE);
     FuncValue->Typ = &FunctionType;
     FuncValue->Val->FuncDef.ReturnType = ReturnType;
     FuncValue->Val->FuncDef.NumParams = ParamCount;
@@ -542,7 +542,7 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
 void ParseMacroDefinition(struct ParseState *Parser)
 {
     struct Value *MacroName;
-    struct Value *MacroValue = VariableAllocValueAndData(Parser, sizeof(struct ParseState), FALSE, TRUE);
+    struct Value *MacroValue = VariableAllocValueAndData(Parser, sizeof(struct ParseState), FALSE, NULL, TRUE);
 
     if (LexGetToken(Parser, &MacroName, TRUE) != TokenIdentifier)
         ProgramFail(Parser, "identifier expected");
@@ -780,7 +780,7 @@ int ParseStatement(struct ParseState *Parser)
                 if (LexGetToken(Parser, NULL, FALSE) == TokenOpenBracket)
                     ParseFunctionDefinition(Parser, Typ, Identifier, FALSE);
                 else
-                    VariableDefine(Parser, Identifier, VariableAllocValueFromType(Parser, Typ, TRUE));
+                    VariableDefine(Parser, Identifier, VariableAllocValueFromType(Parser, Typ, TRUE, NULL));
             }
             break;
         

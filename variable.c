@@ -37,22 +37,23 @@ void *VariableAlloc(struct ParseState *Parser, int Size, int OnHeap)
 }
 
 /* allocate a value either on the heap or the stack using space dependent on what type we want */
-struct Value *VariableAllocValueAndData(struct ParseState *Parser, int DataSize, int IsLValue, int OnHeap)
+struct Value *VariableAllocValueAndData(struct ParseState *Parser, int DataSize, int IsLValue, struct Value *LValueFrom, int OnHeap)
 {
     struct Value *NewValue = VariableAlloc(Parser, sizeof(struct Value) + DataSize, OnHeap);
     NewValue->Val = (union AnyValue *)((void *)NewValue + sizeof(struct Value));
     NewValue->ValOnHeap = OnHeap;
     NewValue->ValOnStack = !OnHeap;
     NewValue->IsLValue = IsLValue;
+    NewValue->LValueFrom = LValueFrom;
     
     return NewValue;
 }
 
 /* allocate a value given its type */
-struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct ValueType *Typ, int IsLValue)
+struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct ValueType *Typ, int IsLValue, struct Value *LValueFrom)
 {
     int Size = TypeSize(Typ, Typ->ArraySize);
-    struct Value *NewValue = VariableAllocValueAndData(Parser, Size, IsLValue, FALSE);
+    struct Value *NewValue = VariableAllocValueAndData(Parser, Size, IsLValue, LValueFrom, FALSE);
     assert(Size > 0 || Typ == &VoidType);
     NewValue->Typ = Typ;
     if (Typ->Base == TypeArray)
@@ -68,14 +69,14 @@ struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct Value
 struct Value *VariableAllocValueAndCopy(struct ParseState *Parser, struct Value *FromValue, int OnHeap)
 {
     int CopySize = TypeSizeValue(FromValue);
-    struct Value *NewValue = VariableAllocValueAndData(Parser, CopySize, FromValue->IsLValue, OnHeap);
+    struct Value *NewValue = VariableAllocValueAndData(Parser, CopySize, FromValue->IsLValue, FromValue->LValueFrom, OnHeap);
     NewValue->Typ = FromValue->Typ;
     memcpy(NewValue->Val, FromValue->Val, CopySize);
     return NewValue;
 }
 
 /* allocate a value either on the heap or the stack from an existing AnyValue and type */
-struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, struct ValueType *Typ, union AnyValue *FromValue, int IsLValue)
+struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, struct ValueType *Typ, union AnyValue *FromValue, int IsLValue, struct Value *LValueFrom)
 {
     struct Value *NewValue = VariableAlloc(Parser, sizeof(struct Value), FALSE);
     NewValue->Typ = Typ;
@@ -83,6 +84,7 @@ struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, stru
     NewValue->ValOnHeap = FALSE;
     NewValue->ValOnStack = FALSE;
     NewValue->IsLValue = IsLValue;
+    NewValue->LValueFrom = LValueFrom;
     
     return NewValue;
 }
@@ -90,7 +92,7 @@ struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, stru
 /* allocate a value either on the heap or the stack from an existing Value, sharing the value */
 struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *FromValue)
 {
-    return VariableAllocValueFromExistingData(Parser, FromValue->Typ, FromValue->Val, FromValue->IsLValue);
+    return VariableAllocValueFromExistingData(Parser, FromValue->Typ, FromValue->Val, FromValue->IsLValue, FromValue->LValueFrom);
 }
 
 /* define a variable */

@@ -155,6 +155,7 @@ struct Value
 {
     struct ValueType *Typ;      /* the type of this value */
     union AnyValue *Val;        /* pointer to the AnyValue which holds the actual content */
+    struct Value *LValueFrom;   /* if an LValue, this is a Value our LValue is contained within (or NULL) */
     char ValOnHeap;             /* the AnyValue is on the heap (but this Value is on the stack) */
     char ValOnStack;            /* the AnyValue is on the stack along with this Value */
     char IsLValue;              /* is modifiable and is allocated somewhere we can usefully modify it */
@@ -273,10 +274,10 @@ void HeapFree(void *Mem);
 void VariableInit();
 void *VariableAlloc(struct ParseState *Parser, int Size, int OnHeap);
 void VariableStackPop(struct ParseState *Parser, struct Value *Var);
-struct Value *VariableAllocValueAndData(struct ParseState *Parser, int DataSize, int IsLValue, int OnHeap);
+struct Value *VariableAllocValueAndData(struct ParseState *Parser, int DataSize, int IsLValue, struct Value *LValueFrom, int OnHeap);
 struct Value *VariableAllocValueAndCopy(struct ParseState *Parser, struct Value *FromValue, int OnHeap);
-struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct ValueType *Typ, int IsLValue);
-struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, struct ValueType *Typ, union AnyValue *FromValue, int IsLValue);
+struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct ValueType *Typ, int IsLValue, struct Value *LValueFrom);
+struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, struct ValueType *Typ, union AnyValue *FromValue, int IsLValue, struct Value *LValueFrom);
 struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *FromValue);
 void VariableDefine(struct ParseState *Parser, char *Ident, struct Value *InitValue);
 int VariableDefined(const char *Ident);

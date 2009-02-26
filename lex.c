@@ -208,7 +208,7 @@ enum LexToken LexGetStringConstant(struct LexState *Lexer, struct Value *Value)
     for (EscBufPos = EscBuf, Lexer->Pos = StartPos; Lexer->Pos != EndPos;)
         *EscBufPos++ = LexUnEscapeCharacter(&Lexer->Pos, EndPos);
     
-    ArrayValue = VariableAllocValueAndData(NULL, sizeof(struct ArrayValue), FALSE, TRUE);
+    ArrayValue = VariableAllocValueAndData(NULL, sizeof(struct ArrayValue), FALSE, NULL, TRUE);
     ArrayValue->Typ = CharArrayType;
     ArrayValue->Val->Array.Size = EscBufPos - EscBuf + 1;
     ArrayValue->Val->Array.Data = TableStrRegister2(EscBuf, EscBufPos - EscBuf);
@@ -451,6 +451,7 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
             LexValue.ValOnHeap = FALSE;
             LexValue.ValOnStack = FALSE;
             LexValue.IsLValue = FALSE;
+            LexValue.LValueFrom = NULL;
             *Value = &LexValue;
         }
         

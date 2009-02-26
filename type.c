@@ -141,7 +141,7 @@ void TypeParseStruct(struct ParseState *Parser, struct ValueType **Typ, int IsSt
         if (MemberType == NULL || MemberIdentifier == NULL)
             ProgramFail(Parser, "invalid type in struct");
         
-        MemberValue = VariableAllocValueAndData(Parser, sizeof(int), FALSE, TRUE);
+        MemberValue = VariableAllocValueAndData(Parser, sizeof(int), FALSE, NULL, TRUE);
         MemberValue->Typ = MemberType;
         if (IsStruct)
         { /* allocate this member's location in the struct */
