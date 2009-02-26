@@ -1,6 +1,6 @@
 TODO
 
-* pointers
+* pointers to array elements and struct elements
 * test character array pointers and dereferencing
 * operator precedence
 * '->'

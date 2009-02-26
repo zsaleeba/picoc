@@ -142,6 +142,11 @@ int ParseValue(struct ParseState *Parser, struct Value **Result)
             
             LocalLValue = (*Result)->Val->Pointer.Segment;
             VariableStackPop(Parser, *Result);
+     #if 0
+            *Result = VariableAllocValueAndCopy(struct ParseState *Parser, struct Value *FromValue, int OnHeap)
+            *Result = VariableAllocValueFromExistingData(Parser, (*Result)->Typ->FromType, (void *)LocalLValue->Val + LocalLValue->Val->Pointer.Segment, 
+                            LocalLValue->IsLValue, FromValue->IsLValue ? FromValue : NULL);
+     #endif
             *Result = VariableAllocValueShared(Parser, LocalLValue);
             break;
 
@@ -153,9 +158,8 @@ int ParseValue(struct ParseState *Parser, struct Value **Result)
             LocalLValue = (*Result)->LValueFrom;
             VariableStackPop(Parser, *Result);
             *Result = VariableAllocValueFromType(Parser, TypeGetMatching(Parser, VType, TypePointer, 0, StrEmpty), FALSE, NULL);
-            // XXX - handle lvalues of struct and array elements
             (*Result)->Val->Pointer.Segment = LocalLValue;
-            (*Result)->Val->Pointer.Data.Offset = 0;
+            (*Result)->Val->Pointer.Data.Offset = (void *)(*Result)->Val - (void *)(*Result)->LValueFrom;
             break;
             
         case TokenIdentifier:
@@ -285,7 +289,7 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result)
                         ProgramFail(Parser, "structure doesn't have a member called '%s'", Ident->Val->Identifier);
                     
                     VariableStackPop(Parser, TotalValue);
-                    TotalValue = VariableAllocValueFromExistingData(Parser, CurrentValue->Typ, TotalValueData + CurrentValue->Val->Integer, TRUE, CurrentValue->LValueFrom);
+                    TotalValue = VariableAllocValueFromExistingData(Parser, CurrentValue->Typ, TotalValueData + CurrentValue->Val->Integer, TRUE, TotalValue->LValueFrom);
                 }
                 continue;
             }
