@@ -40,11 +40,11 @@
 
 # else
 #  ifdef SURVEYOR_HOST
-/* put your host definitions here */
 #   define NO_FP
 #   define NO_CTYPE
-
-#   include <string.h>
+#   include "../string.h"
+#   include "../print.h"
+#   include "../malloc.h"
 #   define assert(x)
 #  endif
 # endif
