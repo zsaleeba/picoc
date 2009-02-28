@@ -7,10 +7,10 @@ void Initialise()
     TableInit();
     VariableInit();
     LexInit();
-    VariableInit();
     TypeInit();
     LibraryInit(&GlobalTable, "c library", &CLibrary);
     LibraryInit(&GlobalTable, "platform library", &PlatformLibrary);
+    PlatformLibraryInit();
 }
 
 /* platform-dependent code for running programs is in this file */

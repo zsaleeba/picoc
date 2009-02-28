@@ -17,6 +17,12 @@ void Random(struct Value *ReturnValue, struct Value **Param, int NumArgs)
 }
 #endif
 
+static int SomeVar = 42;
+void PlatformLibraryInit()
+{
+    VariableDefinePlatformVar(NULL, "somevar", &IntType, (union AnyValue *)&SomeVar, TRUE);
+}
+
 /* list of all library functions and their prototypes */
 struct LibraryFunction PlatformLibrary[] =
 {

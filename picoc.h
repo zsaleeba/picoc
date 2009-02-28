@@ -284,6 +284,7 @@ struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *
 void VariableDefine(struct ParseState *Parser, char *Ident, struct Value *InitValue);
 int VariableDefined(const char *Ident);
 void VariableGet(struct ParseState *Parser, const char *Ident, struct Value **LVal);
+void VariableDefinePlatformVar(struct ParseState *Parser, char *Ident, struct ValueType *Typ, union AnyValue *FromValue, int IsWritable);
 void VariableStackFrameAdd(struct ParseState *Parser, int NumParams);
 void VariableStackFramePop(struct ParseState *Parser);
 
@@ -303,5 +304,6 @@ void PlatformPrintf(const char *Format, ...);
 void PlatformVPrintf(const char *Format, va_list Args);
 int PlatformSetExitPoint();
 void PlatformExit();
+void PlatformLibraryInit();
 
 #endif /* PICOC_H */

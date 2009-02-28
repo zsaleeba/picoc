@@ -126,6 +126,16 @@ void VariableGet(struct ParseState *Parser, const char *Ident, struct Value **LV
     }
 }
 
+/* define a global variable shared with a platform global */
+void VariableDefinePlatformVar(struct ParseState *Parser, char *Ident, struct ValueType *Typ, union AnyValue *FromValue, int IsWritable)
+{
+    struct Value *SomeValue = VariableAllocValueAndData(NULL, 0, IsWritable, NULL, TRUE);
+    SomeValue->Typ = Typ;
+    SomeValue->Val = FromValue;
+
+    VariableDefine(Parser, TableStrRegister(Ident), SomeValue);
+}
+
 /* free and/or pop the top value off the stack. Var must be the top value on the stack! */
 void VariableStackPop(struct ParseState *Parser, struct Value *Var)
 {
