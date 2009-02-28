@@ -62,16 +62,6 @@ void PlatformExit()
 #endif
 
 #ifdef SURVEYOR_HOST
-/* exit with a message */
-void ProgramFail(struct ParseState *Parser, const char *Message, ...)
-{
-}
-
-/* exit lexing with a message */
-void LexFail(struct LexState *Lexer, const char *Message, ...)
-{
-}
-
 /* get a line of interactive input */
 char *PlatformGetLine(char *Buf, int MaxLen)
 {
