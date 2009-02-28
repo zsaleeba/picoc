@@ -18,9 +18,19 @@ void Random(struct Value *ReturnValue, struct Value **Param, int NumArgs)
 #endif
 
 static int SomeVar = 42;
+static int SomeArray[4];
 void PlatformLibraryInit()
 {
+    struct ValueType *IntArrayType;
+    
     VariableDefinePlatformVar(NULL, "somevar", &IntType, (union AnyValue *)&SomeVar, TRUE);
+    
+    IntArrayType = TypeGetMatching(NULL, &IntType, TypeArray, 4, NULL);
+    SomeArray[0] = 12;
+    SomeArray[1] = 34;
+    SomeArray[2] = 56;
+    SomeArray[3] = 78;
+    VariableDefinePlatformVar(NULL, "somearray", IntArrayType, (union AnyValue *)&SomeArray, FALSE);
 }
 
 /* list of all library functions and their prototypes */
@@ -29,7 +39,7 @@ struct LibraryFunction PlatformLibrary[] =
     { SayHello,     "void sayhello()" },
     { PrintInteger, "void printint(int)" },
 #ifdef UNIX_HOST
-    { Random,           "int random()" },
+    { Random,       "int random()" },
 #endif
     { NULL,         NULL }
 };
