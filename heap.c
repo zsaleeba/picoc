@@ -4,11 +4,18 @@
 #define FREELIST_BUCKETS 8                          /* freelists for 4, 8, 12 ... 32 byte allocs */
 #define SPLIT_MEM_THRESHOLD 16                      /* don't split memory which is close in size */
 
+#ifdef SURVEYOR_HOST
+#define HEAP_SIZE C_HEAPSIZE
+static unsigned char *HeapMemory = (unsigned char *)C_HEAPSTART;
+static void *HeapBottom = C_HEAPSTART + HEAP_SIZE;   /* the bottom of the (downward-growing) heap */
+#else
 static unsigned char HeapMemory[HEAP_SIZE];         /* all memory - stack and heap */
-static void *StackFrame = &HeapMemory;              /* the current stack frame */
-static void *StackTop = &HeapMemory;                /* the top of the stack */
-
 static void *HeapBottom = &HeapMemory[HEAP_SIZE];   /* the bottom of the (downward-growing) heap */
+#endif
+
+static void *StackFrame = &HeapMemory[0];           /* the current stack frame */
+static void *StackTop = &HeapMemory[0];             /* the top of the stack */
+
 static struct AllocNode *FreeListBucket[FREELIST_BUCKETS];      /* we keep a pool of freelist buckets to reduce fragmentation */
 static struct AllocNode *FreeListBig;                           /* free memory which doesn't fit in a bucket */
 
@@ -17,8 +24,8 @@ void HeapInit()
 {
     int Count;
     
-    StackFrame = &HeapMemory;
-    StackTop = &HeapMemory;
+    StackFrame = &HeapMemory[0];
+    StackTop = &HeapMemory[0];
     *(void **)StackFrame = NULL;
     HeapBottom = &HeapMemory[HEAP_SIZE];
     FreeListBig = NULL;
@@ -44,7 +51,7 @@ void *HeapAllocStack(int Size)
 int HeapPopStack(void *Addr, int Size)
 {
     int ToLose = MEM_ALIGN(Size);
-    if (ToLose > (StackTop - (void *)&HeapMemory))
+    if (ToLose > (StackTop - (void *)&HeapMemory[0]))
         return FALSE;
     
     StackTop -= ToLose;
@@ -97,9 +104,9 @@ void *HeapAlloc(int Size)
         printf("allocating %d(%d) from bucket", Size, AllocSize);
 #endif
         NewMem = FreeListBucket[Bucket];
-        assert((unsigned long)NewMem >= (unsigned long)&HeapMemory && (unsigned char *)NewMem - &HeapMemory[0] < HEAP_SIZE);
+        assert((unsigned long)NewMem >= (unsigned long)&HeapMemory[0] && (unsigned char *)NewMem - &HeapMemory[0] < HEAP_SIZE);
         FreeListBucket[Bucket] = *(struct AllocNode **)NewMem;
-        assert(FreeListBucket[Bucket] == NULL || ((unsigned long)FreeListBucket[Bucket] >= (unsigned long)&HeapMemory && (unsigned char *)FreeListBucket[Bucket] - &HeapMemory[0] < HEAP_SIZE));
+        assert(FreeListBucket[Bucket] == NULL || ((unsigned long)FreeListBucket[Bucket] >= (unsigned long)&HeapMemory[0] && (unsigned char *)FreeListBucket[Bucket] - &HeapMemory[0] < HEAP_SIZE));
         NewMem->Size = AllocSize;
     }
     else if (FreeListBig != NULL)
@@ -109,7 +116,7 @@ void *HeapAlloc(int Size)
         
         if (*FreeNode != NULL)
         {
-            assert((unsigned long)*FreeNode >= (unsigned long)&HeapMemory && (unsigned char *)*FreeNode - &HeapMemory[0] < HEAP_SIZE);
+            assert((unsigned long)*FreeNode >= (unsigned long)&HeapMemory[0] && (unsigned char *)*FreeNode - &HeapMemory[0] < HEAP_SIZE);
             assert((*FreeNode)->Size < HEAP_SIZE && (*FreeNode)->Size > 0);
             if ((*FreeNode)->Size < Size + SPLIT_MEM_THRESHOLD)
             { /* close in size - reduce fragmentation by not splitting */
@@ -117,7 +124,7 @@ void *HeapAlloc(int Size)
                printf("allocating %d(%d) from freelist, no split (%d)", Size, AllocSize, (*FreeNode)->Size);
 #endif
                 NewMem = *FreeNode;
-                assert((unsigned long)NewMem >= (unsigned long)&HeapMemory && (unsigned char *)NewMem - &HeapMemory[0] < HEAP_SIZE);
+                assert((unsigned long)NewMem >= (unsigned long)&HeapMemory[0] && (unsigned char *)NewMem - &HeapMemory[0] < HEAP_SIZE);
                 *FreeNode = NewMem->NextFree;
             }
             else
@@ -126,7 +133,7 @@ void *HeapAlloc(int Size)
                 printf("allocating %d(%d) from freelist, split chunk (%d)", Size, AllocSize, (*FreeNode)->Size);
 #endif
                 NewMem = *FreeNode + (*FreeNode)->Size - AllocSize;
-                assert((unsigned long)NewMem >= (unsigned long)&HeapMemory && (unsigned char *)NewMem - &HeapMemory[0] < HEAP_SIZE);
+                assert((unsigned long)NewMem >= (unsigned long)&HeapMemory[0] && (unsigned char *)NewMem - &HeapMemory[0] < HEAP_SIZE);
                 (*FreeNode)->Size -= AllocSize;
                 NewMem->Size = AllocSize;
             }
@@ -159,7 +166,7 @@ void HeapFree(void *Mem)
     struct AllocNode *MemNode = (struct AllocNode *)(Mem-sizeof(int));
     int Bucket = MemNode->Size >> 2;
     
-    assert((unsigned long)Mem >= (unsigned long)&HeapMemory && (unsigned char *)Mem - &HeapMemory[0] < HEAP_SIZE);
+    assert((unsigned long)Mem >= (unsigned long)&HeapMemory[0] && (unsigned char *)Mem - &HeapMemory[0] < HEAP_SIZE);
     assert(MemNode->Size < HEAP_SIZE && MemNode->Size > 0);
     if (Mem == NULL)
         return;
@@ -176,7 +183,7 @@ void HeapFree(void *Mem)
 #ifdef DEBUG_HEAP
         printf("freeing %d to bucket\n", MemNode->Size);
 #endif
-        assert(FreeListBucket[Bucket] == NULL || ((unsigned long)FreeListBucket[Bucket] >= (unsigned long)&HeapMemory && (unsigned char *)FreeListBucket[Bucket] - &HeapMemory[0] < HEAP_SIZE));
+        assert(FreeListBucket[Bucket] == NULL || ((unsigned long)FreeListBucket[Bucket] >= (unsigned long)&HeapMemory[0] && (unsigned char *)FreeListBucket[Bucket] - &HeapMemory[0] < HEAP_SIZE));
         *(struct AllocNode **)MemNode = FreeListBucket[Bucket];
         FreeListBucket[Bucket] = (struct AllocNode *)MemNode;
     }
@@ -185,7 +192,7 @@ void HeapFree(void *Mem)
 #ifdef DEBUG_HEAP
         printf("freeing %lx:%d to freelist\n", (unsigned long)Mem, MemNode->Size);
 #endif
-        assert(FreeListBig == NULL || ((unsigned long)FreeListBig >= (unsigned long)&HeapMemory && (unsigned char *)FreeListBig - &HeapMemory[0] < HEAP_SIZE));
+        assert(FreeListBig == NULL || ((unsigned long)FreeListBig >= (unsigned long)&HeapMemory[0] && (unsigned char *)FreeListBig - &HeapMemory[0] < HEAP_SIZE));
         MemNode->NextFree = FreeListBig;
         FreeListBig = MemNode;
     }
