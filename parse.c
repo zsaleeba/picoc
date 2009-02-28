@@ -87,7 +87,7 @@ void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, const c
             VariableStackFramePop(Parser);
         }
         else
-            FuncValue->Val->FuncDef.Intrinsic(*Result, ParamArray, ArgCount);
+            FuncValue->Val->FuncDef.Intrinsic(Parser, *Result, ParamArray, ArgCount);
 
         HeapPopStackFrame();
     }

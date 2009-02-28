@@ -87,7 +87,7 @@ void PrintFP(double Num, CharWriter *PutCh)
 #endif
 
 /* intrinsic functions made available to the language */
-void LibPrintf(struct Value *ReturnValue, struct Value **Param, int NumArgs)
+void LibPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     struct Value *CharArray = Param[0]->Val->Pointer.Segment;
     char *Format;

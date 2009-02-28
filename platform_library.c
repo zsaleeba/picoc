@@ -1,17 +1,17 @@
 #include "picoc.h"
 
-void SayHello(struct Value *ReturnValue, struct Value **Param, int NumArgs)
+void SayHello(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     PlatformPrintf("Hello\n");
 }
 
-void PrintInteger(struct Value *ReturnValue, struct Value **Param, int NumArgs)
+void PrintInteger(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     PlatformPrintf("%d\n", Param[0]->Val->Integer);
 }
 
 #ifdef UNIX_HOST
-void Random(struct Value *ReturnValue, struct Value **Param, int NumArgs)
+void Random(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     ReturnValue->Val->Integer = random();
 }

@@ -210,7 +210,7 @@ struct LexState
 /* library function definition */
 struct LibraryFunction
 {
-    void (*Func)(struct Value *, struct Value **, int);
+    void (*Func)(struct ParseState *Parser, struct Value *, struct Value **, int);
     const char *Prototype;
 };
 
