@@ -12,7 +12,6 @@
 #define NEXTIS(c,x,y) { if (NextChar == (c)) { Lexer->Pos++; GotToken = (x); } else GotToken = (y); }
 #define NEXTIS3(c,x,d,y,z) { if (NextChar == (c)) { Lexer->Pos++; GotToken = (x); } else NEXTIS(d,y,z) }
 #define NEXTIS4(c,x,d,y,e,z,a) { if (NextChar == (c)) { Lexer->Pos++; GotToken = (x); } else NEXTIS3(d,y,e,z,a) }
-#define NEXTIS3PLUS(c,x,d,y,e,z,a) { if (NextChar == (c)) { Lexer->Pos++; GotToken = (x); } else if (NextChar == (d)) { if (Lexer->Pos[1] == (e)) { Lexer->Pos += 2; GotToken = (z); } else { Lexer->Pos++; GotToken = (y); } } else GotToken = (a); }
 #define NEXTISEXACTLY3(c,d,y,z) { if (NextChar == (c) && Lexer->Pos[1] == (d)) { Lexer->Pos += 2; GotToken = (y); } else GotToken = (z); }
 
 static union AnyValue LexAnyValue;
@@ -49,7 +48,6 @@ static struct ReservedWord ReservedWords[] =
     { "long", TokenLongType, NULL },
     { "return", TokenReturn, NULL },
     { "signed", TokenSignedType, NULL },
-    { "sizeof", TokenSizeof, NULL },
     { "short", TokenShortType, NULL },
     { "struct", TokenStructType, NULL },
     { "switch", TokenSwitch, NULL },
@@ -310,24 +308,22 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
             case '=': NEXTIS('=', TokenEquality, TokenAssign); break;
             case '+': NEXTIS3('=', TokenAddAssign, '+', TokenIncrement, TokenPlus); break;
             case '-': NEXTIS4('=', TokenSubtractAssign, '>', TokenArrow, '-', TokenDecrement, TokenMinus); break;
-            case '*': NEXTIS('=', TokenMultiplyAssign, TokenAsterisk); break;
-            case '/': if (NextChar == '/' || NextChar == '*') LexSkipComment(Lexer, NextChar); else NEXTIS('=', TokenDivideAssign, TokenSlash); break;
-            case '%': NEXTIS('=', TokenModulusAssign, TokenModulus); break;
-            case '<': NEXTIS3PLUS('=', TokenLessEqual, '<', TokenShiftLeft, '=', TokenShiftLeftAssign, TokenLessThan); break;
-            case '>': NEXTIS3PLUS('=', TokenGreaterEqual, '>', TokenShiftRight, '=', TokenShiftRightAssign, TokenGreaterThan); break;
+            case '*': GotToken = TokenAsterisk; break;
+            case '/': if (NextChar == '/' || NextChar == '*') LexSkipComment(Lexer, NextChar); else GotToken = TokenSlash; break;
+            case '<': NEXTIS('=', TokenLessEqual, TokenLessThan); break;
+            case '>': NEXTIS('=', TokenGreaterEqual, TokenGreaterThan); break;
             case ';': GotToken = TokenSemicolon; break;
-            case '&': NEXTIS3('=', TokenArithmeticAndAssign, '&', TokenLogicalAnd, TokenAmpersand); break;
-            case '|': NEXTIS3('=', TokenArithmeticOrAssign, '|', TokenLogicalOr, TokenArithmeticOr); break;
+            case '&': NEXTIS('&', TokenLogicalAnd, TokenAmpersand); break;
+            case '|': NEXTIS('|', TokenLogicalOr, TokenArithmeticOr); break;
             case '{': GotToken = TokenLeftBrace; break;
             case '}': GotToken = TokenRightBrace; break;
             case '[': GotToken = TokenLeftSquareBracket; break;
             case ']': GotToken = TokenRightSquareBracket; break;
-            case '!': NEXTIS('=', TokenNotEqual, TokenUnaryNot); break;
-            case '^': NEXTIS('=', TokenArithmeticExorAssign, TokenArithmeticExor); break;
+            case '!': GotToken = TokenUnaryNot; break;
+            case '^': GotToken = TokenArithmeticExor; break;
             case '~': GotToken = TokenUnaryExor; break;
             case ',': GotToken = TokenComma; break;
             case '.': NEXTISEXACTLY3('.', '.', TokenEllipsis, TokenDot); break;
-            case '?': GotToken = TokenQuestionMark; break;
             case ':': GotToken = TokenColon; break;
             default:  LexFail(Lexer, "illegal character '%c'", ThisChar); break;
         }
