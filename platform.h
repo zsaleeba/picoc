@@ -7,7 +7,9 @@
 #undef  FLYINGFOX_HOST
 #undef  SURVEYOR_HOST
 
+#ifndef SURVEYOR_HOST
 #define HEAP_SIZE 16384                     /* space for the heap and the stack */
+#endif
 #define LARGE_INT_POWER_OF_TEN 1000000000   /* the largest power of ten which fits in an int on this architecture */
 #define ARCH_ALIGN_WORDSIZE sizeof(int)     /* memory alignment boundary on this architecture */
 
