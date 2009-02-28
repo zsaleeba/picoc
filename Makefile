@@ -6,7 +6,7 @@ TARGET	= picoc
 SRCS	= picoc.c table.c lex.c parse.c heap.c type.c variable.c clibrary.c platform_library.c platform_support.c
 OBJS	:= $(SRCS:%.c=%.o)
 
-all: $(TARGET)
+all: depend $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) $(LIBS)
