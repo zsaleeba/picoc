@@ -1,21 +1,20 @@
 TODO
 
+* change character constants to have a leading array length
 * pointers to array elements and struct elements
-* setjmp() / longjmp() hooks for error exit
-* test character array pointers and dereferencing
 * operator precedence
+* test character array pointers and dereferencing
 * '->'
 * make printf() honour memory constraints
 * interactive mode
 * casts
 * enum
-* '+=' / '-=' for pointers
 * pointer arithmetic
-* change heap to use a single consistent freelist node struct
-* periodic heap cleanup
 * fix type comparison to take into account array size
 * fix return of array types
 * expression and auto-cast support for all types
+* change heap to use a single consistent freelist node struct
+* periodic heap cleanup
 * octal/hex character constants
 * fix #include
 * assignment on declaration
