@@ -50,7 +50,7 @@ static struct ReservedWord ReservedWords[] =
     { "return", TokenReturn, NULL },
     { "short", TokenShortType, NULL },
     { "signed", TokenSignedType, NULL },
-//    { "sizeof", TokenSizeof, NULL },
+    { "sizeof", TokenSizeof, NULL },
     { "struct", TokenStructType, NULL },
     { "switch", TokenSwitch, NULL },
     { "typedef", TokenTypedef, NULL },
