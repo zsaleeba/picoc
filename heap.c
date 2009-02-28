@@ -6,8 +6,8 @@
 
 #ifdef SURVEYOR_HOST
 #define HEAP_SIZE C_HEAPSIZE
-static unsigned char *HeapMemory = (unsigned char *)C_HEAPSTART;
-static void *HeapBottom = C_HEAPSTART + HEAP_SIZE;   /* the bottom of the (downward-growing) heap */
+static unsigned char *HeapMemory = (unsigned char *)C_HEAPSTART;      /* all memory - stack and heap */
+static void *HeapBottom = (unsigned char *)C_HEAPSTART + HEAP_SIZE;   /* the bottom of the (downward-growing) heap */
 #else
 static unsigned char HeapMemory[HEAP_SIZE];         /* all memory - stack and heap */
 static void *HeapBottom = &HeapMemory[HEAP_SIZE];   /* the bottom of the (downward-growing) heap */
