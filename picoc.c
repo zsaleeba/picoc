@@ -23,22 +23,27 @@ int main(int argc, char **argv)
     Initialise();
     if (PlatformSetExitPoint())
         return 1;
-        
+    
     PlatformScanFile(argv[1]);
     
     return 0;
 }
 #else
 # ifdef SURVEYOR_HOST
-static char *SourceStr = "\
-printf(\"This is a test program\n\");\
-for (Count = 1; Count <= 10; Count++)\
-    printf(\"%d\n\");\
+static char *SourceStr = "\n\
+int Count;\n\
+\n\
+printf(\"This is a test program\n\");\n\
+for (Count = 1; Count <= 10; Count++)\n\
+    printf(\"%d\n\", Count);\n\
 ";
 
-int main(int argc, char **argv)
+int picoc()
 {    
     Initialise();
+    if (PlatformSetExitPoint())
+        return 1;
+        
     Parse("test.c", SourceStr, strlen(SourceStr), TRUE);
     return 0;
 }

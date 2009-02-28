@@ -2,9 +2,6 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
-/* common includes */
-#include <stdarg.h>
-
 /* configurable options */
 #define UNIX_HOST                           /* select your host type */
 #undef  FLYINGFOX_HOST
@@ -31,6 +28,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stdarg.h>
 #ifndef NO_FP
 #include <math.h>
 #endif
