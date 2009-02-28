@@ -1,32 +1,6 @@
 #include "picoc.h"
 
 #ifdef UNIX_HOST
-/* exit with a message */
-void ProgramFail(struct ParseState *Parser, const char *Message, ...)
-{
-    va_list Args;
-
-    if (Parser != NULL)
-        PlatformPrintf("%s:%d: ", Parser->FileName, Parser->Line);   
-        
-    va_start(Args, Message);
-    PlatformVPrintf(Message, Args);
-    PlatformPrintf("\n");
-    exit(1);
-}
-
-/* exit lexing with a message */
-void LexFail(struct LexState *Lexer, const char *Message, ...)
-{
-    va_list Args;
-
-    PlatformPrintf("%s:%d: ", Lexer->FileName, Lexer->Line);      
-    va_start(Args, Message);
-    PlatformVPrintf(Message, Args);
-    PlatformPrintf("\n");
-    exit(1);
-}
-
 /* get a line of interactive input */
 char *PlatformGetLine(char *Buf, int MaxLen)
 {
@@ -73,6 +47,18 @@ void PlatformScanFile(const char *FileName)
     Parse(FileName, SourceStr, strlen(SourceStr), TRUE);
     free(SourceStr);
 }
+
+/* mark where to end the program for platforms which require this */
+int PlatformSetExitPoint()
+{
+    return 0;
+}
+
+/* exit the program */
+void PlatformExit()
+{
+    exit(1);
+}
 #endif
 
 #ifdef SURVEYOR_HOST
@@ -96,7 +82,46 @@ char *PlatformGetLine(char *Buf, int MaxLen)
 void PlatformPutc(unsigned char OutCh)
 {
 }
+
+/* mark where to end the program for platforms which require this */
+static jmp_buf ExitPoint;
+int PlatformSetExitPoint()
+{
+    return setjmp(ExitPoint);
+}
+
+/* exit the program */
+void PlatformExit()
+{
+    longjmp(ExitPoint, 1);
+}
 #endif
+
+/* exit with a message */
+void ProgramFail(struct ParseState *Parser, const char *Message, ...)
+{
+    va_list Args;
+
+    if (Parser != NULL)
+        PlatformPrintf("%s:%d: ", Parser->FileName, Parser->Line);   
+        
+    va_start(Args, Message);
+    PlatformVPrintf(Message, Args);
+    PlatformPrintf("\n");
+    PlatformExit(1);
+}
+
+/* exit lexing with a message */
+void LexFail(struct LexState *Lexer, const char *Message, ...)
+{
+    va_list Args;
+
+    PlatformPrintf("%s:%d: ", Lexer->FileName, Lexer->Line);      
+    va_start(Args, Message);
+    PlatformVPrintf(Message, Args);
+    PlatformPrintf("\n");
+    PlatformExit(1);
+}
 
 /* printf for compiler error reporting */
 void PlatformPrintf(const char *Format, ...)

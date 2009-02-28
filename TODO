@@ -1,6 +1,7 @@
 TODO
 
 * pointers to array elements and struct elements
+* setjmp() / longjmp() hooks for error exit
 * test character array pointers and dereferencing
 * operator precedence
 * '->'

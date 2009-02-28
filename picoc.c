@@ -21,6 +21,9 @@ int main(int argc, char **argv)
         ProgramFail(NULL, "Format: picoc <program.c> <args>...\n");
     
     Initialise();
+    if (PlatformSetExitPoint())
+        return 1;
+        
     PlatformScanFile(argv[1]);
     
     return 0;

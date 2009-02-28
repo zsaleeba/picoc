@@ -45,6 +45,8 @@
 #   include "../string.h"
 #   include "../print.h"
 #   include "../malloc.h"
+#   include "../setjmp.h"
+#   include "../stdarg.h"
 #   define assert(x)
 #  endif
 # endif
