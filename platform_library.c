@@ -13,7 +13,7 @@ void PrintInteger(struct ParseState *Parser, struct Value *ReturnValue, struct V
 #ifdef UNIX_HOST
 void Random(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = random();
+    ReturnValue->Val->Integer = rand();
 }
 #endif
 
