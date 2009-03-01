@@ -13,7 +13,7 @@ TESTS=	00_assignment.test \
 %.test: %.expect %.c
 	@echo Test: $*...
 	-@../picoc $*.c 2>&1 >$*.output
-	@if [ "x`diff -qu $*.expect $*.output`" != "x" ]; \
+	@if [ "x`diff -qbu $*.expect $*.output`" != "x" ]; \
 	then \
         	echo "error in test $*"; \
         	diff -u $*.expect $*.output; \
