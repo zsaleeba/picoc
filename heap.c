@@ -7,14 +7,15 @@
 #ifdef SURVEYOR_HOST
 #define HEAP_SIZE C_HEAPSIZE
 static unsigned char *HeapMemory = (unsigned char *)C_HEAPSTART;      /* all memory - stack and heap */
-static void *HeapBottom = (unsigned char *)C_HEAPSTART + HEAP_SIZE;   /* the bottom of the (downward-growing) heap */
+static void *HeapBottom = (void *)C_HEAPSTART + HEAP_SIZE;  /* the bottom of the (downward-growing) heap */
+static void *StackFrame = (void *)C_HEAPSTART;           /* the current stack frame */
+static void *StackTop = (void *)C_HEAPSTART;             /* the top of the stack */
 #else
 static unsigned char HeapMemory[HEAP_SIZE];         /* all memory - stack and heap */
 static void *HeapBottom = &HeapMemory[HEAP_SIZE];   /* the bottom of the (downward-growing) heap */
-#endif
-
 static void *StackFrame = &HeapMemory[0];           /* the current stack frame */
 static void *StackTop = &HeapMemory[0];             /* the top of the stack */
+#endif
 
 static struct AllocNode *FreeListBucket[FREELIST_BUCKETS];      /* we keep a pool of freelist buckets to reduce fragmentation */
 static struct AllocNode *FreeListBig;                           /* free memory which doesn't fit in a bucket */

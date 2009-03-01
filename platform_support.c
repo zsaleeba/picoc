@@ -75,17 +75,9 @@ void PlatformPutc(unsigned char OutCh)
 }
 
 /* mark where to end the program for platforms which require this */
-int errjmp[41];
-
 int PlatformSetExitPoint()
 {
-   errjmp[40] = 0;
-   setjmp(errjmp);
-   if (errjmp[40]) {
-       printf("\n\rgoodbye ...\n\r");
-       return 1;
-   }
-   return 0;
+ return 0;
 }
 
 /* exit the program */
