@@ -38,14 +38,21 @@ for (Count = 1; Count <= 10; Count++)\n\
     printf(\"%d\n\", Count);\n\
 ";
 
+int errjmp[41];
+
 int picoc()
-{    
-    Initialise();
-    if (PlatformSetExitPoint())
-        return 1;
-        
-    Parse("test.c", SourceStr, strlen(SourceStr), TRUE);
-    return 0;
+{
+   Initialise();
+
+   errjmp[40] = 0;
+   setjmp(errjmp);
+   if (errjmp[40]) {
+       printf("\n\rgoodbye ...\n\r");
+       return 1;
+   }
+
+   Parse("test.c", SourceStr, strlen(SourceStr), TRUE);
+   return 0;
 }
 # endif
 #endif

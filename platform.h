@@ -44,7 +44,7 @@
 #   define NO_CTYPE
 #   include "../string.h"
 #   include "../print.h"
-#   include "../malloc.h"
+#   include "../srv.h"
 #   include "../setjmp.h"
 #   include "../stdarg.h"
 #   define assert(x)

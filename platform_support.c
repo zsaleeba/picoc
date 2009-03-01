@@ -65,25 +65,36 @@ void PlatformExit()
 /* get a line of interactive input */
 char *PlatformGetLine(char *Buf, int MaxLen)
 {
-    return NULL;
+   return NULL;
 }
 
 /* write a character to the console */
 void PlatformPutc(unsigned char OutCh)
 {
+   putchar(OutCh);
 }
 
 /* mark where to end the program for platforms which require this */
-static jmp_buf ExitPoint;
+int errjmp[41];
+
 int PlatformSetExitPoint()
 {
-    return setjmp(ExitPoint);
+   errjmp[40] = 0;
+   setjmp(errjmp);
+   if (errjmp[40]) {
+       printf("\n\rgoodbye ...\n\r");
+       return 1;
+   }
+   return 0;
 }
 
 /* exit the program */
+extern int errjmp[];
+
 void PlatformExit()
 {
-    longjmp(ExitPoint, 1);
+   errjmp[40] = 1;
+   longjmp(errjmp, 1);
 }
 #endif
 
