@@ -19,6 +19,7 @@ char *PlatformReadFile(const char *FileName)
     struct stat FileInfo;
     char *ReadText;
     FILE *InFile;
+    int BytesRead;
     
     if (stat(FileName, &FileInfo))
         ProgramFail(NULL, "can't read file %s\n", FileName);
@@ -31,10 +32,11 @@ char *PlatformReadFile(const char *FileName)
     if (InFile == NULL)
         ProgramFail(NULL, "can't read file %s\n", FileName);
     
-    if (fread(ReadText, 1, FileInfo.st_size, InFile) != FileInfo.st_size)
+    BytesRead = fread(ReadText, 1, FileInfo.st_size, InFile);
+    if (BytesRead == 0)
         ProgramFail(NULL, "can't read file %s\n", FileName);
 
-    ReadText[FileInfo.st_size] = '\0';
+    ReadText[BytesRead] = '\0';
     fclose(InFile);
     
     return ReadText;    
