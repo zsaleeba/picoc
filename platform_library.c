@@ -13,7 +13,7 @@ void PrintInteger(struct ParseState *Parser, struct Value *ReturnValue, struct V
 #ifdef UNIX_HOST
 void Random(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = random();
+    ReturnValue->Val->Integer = rand();
 }
 #endif
 
@@ -45,9 +45,13 @@ extern unsigned int vblob(unsigned char *, unsigned char *, unsigned int);
 extern unsigned int vpix(unsigned char *, unsigned int, unsigned int);
 extern void init_colors();
 extern void vhist(unsigned char *);
+
 extern void vmean(unsigned char *);
+
 extern void color_segment(unsigned char *);
+
 extern void edge_detect(unsigned char *, unsigned char *, int);
+
 extern void i2cwrite(unsigned char, unsigned char *, unsigned int, int);
 extern void i2cread(unsigned char, unsigned char *, unsigned int, int);
 
@@ -57,8 +61,11 @@ extern int sonar_data[];
 extern int imgWidth, imgHeight, frame_diff_flag;
 
 extern unsigned int ymax[], ymin[], umax[], umin[], vmax[], vmin[];
+
 extern unsigned int blobx1[], blobx2[], bloby1[], bloby2[], blobcnt[], blobix[];
+
 extern unsigned int hist0[], hist1[], hist2[], mean[];
+
 
 void Csignal(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // check for kbhit, return t or nil
 {
