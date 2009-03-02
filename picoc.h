@@ -122,6 +122,7 @@ struct FuncDef
     struct ParseState Body;         /* lexical tokens of the function body if not intrinsic */
 };
 
+/* values */
 struct ArrayValue
 {
     unsigned int Size;          /* the number of elements in the array */
@@ -161,6 +162,7 @@ struct Value
     char ValOnHeap;             /* the AnyValue is on the heap (but this Value is on the stack) */
     char ValOnStack;            /* the AnyValue is on the stack along with this Value */
     char IsLValue;              /* is modifiable and is allocated somewhere we can usefully modify it */
+    char TempToken;             /* temporary token used in expression evaluation */
 };
 
 /* hash table data structure */
@@ -260,6 +262,7 @@ void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt);
 void TypeInit();
 int TypeSize(struct ValueType *Typ, int ArraySize);
 int TypeSizeValue(struct Value *Val);
+int TypeStackSizeValue(struct Value *Val);
 void TypeParse(struct ParseState *Parser, struct ValueType **Typ, char **Identifier);
 struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *ParentType, enum BaseType Base, int ArraySize, const char *Identifier);
 

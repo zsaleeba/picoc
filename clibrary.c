@@ -124,7 +124,7 @@ void LibPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
                     PrintStr("XXX", PlatformPutc);   /* not enough parameters for format */
                 else
                 {
-                    NextArg = (struct Value *)((void *)NextArg + sizeof(struct Value) + TypeSizeValue(NextArg));
+                    NextArg = (struct Value *)((void *)NextArg + sizeof(struct Value) + TypeStackSizeValue(NextArg));
                     if (NextArg->Typ != FormatType)
                         PrintStr("XXX", PlatformPutc);   /* bad type for format */
                     else

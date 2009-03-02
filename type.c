@@ -56,6 +56,15 @@ struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *P
     return TypeAdd(Parser, ParentType, Base, ArraySize, Identifier, Sizeof);
 }
 
+/* stack space used by a value */
+int TypeStackSizeValue(struct Value *Val)
+{
+    if (Val->ValOnStack)
+        return TypeSizeValue(Val); // XXX - doesn't handle passing system-memory arrays by value correctly
+    else
+        return 0;
+}
+
 /* memory used by a value */
 int TypeSizeValue(struct Value *Val)
 {

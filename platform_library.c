@@ -19,7 +19,7 @@ void Random(struct ParseState *Parser, struct Value *ReturnValue, struct Value *
 
 static int SomeVar = 42;
 static int SomeArray[4];
-static int Blobcnt, Blobx1, Blobx2, Bloby1, Bloby2;
+static int Blobcnt = 12, Blobx1 = 34, Blobx2 = 56, Bloby1 = 78, Bloby2 = 90;
 void PlatformLibraryInit()
 {
     struct ValueType *IntArrayType;
