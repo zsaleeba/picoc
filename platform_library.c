@@ -13,13 +13,13 @@ void PrintInteger(struct ParseState *Parser, struct Value *ReturnValue, struct V
 #ifdef UNIX_HOST
 void Random(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = rand();
+    ReturnValue->Val->Integer = random();
 }
 #endif
 
 static int SomeVar = 42;
 static int SomeArray[4];
-static int Blobcnt = 0, Blobx1 = 0, Blobx2 = 0, Bloby1 = 0, Bloby2 = 0;
+static int Blobcnt, Blobx1, Blobx2, Bloby1, Bloby2;
 void PlatformLibraryInit()
 {
     struct ValueType *IntArrayType;
@@ -45,13 +45,9 @@ extern unsigned int vblob(unsigned char *, unsigned char *, unsigned int);
 extern unsigned int vpix(unsigned char *, unsigned int, unsigned int);
 extern void init_colors();
 extern void vhist(unsigned char *);
-
 extern void vmean(unsigned char *);
-
 extern void color_segment(unsigned char *);
-
 extern void edge_detect(unsigned char *, unsigned char *, int);
-
 extern void i2cwrite(unsigned char, unsigned char *, unsigned int, int);
 extern void i2cread(unsigned char, unsigned char *, unsigned int, int);
 
@@ -61,11 +57,8 @@ extern int sonar_data[];
 extern int imgWidth, imgHeight, frame_diff_flag;
 
 extern unsigned int ymax[], ymin[], umax[], umin[], vmax[], vmin[];
-
 extern unsigned int blobx1[], blobx2[], bloby1[], bloby2[], blobcnt[], blobix[];
-
 extern unsigned int hist0[], hist1[], hist2[], mean[];
-
 
 void Csignal(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // check for kbhit, return t or nil
 {
@@ -257,13 +250,12 @@ void Cwritei2c(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
 
 void Cblob(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)    //    search for blob by color, index;  return center point X,Y and width Z
 {
-    int ix, iblob;
+    int ix, iblob, numblob;
 
     ix = Param[0]->Val->Integer;
     iblob = Param[1]->Val->Integer;
         
-    if (iblob == 0)
-        vblob((unsigned char *)FRAME_BUF, (unsigned char *)FRAME_BUF3, ix);
+    numblob = vblob((unsigned char *)FRAME_BUF, (unsigned char *)FRAME_BUF3, ix);
 
     if (blobcnt[iblob] == 0) {
         Blobcnt = 0;
@@ -274,7 +266,7 @@ void Cblob(struct ParseState *Parser, struct Value *ReturnValue, struct Value **
         Bloby1 = bloby1[iblob];
         Bloby2 = bloby2[iblob];
     }
-    ReturnValue->Val->Integer = blobcnt[iblob];
+    ReturnValue->Val->Integer = numblob;
 }
 
 /* list of all library functions and their prototypes */
@@ -292,7 +284,7 @@ struct LibraryFunction PlatformLibrary[] =
     { Cservo2,      "void servo2(int, int)" },
     { Claser,       "void laser(int)" },
     { Csonar,       "void sonar(int)" },
-    { Crange,       "void range(int)" },
+    { Crange,       "int range()" },
     { Ccolor,       "void color(int, int, int, int, int, int, int)" },
     { Cblob,         "int blob(int, int)" },
     { Cimgcap,      "void imgcap()" },
