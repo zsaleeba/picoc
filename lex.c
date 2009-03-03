@@ -307,7 +307,7 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
             case '\'': GotToken = LexGetCharacterConstant(Lexer, *Value); break;
             case '(': GotToken = TokenOpenBracket; break;
             case ')': GotToken = TokenCloseBracket; break;
-            case '=': NEXTIS('=', TokenEquality, TokenAssign); break;
+            case '=': NEXTIS('=', TokenEqual, TokenAssign); break;
             case '+': NEXTIS3('=', TokenAddAssign, '+', TokenIncrement, TokenPlus); break;
             case '-': NEXTIS4('=', TokenSubtractAssign, '>', TokenArrow, '-', TokenDecrement, TokenMinus); break;
             case '*': NEXTIS('=', TokenMultiplyAssign, TokenAsterisk); break;

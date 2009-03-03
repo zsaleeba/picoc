@@ -3,96 +3,9 @@
 /* local prototypes */
 int ParseArguments(struct ParseState *Parser, int RunIt);
 int ParseStatementMaybeRun(struct ParseState *Parser, int Condition);
+void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, const char *FuncName);
 
-
-/* do a function call */
-void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, const char *FuncName)
-{
-    struct Value *FuncValue;
-    struct Value *Param;
-    struct Value **ParamArray;
-    int ArgCount;
-    enum LexToken Token = LexGetToken(Parser, NULL, TRUE);    /* open bracket */
-    
-    if (Parser->Mode == RunModeRun) 
-    { /* get the function definition */
-        VariableGet(Parser, FuncName, &FuncValue);
-        if (FuncValue->Typ->Base != TypeFunction)
-            ProgramFail(Parser, "not a function - can't call");
-    
-        *Result = VariableAllocValueFromType(Parser, FuncValue->Val->FuncDef.ReturnType, FALSE, NULL);
-        HeapPushStackFrame();
-        ParamArray = HeapAllocStack(sizeof(struct Value *) * FuncValue->Val->FuncDef.NumParams);
-        if (ParamArray == NULL)
-            ProgramFail(Parser, "out of memory");
-    }
-        
-    /* parse arguments */
-    ArgCount = 0;
-    do {
-        if (ParseExpression(Parser, &Param))
-        {
-            if (Parser->Mode == RunModeRun)
-            { 
-                if (ArgCount >= FuncValue->Val->FuncDef.NumParams)
-                {
-                    if (!FuncValue->Val->FuncDef.VarArgs)
-                        ProgramFail(Parser, "too many arguments to %s()", FuncName);
-                }
-                else
-                {
-                    if (FuncValue->Val->FuncDef.ParamType[ArgCount] != Param->Typ)
-                        ProgramFail(Parser, "parameter %d to %s() is the wrong type", ArgCount+1, FuncName);
-                }
-                
-                if (ArgCount < FuncValue->Val->FuncDef.NumParams)
-                    ParamArray[ArgCount] = Param;
-            }
-            
-            ArgCount++;
-            Token = LexGetToken(Parser, NULL, TRUE);
-            if (Token != TokenComma && Token != TokenCloseBracket)
-                ProgramFail(Parser, "comma expected");
-        }
-        else
-        { /* end of argument list? */
-            Token = LexGetToken(Parser, NULL, TRUE);
-            if (!TokenCloseBracket)
-                ProgramFail(Parser, "bad argument");
-        }
-    } while (Token != TokenCloseBracket);
-    
-    if (Parser->Mode == RunModeRun) 
-    { /* run the function */
-        if (ArgCount < FuncValue->Val->FuncDef.NumParams)
-            ProgramFail(Parser, "not enough arguments to '%s'", FuncName);
-        
-        if (FuncValue->Val->FuncDef.Intrinsic == NULL)
-        { /* run a user-defined function */
-            struct ParseState FuncParser = FuncValue->Val->FuncDef.Body;
-            int Count;
-            
-            VariableStackFrameAdd(Parser, FuncValue->Val->FuncDef.Intrinsic ? FuncValue->Val->FuncDef.NumParams : 0);
-            TopStackFrame->NumParams = ArgCount;
-            TopStackFrame->ReturnValue = *Result;
-            for (Count = 0; Count < FuncValue->Val->FuncDef.NumParams; Count++)
-                VariableDefine(Parser, FuncValue->Val->FuncDef.ParamName[Count], ParamArray[Count]);
-                
-            if (!ParseStatement(&FuncParser))
-                ProgramFail(&FuncParser, "function body expected");
-        
-            if (FuncValue->Val->FuncDef.ReturnType != (*Result)->Typ)
-                ProgramFail(&FuncParser, "bad type of return value");
-
-            VariableStackFramePop(Parser);
-        }
-        else
-            FuncValue->Val->FuncDef.Intrinsic(Parser, *Result, ParamArray, ArgCount);
-
-        HeapPopStackFrame();
-    }
-}
-
+#if 1
 /* parse a single value */
 int ParseValue(struct ParseState *Parser, struct Value **Result)
 {
@@ -142,11 +55,11 @@ int ParseValue(struct ParseState *Parser, struct Value **Result)
             
             LocalLValue = (*Result)->Val->Pointer.Segment;
             VariableStackPop(Parser, *Result);
-     #if 0
+#if 0
             *Result = VariableAllocValueAndCopy(struct ParseState *Parser, struct Value *FromValue, int OnHeap)
             *Result = VariableAllocValueFromExistingData(Parser, (*Result)->Typ->FromType, (void *)LocalLValue->Val + LocalLValue->Val->Pointer.Segment, 
                             LocalLValue->IsLValue, FromValue->IsLValue ? FromValue : NULL);
-     #endif
+#endif
             *Result = VariableAllocValueShared(Parser, LocalLValue);
             break;
 
@@ -263,7 +176,7 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result)
         switch (Token)
         {
             case TokenPlus: case TokenMinus: case TokenAsterisk: case TokenSlash:
-            case TokenEquality: case TokenLessThan: case TokenGreaterThan:
+            case TokenEqual: case TokenLessThan: case TokenGreaterThan:
             case TokenLessEqual: case TokenGreaterEqual: case TokenLogicalAnd:
             case TokenLogicalOr: case TokenAmpersand: case TokenArithmeticOr: 
             case TokenArithmeticExor: 
@@ -401,7 +314,7 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result)
                     case TokenMinus:        FPResult = FPTotal - FPCurrent; break;
                     case TokenAsterisk:     FPResult = FPTotal * FPCurrent; break;
                     case TokenSlash:        FPResult = FPTotal / FPCurrent; break;
-                    case TokenEquality:     FPResult = FPTotal == FPCurrent; break;
+                    case TokenEqual:        FPResult = FPTotal == FPCurrent; break;
                     case TokenLessThan:     FPResult = FPTotal < FPCurrent; break;
                     case TokenGreaterThan:  FPResult = FPTotal > FPCurrent; break;
                     case TokenLessEqual:    FPResult = FPTotal <= FPCurrent; break;
@@ -431,7 +344,7 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result)
                     case TokenMinus:            IntResult = IntX - IntY; break;
                     case TokenAsterisk:         IntResult = IntX * IntY; break;
                     case TokenSlash:            IntResult = IntX / IntY; break;
-                    case TokenEquality:         IntResult = IntX == IntY; break;
+                    case TokenEqual:            IntResult = IntX == IntY; break;
                     case TokenLessThan:         IntResult = IntX < IntY; break;
                     case TokenGreaterThan:      IntResult = IntX > IntY; break;
                     case TokenLessEqual:        IntResult = IntX <= IntY; break;
@@ -452,6 +365,45 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result)
     
     return TRUE;
 }
+#else
+
+/* operator precedence definitions */
+struct OpPrecedence
+{
+    unsigned char PrefixPrecedence;
+    unsigned char PostfixPrecedence;
+    unsigned char BinaryPrecedence;
+};
+
+static struct OpPrecedence OperatorPrecedence[] =
+{
+    /* TokenComma, */ { 0, 0, 1 },
+    /* TokenAssign, */ { 0, 0, 2 }, /* TokenAddAssign, */ { 0, 0, 2 }, /* TokenSubtractAssign, */ { 0, 0, 2 }, 
+    /* TokenMultiplyAssign, */ { 0, 0, 2 }, /* TokenDivideAssign, */ { 0, 0, 2 }, /* TokenModulusAssign, */ { 0, 0, 2 },
+    /* TokenShiftLeftAssign, */ { 0, 0, 2 }, /* TokenShiftRightAssign, */ { 0, 0, 2 }, /* TokenArithmeticAndAssign, */ { 0, 0, 2 }, 
+    /* TokenArithmeticOrAssign, */ { 0, 0, 2 }, /* TokenArithmeticExorAssign, */ { 0, 0, 2 },
+    /* TokenQuestionMark, */ { 0, 0, 3 },
+    /* TokenLogicalOr, */ { 0, 0, 4 },
+    /* TokenLogicalAnd, */ { 0, 0, 5 },
+    /* TokenArithmeticOr, */ { 0, 0, 6 },
+    /* TokenTilde, */ { 0, 0, 7 },
+    /* TokenAmpersand, */ { 14, 0, 8 },
+    /* TokenEqual, TokenNotEqual, */ { 0, 0, 9 },
+    /* TokenLessThan, */ { 0, 0, 10 }, /* TokenGreaterThan, */ { 0, 0, 10 }, /* TokenLessEqual, */ { 0, 0, 10 }, /* TokenGreaterEqual, */ { 0, 0, 10 },
+    /* TokenShiftLeft, */ { 0, 0, 11 }, /* TokenShiftRight, */ { 0, 0, 11 },
+    /* TokenPlus, */ { 14, 0, 12 }, /* TokenMinus, */ { 14, 0, 12 },
+    /* TokenAsterisk, */ { 14, 0, 13 }, /* TokenSlash, */ { 0, 0, 13 }, /* TokenModulus, */ { 0, 0, 13 },
+    /* TokenIncrement, */ { 14, 15, 0 }, /* TokenDecrement, */ { 14, 15, 0 }, /* TokenUnaryNot, */ { 14, 0, 0 }, /* TokenUnaryExor, */ { 14, 0, 0 }, /* TokenSizeof, */ { 14, 0, 0 },
+    /* TokenLeftSquareBracket, */ { 15, 0, 0 }, /* TokenRightSquareBracket, */ { 0, 0, 0 }, /* TokenDot, */ { 0, 0, 15 }, /* TokenArrow, */ { 0, 0, 15 },
+    /* TokenOpenBracket, */ { 15, 0, 0 }, /* TokenCloseBracket, */ { 0, 0, 0 }
+};
+
+/* parse an expression with operator precedence */
+int ParseExpression(struct ParseState *Parser, struct Value **Result)
+{
+    
+}
+#endif
 
 /* parse an expression. operator precedence is not supported */
 int ParseIntExpression(struct ParseState *Parser)
@@ -472,6 +424,94 @@ int ParseIntExpression(struct ParseState *Parser)
     }
     
     return Result;
+}
+
+/* do a function call */
+void ParseFunctionCall(struct ParseState *Parser, struct Value **Result, const char *FuncName)
+{
+    struct Value *FuncValue;
+    struct Value *Param;
+    struct Value **ParamArray;
+    int ArgCount;
+    enum LexToken Token = LexGetToken(Parser, NULL, TRUE);    /* open bracket */
+    
+    if (Parser->Mode == RunModeRun) 
+    { /* get the function definition */
+        VariableGet(Parser, FuncName, &FuncValue);
+        if (FuncValue->Typ->Base != TypeFunction)
+            ProgramFail(Parser, "not a function - can't call");
+    
+        *Result = VariableAllocValueFromType(Parser, FuncValue->Val->FuncDef.ReturnType, FALSE, NULL);
+        HeapPushStackFrame();
+        ParamArray = HeapAllocStack(sizeof(struct Value *) * FuncValue->Val->FuncDef.NumParams);
+        if (ParamArray == NULL)
+            ProgramFail(Parser, "out of memory");
+    }
+        
+    /* parse arguments */
+    ArgCount = 0;
+    do {
+        if (ParseExpression(Parser, &Param))
+        {
+            if (Parser->Mode == RunModeRun)
+            { 
+                if (ArgCount >= FuncValue->Val->FuncDef.NumParams)
+                {
+                    if (!FuncValue->Val->FuncDef.VarArgs)
+                        ProgramFail(Parser, "too many arguments to %s()", FuncName);
+                }
+                else
+                {
+                    if (FuncValue->Val->FuncDef.ParamType[ArgCount] != Param->Typ)
+                        ProgramFail(Parser, "parameter %d to %s() is the wrong type", ArgCount+1, FuncName);
+                }
+                
+                if (ArgCount < FuncValue->Val->FuncDef.NumParams)
+                    ParamArray[ArgCount] = Param;
+            }
+            
+            ArgCount++;
+            Token = LexGetToken(Parser, NULL, TRUE);
+            if (Token != TokenComma && Token != TokenCloseBracket)
+                ProgramFail(Parser, "comma expected");
+        }
+        else
+        { /* end of argument list? */
+            Token = LexGetToken(Parser, NULL, TRUE);
+            if (!TokenCloseBracket)
+                ProgramFail(Parser, "bad argument");
+        }
+    } while (Token != TokenCloseBracket);
+    
+    if (Parser->Mode == RunModeRun) 
+    { /* run the function */
+        if (ArgCount < FuncValue->Val->FuncDef.NumParams)
+            ProgramFail(Parser, "not enough arguments to '%s'", FuncName);
+        
+        if (FuncValue->Val->FuncDef.Intrinsic == NULL)
+        { /* run a user-defined function */
+            struct ParseState FuncParser = FuncValue->Val->FuncDef.Body;
+            int Count;
+            
+            VariableStackFrameAdd(Parser, FuncValue->Val->FuncDef.Intrinsic ? FuncValue->Val->FuncDef.NumParams : 0);
+            TopStackFrame->NumParams = ArgCount;
+            TopStackFrame->ReturnValue = *Result;
+            for (Count = 0; Count < FuncValue->Val->FuncDef.NumParams; Count++)
+                VariableDefine(Parser, FuncValue->Val->FuncDef.ParamName[Count], ParamArray[Count]);
+                
+            if (!ParseStatement(&FuncParser))
+                ProgramFail(&FuncParser, "function body expected");
+        
+            if (FuncValue->Val->FuncDef.ReturnType != (*Result)->Typ)
+                ProgramFail(&FuncParser, "bad type of return value");
+
+            VariableStackFramePop(Parser);
+        }
+        else
+            FuncValue->Val->FuncDef.Intrinsic(Parser, *Result, ParamArray, ArgCount);
+
+        HeapPopStackFrame();
+    }
 }
 
 /* parse a function definition and store it for later */

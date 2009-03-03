@@ -30,24 +30,31 @@ struct Table;
 /* lexical tokens */
 enum LexToken
 {
-    TokenNone, TokenEOF, TokenEndOfLine,
-    TokenIdentifier, TokenIntegerConstant, TokenFPConstant, TokenStringConstant, TokenCharacterConstant,
-    TokenOpenBracket, TokenCloseBracket,
-    TokenAssign, TokenPlus, TokenMinus, TokenAsterisk, TokenSlash, TokenModulus,
-    TokenEquality, TokenNotEqual, TokenLessThan, TokenGreaterThan, TokenLessEqual, TokenGreaterEqual,
-    TokenSemicolon, TokenComma, TokenDot, TokenQuestionMark, TokenColon, TokenEllipsis,
-    TokenArrow, TokenAmpersand, 
-    TokenLeftBrace, TokenRightBrace,
-    TokenLeftSquareBracket, TokenRightSquareBracket,
-    TokenLogicalAnd, TokenLogicalOr, TokenArithmeticOr, TokenArithmeticExor, TokenUnaryExor, TokenUnaryNot,
-    TokenAddAssign, TokenSubtractAssign, TokenMultiplyAssign, TokenDivideAssign, TokenModulusAssign,
-    TokenShiftLeft, TokenShiftRight, 
+    TokenComma,
+    TokenAssign, TokenAddAssign, TokenSubtractAssign, TokenMultiplyAssign, TokenDivideAssign, TokenModulusAssign,
     TokenShiftLeftAssign, TokenShiftRightAssign, TokenArithmeticAndAssign, TokenArithmeticOrAssign, TokenArithmeticExorAssign,
-    TokenIncrement, TokenDecrement, TokenSizeof,
+    TokenQuestionMark, 
+    TokenLogicalOr, 
+    TokenLogicalAnd, 
+    TokenArithmeticOr, 
+    TokenArithmeticExor, 
+    TokenAmpersand, 
+    TokenEqual, TokenNotEqual, 
+    TokenLessThan, TokenGreaterThan, TokenLessEqual, TokenGreaterEqual,
+    TokenShiftLeft, TokenShiftRight, 
+    TokenPlus, TokenMinus, 
+    TokenAsterisk, TokenSlash, TokenModulus,
+    TokenIncrement, TokenDecrement, TokenUnaryNot, TokenUnaryExor, TokenSizeof,
+    TokenLeftSquareBracket, TokenRightSquareBracket, TokenDot, TokenArrow, 
+    TokenOpenBracket, TokenCloseBracket,
+    TokenIdentifier, TokenIntegerConstant, TokenFPConstant, TokenStringConstant, TokenCharacterConstant,
+    TokenSemicolon, TokenColon, TokenEllipsis,
+    TokenLeftBrace, TokenRightBrace,
     TokenIntType, TokenCharType, TokenFloatType, TokenDoubleType, TokenVoidType, TokenEnumType,
     TokenLongType, TokenSignedType, TokenShortType, TokenStructType, TokenUnionType, TokenUnsignedType, TokenTypedef,
     TokenContinue, TokenDo, TokenElse, TokenFor, TokenIf, TokenWhile, TokenBreak, TokenSwitch, TokenCase, TokenDefault, TokenReturn,
-    TokenHashDefine, TokenHashInclude
+    TokenHashDefine, TokenHashInclude,
+    TokenNone, TokenEOF, TokenEndOfLine
 };
 
 /* used in dynamic memory allocation */
