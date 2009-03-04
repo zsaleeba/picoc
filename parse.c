@@ -370,9 +370,9 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result)
 /* operator precedence definitions */
 struct OpPrecedence
 {
-    unsigned char PrefixPrecedence;
-    unsigned char PostfixPrecedence;
-    unsigned char BinaryPrecedence;
+    unsigned char PrefixPrecedence:4;
+    unsigned char PostfixPrecedence:4;
+    unsigned char InfixPrecedence:4;
 };
 
 static struct OpPrecedence OperatorPrecedence[] =
@@ -382,7 +382,7 @@ static struct OpPrecedence OperatorPrecedence[] =
     /* TokenMultiplyAssign, */ { 0, 0, 2 }, /* TokenDivideAssign, */ { 0, 0, 2 }, /* TokenModulusAssign, */ { 0, 0, 2 },
     /* TokenShiftLeftAssign, */ { 0, 0, 2 }, /* TokenShiftRightAssign, */ { 0, 0, 2 }, /* TokenArithmeticAndAssign, */ { 0, 0, 2 }, 
     /* TokenArithmeticOrAssign, */ { 0, 0, 2 }, /* TokenArithmeticExorAssign, */ { 0, 0, 2 },
-    /* TokenQuestionMark, */ { 0, 0, 3 },
+    /* TokenQuestionMark, */ { 0, 0, 3 }, /* TokenColon, */ { 0, 0, 0 },
     /* TokenLogicalOr, */ { 0, 0, 4 },
     /* TokenLogicalAnd, */ { 0, 0, 5 },
     /* TokenArithmeticOr, */ { 0, 0, 6 },
@@ -401,7 +401,53 @@ static struct OpPrecedence OperatorPrecedence[] =
 /* parse an expression with operator precedence */
 int ParseExpression(struct ParseState *Parser, struct Value **Result)
 {
+    struct Value *LexValue;
+    bool PrefixState = false;
+    bool Done = false;
+    int BracketPrecedence = 0;
+    int Precedence = 0;
     
+    do
+    {
+        enum LexToken Token = LexGetToken(Parser, &LexValue, TRUE);
+        if ((int)Token <= (int)TokenCloseBracket)
+        { /* it's an operator with precedence */
+            if (PrefixState)
+            { /* expect a prefix operator */
+                if (OperatorPrecedence[(int)Token].PrefixPrecedence == 0)
+                    ProgramFail(Parser, "operator not expected here");
+                
+                if (Parser->Mode == RunModeRun)
+                {
+                    
+                }
+            }
+            else
+            { /* expect an infix or postfix operator */
+                if (OperatorPrecedence[(int)Token].PostfixPrecedence != 0)
+                {
+                }
+                else if (OperatorPrecedence[(int)Token].InfixPrecedence != 0)
+                {
+                    PrefixState = true;
+                }
+                else
+                    ProgramFail(Parser, "operator not expected here");
+            }
+        }
+        else if ((int)Token <= (int)TokenCharacterConstant)
+        { /* it's a value of some sort */
+            if (!PrefixState)
+                ProgramFail(Parser, "value not expected here");
+                
+            PrefixState = false;
+        }
+        else
+        { /* it isn't a token from an expression */
+            Done = true;
+        }
+        
+    } while (!Done);
 }
 #endif
 
