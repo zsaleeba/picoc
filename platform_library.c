@@ -19,7 +19,7 @@ void Random(struct ParseState *Parser, struct Value *ReturnValue, struct Value *
 
 static int SomeVar = 42;
 static int SomeArray[4];
-static int Blobcnt, Blobx1, Blobx2, Bloby1, Bloby2;
+static int Blobcnt, Blobx1, Blobx2, Bloby1, Bloby2, Iy1, Iy2, Iu1, Iu2, Iv1, Iv2;
 void PlatformLibraryInit()
 {
     struct ValueType *IntArrayType;
@@ -31,6 +31,12 @@ void PlatformLibraryInit()
     VariableDefinePlatformVar(NULL, "blobx2", &IntType, (union AnyValue *)&Blobx2, FALSE);
     VariableDefinePlatformVar(NULL, "bloby1", &IntType, (union AnyValue *)&Bloby1, FALSE);
     VariableDefinePlatformVar(NULL, "bloby2", &IntType, (union AnyValue *)&Bloby2, FALSE);
+    VariableDefinePlatformVar(NULL, "y1", &IntType, (union AnyValue *)&Iy1, FALSE);
+    VariableDefinePlatformVar(NULL, "y2", &IntType, (union AnyValue *)&Iy2, FALSE);
+    VariableDefinePlatformVar(NULL, "u1", &IntType, (union AnyValue *)&Iu1, FALSE);
+    VariableDefinePlatformVar(NULL, "u2", &IntType, (union AnyValue *)&Iu2, FALSE);
+    VariableDefinePlatformVar(NULL, "v1", &IntType, (union AnyValue *)&Iv1, FALSE);
+    VariableDefinePlatformVar(NULL, "v2", &IntType, (union AnyValue *)&Iv2, FALSE);
     
     IntArrayType = TypeGetMatching(NULL, &IntType, TypeArray, 4, NULL);
     SomeArray[0] = 12;
@@ -80,10 +86,10 @@ void Cmotors(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
 {
     lspeed = Param[0]->Val->Integer;
     if ((lspeed < -100) || (lspeed > 100))
-        ProgramFail(NULL, "motors():  bad parameter");
+        ProgramFail(NULL, "motors():  left motor value out of range");
     rspeed = Param[1]->Val->Integer;
     if ((rspeed < -100) || (rspeed > 100))
-        ProgramFail(NULL, "motors():  bad parameter");
+        ProgramFail(NULL, "motors():  right motor value out of range");
     if (!pwm1_init) {
         initPWM();
         pwm1_init = 1;
@@ -93,16 +99,16 @@ void Cmotors(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
     setPWM(lspeed, rspeed);
 }
 
-void Cservo(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+void Cservos(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     int lspeed, rspeed;
     
     lspeed = Param[0]->Val->Integer;
     if ((lspeed < 0) || (lspeed > 100))
-        ProgramFail(NULL, "servo():  bad parameter");
+        ProgramFail(NULL, "servos():  TMR2 value out of range");
     rspeed = Param[1]->Val->Integer;
     if ((rspeed < 0) || (rspeed > 100))
-        ProgramFail(NULL, "servo()():  bad parameter");
+        ProgramFail(NULL, "servos()():  TMR3 value out of range");
     if (!pwm1_init) {
         initPPM1();
         pwm1_init = 1;
@@ -111,16 +117,16 @@ void Cservo(struct ParseState *Parser, struct Value *ReturnValue, struct Value *
     setPPM1(lspeed, rspeed);
 }
 
-void Cservo2(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+void Cservos2(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     int lspeed, rspeed;
     
     lspeed = Param[0]->Val->Integer;
     if ((lspeed < 0) || (lspeed > 100))
-        ProgramFail(NULL, "servo2():  bad parameter");
+        ProgramFail(NULL, "servos2():  TMR6 value out of range");
     rspeed = Param[1]->Val->Integer;
     if ((rspeed < 0) || (rspeed > 100))
-        ProgramFail(NULL, "servo2():  bad parameter");
+        ProgramFail(NULL, "servos2():  TMR7 value out of range");
     if (!pwm2_init) {
         initPPM2();
         pwm2_init = 1;
@@ -145,20 +151,24 @@ void Claser(struct ParseState *Parser, struct Value *ReturnValue, struct Value *
     }
 }
 
-extern int sonar_data[];
 void Csonar(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) // read sonar module
 {
     unsigned int i;
     i = Param[0]->Val->Integer;
     if ((i<1) || (i>4)) {
-        ProgramFail(NULL, "sonar():  bad parameter");
+        ProgramFail(NULL, "sonar():  1, 2, 3, 4 are only valid selections");
     }
     ping_sonar();
     ReturnValue->Val->Integer = sonar_data[i] / 100;
 }
 
-void Ccolor(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) // set color bin - 
-                //    color (color, ymin, ymax, umin, umax, vmin, vmax);                  
+void Crange(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = laser_range(0);
+}
+
+void Cvcolor(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) // set color bin - 
+                //    vcolor (color, ymin, ymax, umin, umax, vmin, vmax);                  
 {
     int ix;
     
@@ -171,24 +181,63 @@ void Ccolor(struct ParseState *Parser, struct Value *ReturnValue, struct Value *
     vmax[ix] = Param[6]->Val->Integer;
 }
 
-void Crange(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
-{
-    ReturnValue->Val->Integer = laser_range(0);
-}
-
-void Cimgcap(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+void Cvcap(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     grab_frame();   // capture frame for processing
 }
 
-void Cimgrcap(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+void Cvrcap(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     grab_reference_frame();   // capture reference frame for differencing
 }
 
-void Cimgdiff(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+void Cvdiff(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     frame_diff_flag = Param[0]->Val->Integer;   // set/clear frame_diff_flag
+}
+
+void Cvpix(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int x, y, ix;
+    x = Param[0]->Val->Integer;
+    y = Param[1]->Val->Integer;
+    ix = vpix((unsigned char *)FRAME_BUF, x, y);
+    Iy1 = ((ix>>16) & 0x000000FF);  // Y1
+    Iu1 = ((ix>>24) & 0x000000FF);  // U
+    Iv1 = ((ix>>8)  & 0x000000FF);  // V
+}
+
+void Cvmean(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) 
+{
+    vmean((unsigned char *)FRAME_BUF);
+    Iy1 = mean[0];
+    Iu1 = mean[1];
+    Iv1 = mean[2];
+}
+
+//    search for blob by color, index;  return center point X,Y and width Z
+void Cvblob(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)    {
+    int ix, iblob, numblob;
+
+    ix = Param[0]->Val->Integer;
+    if (ix > MAX_COLORS)
+        ProgramFail(NULL, "blob():  invalid color index");
+    iblob = Param[1]->Val->Integer;
+    if (iblob > MAX_BLOBS)
+        ProgramFail(NULL, "blob():  invalid blob index");
+        
+    numblob = vblob((unsigned char *)FRAME_BUF, (unsigned char *)FRAME_BUF3, ix);
+
+    if (blobcnt[iblob] == 0) {
+        Blobcnt = 0;
+    } else {
+        Blobcnt = blobcnt[iblob];
+        Blobx1 = blobx1[iblob];
+        Blobx2 = blobx2[iblob];
+        Bloby1 = bloby1[iblob];
+        Bloby2 = bloby2[iblob];
+    }
+    ReturnValue->Val->Integer = numblob;
 }
 
 void Ccompass(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // return reading from HMC6352 I2C compass
@@ -235,31 +284,6 @@ void Cwritei2c(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
     i2c_data[1] = (unsigned char)Param[2]->Val->Integer;
     
     i2cwrite(i2c_device, (unsigned char *)i2c_data, 1, SCCB_OFF);
-}
-
-void Cblob(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)    //    search for blob by color, index;  return center point X,Y and width Z
-{
-    int ix, iblob, numblob;
-
-    ix = Param[0]->Val->Integer;
-    if (ix > MAX_COLORS)
-        ProgramFail(NULL, "blob():  bad parameter");
-    iblob = Param[1]->Val->Integer;
-    if (iblob > MAX_BLOBS)
-        ProgramFail(NULL, "blob():  bad parameter");
-        
-    numblob = vblob((unsigned char *)FRAME_BUF, (unsigned char *)FRAME_BUF3, ix);
-
-    if (blobcnt[iblob] == 0) {
-        Blobcnt = 0;
-    } else {
-        Blobcnt = blobcnt[iblob];
-        Blobx1 = blobx1[iblob];
-        Blobx2 = blobx2[iblob];
-        Bloby1 = bloby1[iblob];
-        Bloby2 = bloby2[iblob];
-    }
-    ReturnValue->Val->Integer = numblob;
 }
 
 static int cosine[] = {
@@ -322,6 +346,65 @@ void Ctan(struct ParseState *Parser, struct Value *ReturnValue, struct Value **P
     if (ix < 360)  { ReturnValue->Val->Integer = -(100 * cosine[ix-270]) / cosine[360-ix];  return; }
 }
 
+void Casin(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // asin(y,hyp)
+{
+    int y, hyp, quot, sgn, ix;
+	y = Param[0]->Val->Integer;
+	hyp = Param[1]->Val->Integer;
+    if (y > hyp)
+        ProgramFail(NULL, "asin():  opposite greater than hypotenuse");
+	if (y == 0) {
+        ReturnValue->Val->Integer = 0;
+	    return;
+	}
+	sgn = hyp * y;
+	if (hyp < 0) 
+	    hyp = -hyp;
+	if (y < 0)
+	    y = -y;
+	quot = (y * 10000) / hyp;
+	if (quot > 9999)
+	    quot = 9999;
+	for (ix=0; ix<90; ix++)
+	    if ((quot < cosine[ix]) && (quot >= cosine[ix+1]))
+	        break;
+	if (sgn < 0)
+	    ReturnValue->Val->Integer = -(90-ix);
+	else
+	    ReturnValue->Val->Integer = 90-ix;
+}
+
+void Cacos(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // acos(x,hyp)
+{
+    int x, hyp, quot, sgn, ix;
+	x = Param[0]->Val->Integer;
+	hyp = Param[1]->Val->Integer;
+    if (x > hyp)
+        ProgramFail(NULL, "acos():  adjacent greater than hypotenuse");
+	if (x == 0) {
+	    if (hyp < 0)
+            ReturnValue->Val->Integer = -90;
+        else
+            ReturnValue->Val->Integer = 90;
+	    return;
+	}
+	sgn = hyp * x;
+	if (hyp < 0) 
+	    hyp = -hyp;
+	if (x < 0)
+	    x = -x;
+	quot = (x * 10000) / hyp;
+	if (quot > 9999)
+	    quot = 9999;
+	for (ix=0; ix<90; ix++)
+	    if ((quot < cosine[ix]) && (quot >= cosine[ix+1]))
+	        break;
+	if (sgn < 0)
+	    ReturnValue->Val->Integer = -ix;
+	else
+	    ReturnValue->Val->Integer = ix;
+}
+
 void Catan(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // atan(y,x)
 {
     int x,y, angle, coeff_1, coeff_2, r;
@@ -363,16 +446,18 @@ struct LibraryFunction PlatformLibrary[] =
     { Crand,        "int rand(int)" },
     { Ctime,        "int time()" },
     { Cmotors,      "void motors(int, int)" },
-    { Cservo,       "void servo(int, int)" },
-    { Cservo2,      "void servo2(int, int)" },
+    { Cservos,      "void servos(int, int)" },
+    { Cservos2,     "void servos2(int, int)" },
     { Claser,       "void laser(int)" },
     { Csonar,       "void sonar(int)" },
     { Crange,       "int range()" },
-    { Ccolor,       "void color(int, int, int, int, int, int, int)" },
-    { Cblob,         "int blob(int, int)" },
-    { Cimgcap,      "void imgcap()" },
-    { Cimgrcap,     "void imgrcap()" },
-    { Cimgdiff,     "void imgdiff(int)" },
+    { Cvcolor,      "void vcolor(int, int, int, int, int, int, int)" },
+    { Cvcap,        "void vcap()" },
+    { Cvrcap,       "void vrcap()" },
+    { Cvdiff,       "void vdiff(int)" },
+    { Cvpix,        "void vpix(int, int)" },
+    { Cvmean,       "void vmean()" },
+    { Cvblob,       "int vblob(int, int)" },
     { Ccompass,     "int compass(int)" },
     { Creadi2c,     "int readi2c(int, int)" },
     { Creadi2c2,    "int readi2c2(int, int)" },
@@ -380,6 +465,8 @@ struct LibraryFunction PlatformLibrary[] =
     { Csin,         "int sin(int)" },
     { Ccos,         "int cos(int)" },
     { Ctan,         "int tan(int)" },
+    { Casin,        "int asin(int, int)" },
+    { Cacos,        "int acos(int, int)" },
     { Catan,        "int atan(int, int)" },
     { NULL,         NULL }
 };
