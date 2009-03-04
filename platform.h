@@ -48,6 +48,7 @@
 #   include "../srv.h"
 #   include "../setjmp.h"
 #   include "../stdarg.h"
+#   include "../cosine.h"
 #   define assert(x)
 #  endif
 # endif
