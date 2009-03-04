@@ -48,7 +48,9 @@
 #   include "../srv.h"
 #   include "../setjmp.h"
 #   include "../stdarg.h"
-#   include "../cosine.h"
+#   include "../colors.h"
+#   include "../neural.h"
+#   include "../i2c.h"
 #   define assert(x)
 #  endif
 # endif
