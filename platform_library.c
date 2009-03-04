@@ -41,31 +41,6 @@ void PlatformLibraryInit()
 }
 
 #ifdef SURVEYOR_HOST
-extern unsigned int vblob(unsigned char *, unsigned char *, unsigned int);
-extern unsigned int vpix(unsigned char *, unsigned int, unsigned int);
-extern void init_colors();
-extern void vhist(unsigned char *);
-
-extern void vmean(unsigned char *);
-
-extern void color_segment(unsigned char *);
-
-extern void edge_detect(unsigned char *, unsigned char *, int);
-
-extern void i2cwrite(unsigned char, unsigned char *, unsigned int, int);
-extern void i2cread(unsigned char, unsigned char *, unsigned int, int);
-
-extern int pwm1_mode, pwm2_mode, pwm1_init, pwm2_init;
-extern int lspeed, rspeed, lspeed2, rspeed2, base_speed;
-extern int sonar_data[];
-extern int imgWidth, imgHeight, frame_diff_flag;
-
-extern unsigned int ymax[], ymin[], umax[], umin[], vmax[], vmin[];
-
-extern unsigned int blobx1[], blobx2[], bloby1[], bloby2[], blobcnt[], blobix[];
-
-extern unsigned int hist0[], hist1[], hist2[], mean[];
-
 
 void Csignal(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // check for kbhit, return t or nil
 {
@@ -105,10 +80,10 @@ void Cmotors(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
 {
     lspeed = Param[0]->Val->Integer;
     if ((lspeed < -100) || (lspeed > 100))
-        return;
+        ProgramFail(NULL, "motors():  bad parameter");
     rspeed = Param[1]->Val->Integer;
     if ((rspeed < -100) || (rspeed > 100))
-        return;
+        ProgramFail(NULL, "motors():  bad parameter");
     if (!pwm1_init) {
         initPWM();
         pwm1_init = 1;
@@ -124,10 +99,10 @@ void Cservo(struct ParseState *Parser, struct Value *ReturnValue, struct Value *
     
     lspeed = Param[0]->Val->Integer;
     if ((lspeed < 0) || (lspeed > 100))
-        return;
+        ProgramFail(NULL, "servo():  bad parameter");
     rspeed = Param[1]->Val->Integer;
     if ((rspeed < 0) || (rspeed > 100))
-        return;
+        ProgramFail(NULL, "servo()():  bad parameter");
     if (!pwm1_init) {
         initPPM1();
         pwm1_init = 1;
@@ -142,10 +117,10 @@ void Cservo2(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
     
     lspeed = Param[0]->Val->Integer;
     if ((lspeed < 0) || (lspeed > 100))
-        return;
+        ProgramFail(NULL, "servo2():  bad parameter");
     rspeed = Param[1]->Val->Integer;
     if ((rspeed < 0) || (rspeed > 100))
-        return;
+        ProgramFail(NULL, "servo2():  bad parameter");
     if (!pwm2_init) {
         initPPM2();
         pwm2_init = 1;
@@ -156,10 +131,18 @@ void Cservo2(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
 
 void Claser(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)    // laser(1) turns them on, laser(0) turns them off
 {
-    if (Param[0]->Val->Integer)
-        lasers_on();
-    else
-        lasers_off();
+    *pPORTHIO &= 0xFD7F;  // turn off both lasers
+    switch (Param[0]->Val->Integer) {
+        case 1:
+            *pPORTHIO |= 0x0080;  // turn on left laser
+            break;
+        case 2:
+            *pPORTHIO |= 0x0200;  // turn on right laser
+            break;
+        case 3:
+            *pPORTHIO |= 0x0280;  // turn on both lasers
+            break;
+    }
 }
 
 extern int sonar_data[];
@@ -168,8 +151,7 @@ void Csonar(struct ParseState *Parser, struct Value *ReturnValue, struct Value *
     unsigned int i;
     i = Param[0]->Val->Integer;
     if ((i<1) || (i>4)) {
-        ReturnValue->Val->Integer = 0;
-        return;
+        ProgramFail(NULL, "sonar():  bad parameter");
     }
     ping_sonar();
     ReturnValue->Val->Integer = sonar_data[i] / 100;
@@ -260,7 +242,11 @@ void Cblob(struct ParseState *Parser, struct Value *ReturnValue, struct Value **
     int ix, iblob, numblob;
 
     ix = Param[0]->Val->Integer;
+    if (ix > MAX_COLORS)
+        ProgramFail(NULL, "blob():  bad parameter");
     iblob = Param[1]->Val->Integer;
+    if (iblob > MAX_BLOBS)
+        ProgramFail(NULL, "blob():  bad parameter");
         
     numblob = vblob((unsigned char *)FRAME_BUF, (unsigned char *)FRAME_BUF3, ix);
 
@@ -275,6 +261,96 @@ void Cblob(struct ParseState *Parser, struct Value *ReturnValue, struct Value **
     }
     ReturnValue->Val->Integer = numblob;
 }
+
+static int cosine[] = {
+10000, 9998, 9994, 9986, 9976, 9962, 9945, 9925, 9903, 9877, 
+ 9848, 9816, 9781, 9744, 9703, 9659, 9613, 9563, 9511, 9455, 
+ 9397, 9336, 9272, 9205, 9135, 9063, 8988, 8910, 8829, 8746, 
+ 8660, 8572, 8480, 8387, 8290, 8192, 8090, 7986, 7880, 7771, 
+ 7660, 7547, 7431, 7314, 7193, 7071, 6947, 6820, 6691, 6561, 
+ 6428, 6293, 6157, 6018, 5878, 5736, 5592, 5446, 5299, 5150, 
+ 5000, 4848, 4695, 4540, 4384, 4226, 4067, 3907, 3746, 3584, 
+ 3420, 3256, 3090, 2924, 2756, 2588, 2419, 2250, 2079, 1908, 
+ 1736, 1564, 1392, 1219, 1045,  872,  698,  523,  349,  175, 
+    0 
+};
+
+void Csin(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // sin(angle)
+{
+    int ix;
+    
+    ix = Param[0]->Val->Integer;  // input to function is angle in degrees
+    while (ix < 0)
+        ix = ix + 360;
+    while (ix >= 360)
+        ix = ix - 360;
+    if (ix < 90)  { ReturnValue->Val->Integer = cosine[90-ix] / 100;  return; }
+    if (ix < 180) { ReturnValue->Val->Integer = cosine[ix-90] / 100;  return; }
+    if (ix < 270) { ReturnValue->Val->Integer = -cosine[270-ix] / 100;  return; }
+    if (ix < 360) { ReturnValue->Val->Integer = -cosine[ix-270] / 100;  return; }
+}
+
+void Ccos(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // cos(angle)
+{
+    int ix;
+    
+    ix = Param[0]->Val->Integer;  // input to function is angle in degrees
+    while (ix < 0)
+        ix = ix + 360;
+    while (ix >= 360)
+        ix = ix - 360;
+    if (ix < 90)  { ReturnValue->Val->Integer = cosine[ix] / 100;  return; }
+    if (ix < 180) { ReturnValue->Val->Integer = -cosine[180-ix] / 100;  return; }
+    if (ix < 270) { ReturnValue->Val->Integer = -cosine[ix-180] / 100;  return; }
+    if (ix < 360) { ReturnValue->Val->Integer = cosine[360-ix] / 100;  return; }
+}
+
+void Ctan(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // tan(angle)
+{
+    int ix;
+    
+    ix = Param[0]->Val->Integer;  // input to function is angle in degrees
+    while (ix < 0)
+        ix = ix + 360;
+    while (ix >= 360)
+        ix = ix - 360;
+    if (ix == 90)  { ReturnValue->Val->Integer = 9999;  return; }
+    if (ix == 270) { ReturnValue->Val->Integer = -9999;  return; }
+    if (ix < 90)   { ReturnValue->Val->Integer = (100 * cosine[90-ix]) / cosine[ix];  return; }
+    if (ix < 180)  { ReturnValue->Val->Integer = -(100 * cosine[ix-90]) / cosine[180-ix];  return; }
+    if (ix < 270)  { ReturnValue->Val->Integer = (100 * cosine[270-ix]) / cosine[ix-180];  return; }
+    if (ix < 360)  { ReturnValue->Val->Integer = -(100 * cosine[ix-270]) / cosine[360-ix];  return; }
+}
+
+void Catan(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // atan(y,x)
+{
+    int x,y, angle, coeff_1, coeff_2, r;
+	y = Param[0]->Val->Integer;
+	x = Param[1]->Val->Integer;
+	if (x == 0) {
+	    if (y >= 0)
+	        ReturnValue->Val->Integer = 90;
+	    else
+	        ReturnValue->Val->Integer = -90;
+	    return;
+	}
+	coeff_1 = 3141/4;
+	coeff_2 = coeff_1*3;
+    if (y < 0)
+        y = -y;
+	if (x >= 0) {
+		r = (x - y)*1000 / (x + y);
+		angle = (coeff_1*1000 - coeff_1 * r);
+	} else {
+		r = (x + y)*1000 / (y - x);
+		angle = (coeff_2*1000 - coeff_1 * r);
+	}
+	angle = angle*57/1000000;
+	if (y < 0)
+	    ReturnValue->Val->Integer = -angle;
+	else
+	    ReturnValue->Val->Integer = angle;
+} 
 
 /* list of all library functions and their prototypes */
 struct LibraryFunction PlatformLibrary[] =
@@ -301,6 +377,10 @@ struct LibraryFunction PlatformLibrary[] =
     { Creadi2c,     "int readi2c(int, int)" },
     { Creadi2c2,    "int readi2c2(int, int)" },
     { Cwritei2c,    "void writei2c(int, int, int)" },
+    { Csin,         "int sin(int)" },
+    { Ccos,         "int cos(int)" },
+    { Ctan,         "int tan(int)" },
+    { Catan,        "int atan(int, int)" },
     { NULL,         NULL }
 };
 #endif
