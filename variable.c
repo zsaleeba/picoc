@@ -139,7 +139,8 @@ void VariableDefinePlatformVar(struct ParseState *Parser, char *Ident, struct Va
         SomeValue->Val->Array.Data = FromValue;
     }
     
-    VariableDefine(Parser, TableStrRegister(Ident), SomeValue);
+    if (!TableSet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, TableStrRegister(Ident), SomeValue))
+        ProgramFail(Parser, "'%s' is already defined", Ident);
 }
 
 /* free and/or pop the top value off the stack. Var must be the top value on the stack! */
