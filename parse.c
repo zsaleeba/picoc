@@ -382,7 +382,7 @@ static struct OpPrecedence OperatorPrecedence[] =
     /* TokenMultiplyAssign, */ { 0, 0, 2 }, /* TokenDivideAssign, */ { 0, 0, 2 }, /* TokenModulusAssign, */ { 0, 0, 2 },
     /* TokenShiftLeftAssign, */ { 0, 0, 2 }, /* TokenShiftRightAssign, */ { 0, 0, 2 }, /* TokenArithmeticAndAssign, */ { 0, 0, 2 }, 
     /* TokenArithmeticOrAssign, */ { 0, 0, 2 }, /* TokenArithmeticExorAssign, */ { 0, 0, 2 },
-    /* TokenQuestionMark, */ { 0, 0, 3 }, /* TokenColon, */ { 0, 0, 0 },
+    /* TokenQuestionMark, */ { 0, 0, 3 }, /* TokenColon, */ { 0, 0, 3 },
     /* TokenLogicalOr, */ { 0, 0, 4 },
     /* TokenLogicalAnd, */ { 0, 0, 5 },
     /* TokenArithmeticOr, */ { 0, 0, 6 },
@@ -394,8 +394,8 @@ static struct OpPrecedence OperatorPrecedence[] =
     /* TokenPlus, */ { 14, 0, 12 }, /* TokenMinus, */ { 14, 0, 12 },
     /* TokenAsterisk, */ { 14, 0, 13 }, /* TokenSlash, */ { 0, 0, 13 }, /* TokenModulus, */ { 0, 0, 13 },
     /* TokenIncrement, */ { 14, 15, 0 }, /* TokenDecrement, */ { 14, 15, 0 }, /* TokenUnaryNot, */ { 14, 0, 0 }, /* TokenUnaryExor, */ { 14, 0, 0 }, /* TokenSizeof, */ { 14, 0, 0 },
-    /* TokenLeftSquareBracket, */ { 15, 0, 0 }, /* TokenRightSquareBracket, */ { 0, 0, 0 }, /* TokenDot, */ { 0, 0, 15 }, /* TokenArrow, */ { 0, 0, 15 },
-    /* TokenOpenBracket, */ { 15, 0, 0 }, /* TokenCloseBracket, */ { 0, 0, 0 }
+    /* TokenLeftSquareBracket, */ { 15, 0, 0 }, /* TokenRightSquareBracket, */ { 0, 15, 0 }, /* TokenDot, */ { 0, 0, 15 }, /* TokenArrow, */ { 0, 0, 15 },
+    /* TokenOpenBracket, */ { 15, 0, 0 }, /* TokenCloseBracket, */ { 0, 15, 0 }
 };
 
 /* parse an expression with operator precedence */
@@ -418,17 +418,56 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result)
                     ProgramFail(Parser, "operator not expected here");
                 
                 if (Parser->Mode == RunModeRun)
-                {
-                    
+                {   
+                    if (Token == TokenOpenBracket || Token == TokenLeftSquareBracket)
+                    {
+                        /* boost the bracket operator precedence */
+                        BracketPrecedence += BRACKET_PREDECENCE;
+                        /* push the operator */
+                    }
+                    else
+                    {
+                        /* scan and collapse the stack to the precedence of this operator */
+                        /* push the operator */
+                    }
                 }
             }
             else
             { /* expect an infix or postfix operator */
                 if (OperatorPrecedence[(int)Token].PostfixPrecedence != 0)
                 {
+                    switch (Token)
+                    {
+                        case TokenCloseBracket:
+                            if (BracketPrecedence == 0)
+                            { /* assume this bracket is after the end of the expression */
+                                /* scan and collapse the stack to precedence 0 */
+                                Done = true;
+                            }
+                            else
+                                BracketPrecedence -= BRACKET_PRECEDENCE;
+                            break;
+                    
+                        case TokenRightSquareBracket:
+                            if (BracketPrecedence == 0)
+                                ProgramFail(Parser, "no matching open square bracket");
+
+                            /* scan and collapse the stack to bracket precedence */
+                            BracketPrecedence -= BRACKET_PRECEDENCE;
+                            
+                            /* apply the array index operator */
+                            break;
+
+                        default:
+                            /* scan and collapse the stack to the precedence of this operator */
+                            /* push the operator */
+                            break;
+                    }
                 }
                 else if (OperatorPrecedence[(int)Token].InfixPrecedence != 0)
                 {
+                    /* scan and collapse the stack to the precedence of this operator */
+                    /* push the operator */
                     PrefixState = true;
                 }
                 else
@@ -441,9 +480,14 @@ int ParseExpression(struct ParseState *Parser, struct Value **Result)
                 ProgramFail(Parser, "value not expected here");
                 
             PrefixState = false;
+            if (Parser->Mode == RunModeRun)
+            {
+                /* push the value */
+            }
         }
         else
         { /* it isn't a token from an expression */
+            /* scan and collapse the stack to precedence 0 */
             Done = true;
         }
         
