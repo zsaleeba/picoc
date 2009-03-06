@@ -1,26 +1,26 @@
 TODO
 
-* assignment on declaration
-* pointers to array elements and struct elements
+* #define
 * operator precedence
-* test character array pointers and dereferencing
-* '->'
-* make printf() honour memory constraints
 * interactive mode
+* '->'
+* pointer arithmetic
 * casts
 * enum
-* pointer arithmetic
+* fix #include
+
+* pointers to array elements and struct elements
+* test character array pointers and dereferencing
+* make printf() honour memory constraints
 * fix type comparison to take into account array size
 * fix return of array types
 * expression and auto-cast support for all types
 * change heap to use a single consistent freelist node struct
 * periodic heap cleanup
 * octal/hex character constants
-* fix #include
 
 Need test/debug:
 * all break/continue variations
-* #define
 
 Also:
 * Remove Var parameter from HeapPopStack() once we're certain it all works
