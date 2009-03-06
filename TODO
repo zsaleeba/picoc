@@ -1,6 +1,6 @@
 TODO
 
-* change character constants to have a leading array length
+* assignment on declaration
 * pointers to array elements and struct elements
 * operator precedence
 * test character array pointers and dereferencing
@@ -17,7 +17,6 @@ TODO
 * periodic heap cleanup
 * octal/hex character constants
 * fix #include
-* assignment on declaration
 
 Need test/debug:
 * all break/continue variations

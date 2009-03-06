@@ -673,6 +673,43 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
     return FuncValue;
 }
 
+/* declare a variable or function */
+void ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
+{
+    char *Identifier;
+    struct ValueType *Typ;
+    struct Value *CValue;
+
+    TypeParse(Parser, &Typ, &Identifier);
+    if (Token == TokenVoidType && Identifier != StrEmpty)
+        ProgramFail(Parser, "can't define a void variable");
+        
+    if ((Token != TokenVoidType && Token != TokenStructType && Token != TokenUnionType) && Identifier == StrEmpty)
+        ProgramFail(Parser, "identifier expected");
+        
+    if (Identifier != StrEmpty)
+    {
+        /* handle function definitions */
+        if (LexGetToken(Parser, NULL, FALSE) == TokenOpenBracket)
+            ParseFunctionDefinition(Parser, Typ, Identifier, FALSE);
+        else
+        {
+            if (LexGetToken(Parser, NULL, FALSE) != TokenAssign)
+                VariableDefine(Parser, Identifier, VariableAllocValueFromType(Parser, Typ, TRUE, NULL));
+            else
+            { /* we're assigning an initial value */
+                LexGetToken(Parser, NULL, TRUE);
+                if (!ParseExpression(Parser, &CValue))
+                    ProgramFail(Parser, "expression expected");
+                    
+                VariableDefine(Parser, Identifier, CValue);
+                if (Parser->Mode == RunModeRun)
+                    VariableStackPop(Parser, CValue);
+            }
+        }
+    }
+}
+
 /* parse a #define macro definition and store it for later */
 void ParseMacroDefinition(struct ParseState *Parser)
 {
@@ -806,8 +843,6 @@ int ParseStatement(struct ParseState *Parser)
     struct Value *CValue;
     int Condition;
     struct ParseState PreState = *Parser;
-    char *Identifier;
-    struct ValueType *Typ;
     enum LexToken Token = LexGetToken(Parser, NULL, TRUE);
     
     switch (Token)
@@ -902,21 +937,7 @@ int ParseStatement(struct ParseState *Parser)
         case TokenStructType:
         case TokenUnionType:
             *Parser = PreState;
-            TypeParse(Parser, &Typ, &Identifier);
-            if (Token == TokenVoidType && Identifier != StrEmpty)
-                ProgramFail(Parser, "can't define a void variable");
-                
-            if ((Token != TokenVoidType && Token != TokenStructType && Token != TokenUnionType) && Identifier == StrEmpty)
-                ProgramFail(Parser, "identifier expected");
-                
-            if (Identifier != StrEmpty)
-            {
-                /* handle function definitions */
-                if (LexGetToken(Parser, NULL, FALSE) == TokenOpenBracket)
-                    ParseFunctionDefinition(Parser, Typ, Identifier, FALSE);
-                else
-                    VariableDefine(Parser, Identifier, VariableAllocValueFromType(Parser, Typ, TRUE, NULL));
-            }
+            ParseDeclaration(Parser, Token);
             break;
         
         case TokenHashDefine:

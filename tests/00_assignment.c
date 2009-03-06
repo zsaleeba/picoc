@@ -1,3 +1,7 @@
 int a;
 a = 42;
-printint(a);
+printf("%d\n", a);
+
+int b = 64;
+printf("%d\n", b);
+
