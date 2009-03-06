@@ -270,6 +270,8 @@ void TypeInit();
 int TypeSize(struct ValueType *Typ, int ArraySize);
 int TypeSizeValue(struct Value *Val);
 int TypeStackSizeValue(struct Value *Val);
+int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ);
+void TypeParseIdentPart(struct ParseState *Parser, struct ValueType *BasicTyp, struct ValueType **Typ, char **Identifier);
 void TypeParse(struct ParseState *Parser, struct ValueType **Typ, char **Identifier);
 struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *ParentType, enum BaseType Base, int ArraySize, const char *Identifier);
 

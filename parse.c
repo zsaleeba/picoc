@@ -677,37 +677,47 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
 void ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
 {
     char *Identifier;
+    struct ValueType *BasicType;
     struct ValueType *Typ;
     struct Value *CValue;
 
-    TypeParse(Parser, &Typ, &Identifier);
-    if (Token == TokenVoidType && Identifier != StrEmpty)
-        ProgramFail(Parser, "can't define a void variable");
-        
-    if ((Token != TokenVoidType && Token != TokenStructType && Token != TokenUnionType) && Identifier == StrEmpty)
-        ProgramFail(Parser, "identifier expected");
-        
-    if (Identifier != StrEmpty)
+    TypeParseFront(Parser, &BasicType);
+    do
     {
-        /* handle function definitions */
-        if (LexGetToken(Parser, NULL, FALSE) == TokenOpenBracket)
-            ParseFunctionDefinition(Parser, Typ, Identifier, FALSE);
-        else
+        TypeParseIdentPart(Parser, BasicType, &Typ, &Identifier);
+        if (Token == TokenVoidType && Identifier != StrEmpty)
+            ProgramFail(Parser, "can't define a void variable");
+            
+        if ((Token != TokenVoidType && Token != TokenStructType && Token != TokenUnionType) && Identifier == StrEmpty)
+            ProgramFail(Parser, "identifier expected");
+            
+        if (Identifier != StrEmpty)
         {
-            if (LexGetToken(Parser, NULL, FALSE) != TokenAssign)
-                VariableDefine(Parser, Identifier, VariableAllocValueFromType(Parser, Typ, TRUE, NULL));
+            /* handle function definitions */
+            if (LexGetToken(Parser, NULL, FALSE) == TokenOpenBracket)
+                ParseFunctionDefinition(Parser, Typ, Identifier, FALSE);
             else
-            { /* we're assigning an initial value */
-                LexGetToken(Parser, NULL, TRUE);
-                if (!ParseExpression(Parser, &CValue))
-                    ProgramFail(Parser, "expression expected");
-                    
-                VariableDefine(Parser, Identifier, CValue);
-                if (Parser->Mode == RunModeRun)
-                    VariableStackPop(Parser, CValue);
+            {
+                if (LexGetToken(Parser, NULL, FALSE) != TokenAssign)
+                    VariableDefine(Parser, Identifier, VariableAllocValueFromType(Parser, Typ, TRUE, NULL));
+                else
+                { /* we're assigning an initial value */
+                    LexGetToken(Parser, NULL, TRUE);
+                    if (!ParseExpression(Parser, &CValue))
+                        ProgramFail(Parser, "expression expected");
+                        
+                    VariableDefine(Parser, Identifier, CValue);
+                    if (Parser->Mode == RunModeRun)
+                        VariableStackPop(Parser, CValue);
+                }
             }
         }
-    }
+        
+        Token = LexGetToken(Parser, NULL, FALSE);
+        if (Token == TokenComma)
+            LexGetToken(Parser, NULL, TRUE);
+            
+    } while (Token == TokenComma);
 }
 
 /* parse a #define macro definition and store it for later */

@@ -175,14 +175,43 @@ void TypeParseStruct(struct ParseState *Parser, struct ValueType **Typ, int IsSt
     LexGetToken(Parser, NULL, TRUE);
 }
 
-/* parse a type */
-void TypeParse(struct ParseState *Parser, struct ValueType **Typ, char **Identifier)
+/* parse a type - just the basic type */
+int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ)
+{
+    struct ParseState Before = *Parser;
+    enum LexToken Token = LexGetToken(Parser, NULL, TRUE);
+    *Typ = NULL;
+
+    switch (Token)
+    {
+        case TokenIntType: case TokenLongType: case TokenShortType: *Typ = &IntType; break;
+        case TokenCharType: *Typ = &CharType; break;
+#ifndef NO_FP
+        case TokenFloatType: case TokenDoubleType: *Typ = &FPType; break;
+#endif
+        case TokenVoidType: *Typ = &VoidType; break;
+        
+        case TokenStructType: case TokenUnionType: 
+            if (*Typ != NULL)
+                ProgramFail(Parser, "bad type declaration");
+                
+            TypeParseStruct(Parser, Typ, Token == TokenStructType);
+            break;
+
+        default: *Parser = Before; return FALSE;
+    }
+    
+    return TRUE;
+}
+
+/* parse a type - the part which is repeated with each identifier in a declaration list */
+void TypeParseIdentPart(struct ParseState *Parser, struct ValueType *BasicTyp, struct ValueType **Typ, char **Identifier)
 {
     struct ParseState Before;
     enum LexToken Token;
     struct Value *LexValue;
     int Done = FALSE;
-    *Typ = NULL;
+    *Typ = BasicTyp;
     *Identifier = StrEmpty;
     
     while (!Done)
@@ -191,20 +220,6 @@ void TypeParse(struct ParseState *Parser, struct ValueType **Typ, char **Identif
         Token = LexGetToken(Parser, &LexValue, TRUE);
         switch (Token)
         {
-            case TokenIntType: case TokenLongType: case TokenShortType: *Typ = &IntType; break;
-            case TokenCharType: *Typ = &CharType; break;
-#ifndef NO_FP
-            case TokenFloatType: case TokenDoubleType: *Typ = &FPType; break;
-#endif
-            case TokenVoidType: *Typ = &VoidType; break;
-            
-            case TokenStructType: case TokenUnionType: 
-                if (*Typ != NULL)
-                    ProgramFail(Parser, "bad type declaration");
-                    
-                TypeParseStruct(Parser, Typ, Token == TokenStructType);
-                break;
-
             case TokenOpenBracket:
                 if (*Typ != NULL)
                     ProgramFail(Parser, "bad type declaration");
@@ -266,3 +281,13 @@ void TypeParse(struct ParseState *Parser, struct ValueType **Typ, char **Identif
         }
     }    
 }
+
+/* parse a type - a complete declaration including identifier */
+void TypeParse(struct ParseState *Parser, struct ValueType **Typ, char **Identifier)
+{
+    struct ValueType *BasicType;
+    
+    TypeParseFront(Parser, &BasicType);
+    TypeParseIdentPart(Parser, BasicType, Typ, Identifier);
+}
+
