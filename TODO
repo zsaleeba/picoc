@@ -1,6 +1,6 @@
 TODO
 
-* #define
+Implement:
 * operator precedence
 * interactive mode
 * '->'
@@ -9,6 +9,8 @@ TODO
 * enum
 * fix #include
 
+Improvements:
+* #define with arguments
 * pointers to array elements and struct elements
 * test character array pointers and dereferencing
 * make printf() honour memory constraints
