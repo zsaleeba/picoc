@@ -8,7 +8,8 @@ TESTS=	00_assignment.test \
 	07_function.test \
 	08_while.test \
 	09_do_while.test \
-	10_pointer.test
+	10_pointer.test \
+	12_hashdefine.test
 
 %.test: %.expect %.c
 	@echo Test: $*...

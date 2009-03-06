@@ -474,3 +474,21 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
     return Token;
 }
 
+/* substitute an end of line token for another in the token stream (once only) */
+void LexSubstituteEndOfLine(struct ParseState *Parser, enum LexToken ToToken)
+{
+    enum LexToken Token;
+    do
+    {
+        Token = (enum LexToken)*(unsigned char *)Parser->Pos;
+        if (Token == TokenEndOfLine)
+        {
+            *(unsigned char *)Parser->Pos = (unsigned char )ToToken;
+            Parser->Pos++;
+            Parser->Line++;
+        }
+        else
+            LexGetToken(Parser, NULL, TRUE);
+            
+    } while (Token != TokenEndOfLine && Token != TokenEOF);
+}

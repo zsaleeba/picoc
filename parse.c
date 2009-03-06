@@ -85,10 +85,10 @@ int ParseValue(struct ParseState *Parser, struct Value **Result)
                     VariableGet(Parser, LexValue->Val->Identifier, &LocalLValue);
                     if (LocalLValue->Typ->Base == TypeMacro)
                     {
-                        struct ParseState MacroLexer = LocalLValue->Val->Parser;
+                        struct ParseState MacroParser = LocalLValue->Val->Parser;
                         
-                        if (!ParseExpression(&MacroLexer, Result))
-                            ProgramFail(&MacroLexer, "expression expected");
+                        if (!ParseExpression(&MacroParser, Result) || LexGetToken(&MacroParser, NULL, FALSE) != TokenEOF)
+                            ProgramFail(&MacroParser, "expression expected");
                     }
                     else if (LocalLValue->Typ == TypeVoid)
                         ProgramFail(Parser, "a void value isn't much use here");
@@ -731,6 +731,7 @@ void ParseMacroDefinition(struct ParseState *Parser)
     
     MacroValue->Val->Parser = *Parser;
     MacroValue->Typ = &MacroType;
+    LexSubstituteEndOfLine(Parser, TokenEOF);
     
     if (!TableSet(&GlobalTable, MacroName->Val->Identifier, MacroValue))
         ProgramFail(Parser, "'%s' is already defined", &MacroName->Val->Identifier);
