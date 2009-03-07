@@ -612,6 +612,7 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
     enum LexToken Token;
     struct Value *FuncValue;
     struct ParseState ParamParser;
+    struct ParseState FuncBody;
     int ParamCount = 0;
 
     LexGetToken(Parser, NULL, TRUE);  /* open bracket */
@@ -636,7 +637,6 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
     FuncValue->Val->FuncDef.VarArgs = FALSE;
     FuncValue->Val->FuncDef.ParamType = (void *)FuncValue->Val + sizeof(struct FuncDef);
     FuncValue->Val->FuncDef.ParamName = (void *)FuncValue->Val->FuncDef.ParamType + sizeof(struct ValueType *) * ParamCount;
-    FuncValue->Val->FuncDef.Body = *Parser;
    
     for (ParamCount = 0; ParamCount < FuncValue->Val->FuncDef.NumParams; ParamCount++)
     { /* harvest the parameters into the function definition */
@@ -663,8 +663,12 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
         if (LexGetToken(Parser, NULL, FALSE) != TokenLeftBrace)
             ProgramFail(Parser, "bad function definition");
         
+        FuncBody = *Parser;
         if (!ParseStatementMaybeRun(Parser, FALSE))
             ProgramFail(Parser, "function definition expected");
+
+        FuncValue->Val->FuncDef.Body = FuncBody;
+        FuncValue->Val->FuncDef.Body.Pos = LexCopyTokens(&FuncBody, Parser);
     }
         
     if (!TableSet(&GlobalTable, Identifier, FuncValue))
@@ -731,7 +735,8 @@ void ParseMacroDefinition(struct ParseState *Parser)
     
     MacroValue->Val->Parser = *Parser;
     MacroValue->Typ = &MacroType;
-    LexSubstituteEndOfLine(Parser, TokenEOF);
+    LexToEndOfLine(Parser);
+    MacroValue->Val->Parser.Pos = LexCopyTokens(&MacroValue->Val->Parser, Parser);
     
     if (!TableSet(&GlobalTable, MacroName->Val->Identifier, MacroValue))
         ProgramFail(Parser, "'%s' is already defined", &MacroName->Val->Identifier);

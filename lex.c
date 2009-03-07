@@ -474,21 +474,37 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
     return Token;
 }
 
-/* substitute an end of line token for another in the token stream (once only) */
-void LexSubstituteEndOfLine(struct ParseState *Parser, enum LexToken ToToken)
+/* find the end of the line */
+void LexToEndOfLine(struct ParseState *Parser)
 {
-    enum LexToken Token;
-    do
+    while (TRUE)
     {
-        Token = (enum LexToken)*(unsigned char *)Parser->Pos;
-        if (Token == TokenEndOfLine)
-        {
-            *(unsigned char *)Parser->Pos = (unsigned char )ToToken;
-            Parser->Pos++;
-            Parser->Line++;
-        }
+        enum LexToken Token = (enum LexToken)*(unsigned char *)Parser->Pos;
+        if (Token == TokenEndOfLine || Token == TokenEOF)
+            return;
         else
             LexGetToken(Parser, NULL, TRUE);
-            
-    } while (Token != TokenEndOfLine && Token != TokenEOF);
+    }
+}
+
+/* copy the tokens from StartParser to EndParser into new memory and terminate with a TokenEOF */
+void *LexCopyTokens(struct ParseState *StartParser, struct ParseState *EndParser)
+{
+    int MemSize = 0;
+    unsigned char *Pos = (unsigned char *)StartParser->Pos;
+    unsigned char *NewTokens;
+    enum LexToken Token;
+    
+    while ( (Token = (enum LexToken)*Pos) != TokenEOF && (void *)Pos != EndParser->Pos)
+    { /* count up how much memory we need */
+        int ValueSize = LexTokenSize(Token);
+        Pos += ValueSize + 1;
+        MemSize += ValueSize + 1;
+    }
+    
+    assert((void *)Pos == EndParser->Pos);
+    NewTokens = VariableAlloc(StartParser, MemSize + 1, TRUE);
+    memcpy(NewTokens, StartParser->Pos, MemSize);
+    NewTokens[MemSize] = (unsigned char)TokenEOF;
+    return NewTokens;
 }

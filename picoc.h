@@ -257,7 +257,8 @@ void LexInit(void);
 void *LexAnalyse(const char *FileName, const char *Source, int SourceLen);
 void LexInitParser(struct ParseState *Parser, void *TokenSource, const char *FileName, int Line, int RunIt);
 enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int IncPos);
-void LexSubstituteEndOfLine(struct ParseState *Parser, enum LexToken ToToken);
+void LexToEndOfLine(struct ParseState *Parser);
+void *LexCopyTokens(struct ParseState *StartParser, struct ParseState *EndParser);
 
 /* parse.c */
 int ParseExpression(struct ParseState *Parser, struct Value **Result);
