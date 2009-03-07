@@ -20,6 +20,7 @@
 #define MEM_ALIGN(x) (((x) + ARCH_ALIGN_WORDSIZE - 1) & ~(ARCH_ALIGN_WORDSIZE-1))
 
 #define LOG10E 0.43429448190325182765
+#define INTERACTIVE_FILE_NAME "input"
 
 #ifndef PATH_MAX
 #define PATH_MAX 1024
@@ -259,6 +260,7 @@ void LexInitParser(struct ParseState *Parser, void *TokenSource, const char *Fil
 enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int IncPos);
 void LexToEndOfLine(struct ParseState *Parser);
 void *LexCopyTokens(struct ParseState *StartParser, struct ParseState *EndParser);
+void LexInteractiveCompleted(struct ParseState *Parser);
 
 /* parse.c */
 int ParseExpression(struct ParseState *Parser, struct Value **Result);
@@ -266,6 +268,7 @@ int ParseIntExpression(struct ParseState *Parser);
 int ParseStatement(struct ParseState *Parser);
 struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *ReturnType, char *Identifier, int IsProtoType);
 void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt);
+void ParseInteractive();
 
 /* type.c */
 void TypeInit();

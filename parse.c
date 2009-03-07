@@ -1070,3 +1070,14 @@ void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt)
     
     HeapFree(Tokens);
 }
+
+/* parse interactively */
+void ParseInteractive()
+{
+    struct ParseState Parser;
+    
+    LexInitParser(&Parser, NULL, StrEmpty, 1, TRUE);
+    
+    while (ParseStatement(&Parser))
+        LexInteractiveCompleted(&Parser);
+}

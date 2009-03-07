@@ -460,7 +460,7 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
                     return TokenEOF;
 
                 /* put the new line at the end of the linked list of interactive lines */        
-                LineTokens = LexAnalyse(TableStrRegister("input"), &LineBuffer[0], strlen(LineBuffer), &LineBytes);
+                LineTokens = LexAnalyse(StrEmpty, &LineBuffer[0], strlen(LineBuffer), &LineBytes);
                 LineNode = VariableAlloc(Parser, sizeof(struct TokenLine), TRUE);
                 LineNode->Tokens = LineTokens;
                 LineNode->NumBytes = LineBytes;
