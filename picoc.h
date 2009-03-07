@@ -54,7 +54,7 @@ enum LexToken
     TokenLongType, TokenSignedType, TokenShortType, TokenStructType, TokenUnionType, TokenUnsignedType, TokenTypedef,
     TokenContinue, TokenDo, TokenElse, TokenFor, TokenIf, TokenWhile, TokenBreak, TokenSwitch, TokenCase, TokenDefault, TokenReturn,
     TokenHashDefine, TokenHashInclude,
-    TokenNone, TokenEOF, TokenEndOfLine
+    TokenNone, TokenEOF, TokenEndOfLine, TokenEndOfFunction
 };
 
 /* used in dynamic memory allocation */
@@ -254,7 +254,7 @@ char *TableSetIdentifier(struct Table *Tbl, const char *Ident, int IdentLen);
 
 /* lex.c */
 void LexInit(void);
-void *LexAnalyse(const char *FileName, const char *Source, int SourceLen);
+void *LexAnalyse(const char *FileName, const char *Source, int SourceLen, int *TokenLen);
 void LexInitParser(struct ParseState *Parser, void *TokenSource, const char *FileName, int Line, int RunIt);
 enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int IncPos);
 void LexToEndOfLine(struct ParseState *Parser);

@@ -87,7 +87,7 @@ int ParseValue(struct ParseState *Parser, struct Value **Result)
                     {
                         struct ParseState MacroParser = LocalLValue->Val->Parser;
                         
-                        if (!ParseExpression(&MacroParser, Result) || LexGetToken(&MacroParser, NULL, FALSE) != TokenEOF)
+                        if (!ParseExpression(&MacroParser, Result) || LexGetToken(&MacroParser, NULL, FALSE) != TokenEndOfFunction)
                             ProgramFail(&MacroParser, "expression expected");
                     }
                     else if (LocalLValue->Typ == TypeVoid)
@@ -1059,7 +1059,7 @@ void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt)
 {
     struct ParseState Parser;
     
-    void *Tokens = LexAnalyse(FileName, Source, SourceLen); // XXX - some better way of storing tokenised input?
+    void *Tokens = LexAnalyse(FileName, Source, SourceLen, NULL);
     LexInitParser(&Parser, Tokens, FileName, 1, RunIt);
 
     while (ParseStatement(&Parser))
@@ -1067,4 +1067,6 @@ void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt)
     
     if (LexGetToken(&Parser, NULL, FALSE) != TokenEOF)
         ProgramFail(&Parser, "parse error");
+    
+    HeapFree(Tokens);
 }
