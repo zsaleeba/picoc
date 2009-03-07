@@ -431,72 +431,66 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
     enum LexToken Token;
     int ValueSize;
     
-    if (Parser->FileName == StrEmpty && InteractiveHead == NULL)
-        Token = TokenEOF;
-    else
-    { /* skip leading newlines */
-        while ((enum LexToken)*(unsigned char *)Parser->Pos == TokenEndOfLine)
-        {
-            Parser->Line++;
-            Parser->Pos++;
-        }
-        Token = (enum LexToken)*(unsigned char *)Parser->Pos;
-    }
-    
-    while (Parser->FileName == StrEmpty && Token == TokenEOF)
-    { /* we're at the end of an interactive input token list */
-        char LineBuffer[LINEBUFFER_MAX];
-        void *LineTokens;
-        int LineBytes;
-        struct TokenLine *LineNode;
-
-        if (InteractiveHead == NULL || (unsigned char *)Parser->Pos == &InteractiveTail->Tokens[InteractiveTail->NumBytes-1])
-        { /* get interactive input */
-            if (InteractiveHead == NULL)
-                PlatformPrintf("picoc> ");
-            else
-                PlatformPrintf("> ");
-                
-            if (PlatformGetLine(&LineBuffer[0], LINEBUFFER_MAX) == NULL)
-                return TokenEOF;
-
-            /* put the new line at the end of the linked list of interactive lines */        
-            LineTokens = LexAnalyse(TableStrRegister("input"), &LineBuffer[0], strlen(LineBuffer), &LineBytes);
-            LineNode = VariableAlloc(Parser, sizeof(struct TokenLine), TRUE);
-            LineNode->Tokens = LineTokens;
-            LineNode->NumBytes = LineBytes;
-            if (InteractiveHead == NULL)
-            { /* start a new list */
-                InteractiveHead = LineNode;
-                Parser->Line = 1;
-            }
-            else
-                InteractiveTail->Next = LineNode;
-
-            InteractiveTail = LineNode;
-            InteractiveCurrentLine = LineNode;
-            Parser->Pos = LineTokens;
-        }
-        else
-        { /* step to the next token line */
-            if (Parser->Pos != &InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes-1])
-            { /* scan for the line */
-                for (InteractiveCurrentLine = InteractiveHead; Parser->Pos != &InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes-1]; InteractiveCurrentLine = InteractiveCurrentLine->Next)
-                {}
-            }
-
-            InteractiveCurrentLine = InteractiveCurrentLine->Next;
-            Parser->Pos = InteractiveCurrentLine->Tokens;
-        }
-        
-        while ((enum LexToken)*(unsigned char *)Parser->Pos == TokenEndOfLine)
+    do
+    { /* get the next token */
+        if (Parser->FileName != StrEmpty || InteractiveHead != NULL)
         { /* skip leading newlines */
-            Parser->Line++;
-            Parser->Pos++;
+            while ((Token = (enum LexToken)*(unsigned char *)Parser->Pos) == TokenEndOfLine)
+            {
+                Parser->Line++;
+                Parser->Pos++;
+            }
         }
-        
-        Token = (enum LexToken)*(unsigned char *)Parser->Pos;
-    }
+    
+        if (Parser->FileName == StrEmpty && (InteractiveHead == NULL || Token == TokenEOF))
+        { /* we're at the end of an interactive input token list */
+            char LineBuffer[LINEBUFFER_MAX];
+            void *LineTokens;
+            int LineBytes;
+            struct TokenLine *LineNode;
+
+            if (InteractiveHead == NULL || (unsigned char *)Parser->Pos == &InteractiveTail->Tokens[InteractiveTail->NumBytes-1])
+            { /* get interactive input */
+                if (InteractiveHead == NULL)
+                    PlatformPrintf("picoc> ");
+                else
+                    PlatformPrintf("> ");
+                    
+                if (PlatformGetLine(&LineBuffer[0], LINEBUFFER_MAX) == NULL)
+                    return TokenEOF;
+
+                /* put the new line at the end of the linked list of interactive lines */        
+                LineTokens = LexAnalyse(TableStrRegister("input"), &LineBuffer[0], strlen(LineBuffer), &LineBytes);
+                LineNode = VariableAlloc(Parser, sizeof(struct TokenLine), TRUE);
+                LineNode->Tokens = LineTokens;
+                LineNode->NumBytes = LineBytes;
+                if (InteractiveHead == NULL)
+                { /* start a new list */
+                    InteractiveHead = LineNode;
+                    Parser->Line = 1;
+                }
+                else
+                    InteractiveTail->Next = LineNode;
+
+                InteractiveTail = LineNode;
+                InteractiveCurrentLine = LineNode;
+                Parser->Pos = LineTokens;
+            }
+            else
+            { /* go to the next token line */
+                if (Parser->Pos != &InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes-1])
+                { /* scan for the line */
+                    for (InteractiveCurrentLine = InteractiveHead; Parser->Pos != &InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes-1]; InteractiveCurrentLine = InteractiveCurrentLine->Next)
+                    {}
+                }
+
+                InteractiveCurrentLine = InteractiveCurrentLine->Next;
+                Parser->Pos = InteractiveCurrentLine->Tokens;
+            }
+
+            Token = (enum LexToken)*(unsigned char *)Parser->Pos;
+        }
+    } while ((Parser->FileName == StrEmpty && Token == TokenEOF) || Token == TokenEndOfLine);
 
     ValueSize = LexTokenSize(Token);
     if (ValueSize > 0)
@@ -554,20 +548,58 @@ void LexToEndOfLine(struct ParseState *Parser)
 void *LexCopyTokens(struct ParseState *StartParser, struct ParseState *EndParser)
 {
     int MemSize = 0;
+    int CopySize;
     unsigned char *Pos = (unsigned char *)StartParser->Pos;
     unsigned char *NewTokens;
-    enum LexToken Token;
+    unsigned char *NewTokenPos;
+    struct TokenLine *ILine;
     
-    while ( (Token = (enum LexToken)*Pos) != TokenEOF && (void *)Pos != EndParser->Pos)
-    { /* count up how much memory we need */
-        int ValueSize = LexTokenSize(Token);
-        Pos += ValueSize + 1;
-        MemSize += ValueSize + 1;
+    if (InteractiveHead == NULL)
+    { /* non-interactive mode - copy the tokens */
+        MemSize = EndParser->Pos - StartParser->Pos;
+        NewTokens = VariableAlloc(StartParser, MemSize + 1, TRUE);
+        memcpy(NewTokens, StartParser->Pos, MemSize);
+    }
+    else
+    { /* we're in interactive mode - add up line by line */
+        for (InteractiveCurrentLine = InteractiveHead; InteractiveCurrentLine != NULL && (Pos < &InteractiveCurrentLine->Tokens[0] || Pos >= &InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes]); InteractiveCurrentLine = InteractiveCurrentLine->Next)
+        {} /* find the line we just counted */
+        
+        if (EndParser->Pos >= StartParser->Pos && EndParser->Pos < (void *)&InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes])
+        { /* all on a single line */
+            MemSize = EndParser->Pos - StartParser->Pos;
+            NewTokens = VariableAlloc(StartParser, MemSize + 1, TRUE);
+            memcpy(NewTokens, StartParser->Pos, MemSize);
+        }
+        else
+        { /* it's spread across multiple lines */
+            MemSize = &InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes] - Pos;
+            for (ILine = InteractiveCurrentLine->Next; ILine != NULL && (EndParser->Pos < (void *)&ILine->Tokens[0] || EndParser->Pos >= (void *)&ILine->Tokens[ILine->NumBytes]); ILine = ILine->Next)
+                MemSize += ILine->NumBytes;
+            
+            assert(ILine != NULL);
+            MemSize += &ILine->Tokens[InteractiveCurrentLine->NumBytes] - Pos;
+            NewTokens = VariableAlloc(StartParser, MemSize + 1, TRUE);
+            
+            CopySize = &InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes] - Pos;
+            memcpy(NewTokens, Pos, CopySize);
+            NewTokenPos = NewTokens + CopySize;
+            for (ILine = InteractiveCurrentLine->Next; ILine != NULL && (EndParser->Pos < (void *)&ILine->Tokens[0] || EndParser->Pos >= (void *)&ILine->Tokens[ILine->NumBytes]); ILine = ILine->Next)
+            {
+                memcpy(NewTokenPos, &ILine->Tokens[0], ILine->NumBytes);
+                NewTokenPos += ILine->NumBytes;
+            }
+            assert(ILine != NULL);
+            memcpy(NewTokenPos, &ILine->Tokens[0], &ILine->Tokens[ILine->NumBytes] - Pos);
+        }
     }
     
-    assert((void *)Pos == EndParser->Pos);
-    NewTokens = VariableAlloc(StartParser, MemSize + 1, TRUE);
-    memcpy(NewTokens, StartParser->Pos, MemSize);
     NewTokens[MemSize] = (unsigned char)TokenEndOfFunction;
     return NewTokens;
+}
+
+/* indicate that we've completed up to this point in the interactive input and free expired tokens */
+void LexInteractiveCompleted(struct ParseState *Parser)
+{
+    //XXX - write this
 }
