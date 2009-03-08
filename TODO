@@ -20,6 +20,7 @@ Improvements:
 * change heap to use a single consistent freelist node struct
 * periodic heap cleanup
 * octal/hex character constants
+* see if we can use ParserCopyPos() in other places rather than copying everything
 
 Need test/debug:
 * all break/continue variations

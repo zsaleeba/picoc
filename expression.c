@@ -396,6 +396,21 @@ static struct OpPrecedence OperatorPrecedence[] =
     /* TokenOpenBracket, */ { 15, 0, 0 }, /* TokenCloseBracket, */ { 0, 15, 0 }
 };
 
+/* take the contents of the expression stack and compute the top until there's nothing greater than the given precedence */
+void ExpressionStackCollapse(struct ParseState *Parser, struct ExpressionStack **StackTop, int Precedence)
+{
+}
+
+/* push an operator on to the expression stack */
+void ExpressionStackPushOperator(struct ParseState *Parser, struct ExpressionStack **StackTop, enum OperatorOrder Order, enum LexToken Token, int Precedence)
+{
+}
+
+/* push a value on to the expression stack */
+void ExpressionStackPushValue(struct ParseState *Parser, struct ExpressionStack **StackTop, struct Value *PushValue)
+{
+}
+
 /* parse an expression with operator precedence */
 int ExpressionParse(struct ParseState *Parser, struct Value **Result)
 {
@@ -404,6 +419,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
     bool Done = false;
     int BracketPrecedence = 0;
     int Precedence = 0;
+    struct ExpressionStack *StackTop = NULL;
     
     do
     {
@@ -417,16 +433,16 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                 
                 if (Parser->Mode == RunModeRun)
                 {   
+                    Precedence = BracketPrecedence + OperatorPrecedence[(int)Token].PrefixPrecedence;
                     if (Token == TokenOpenBracket || Token == TokenLeftSquareBracket)
-                    {
-                        /* boost the bracket operator precedence */
+                    { /* boost the bracket operator precedence, then push */
                         BracketPrecedence += BRACKET_PREDECENCE;
-                        /* push the operator */
+                        ExpressionStackPushOperator(Parser, &StackTop, OrderPrefix, Token, Precedence);
                     }
                     else
-                    {
-                        /* scan and collapse the stack to the precedence of this operator */
-                        /* push the operator */
+                    { /* scan and collapse the stack to the precedence of this operator, then push */
+                        ExpressionStackCollapse(Parser, &StackTop, Precedence);
+                        ExpressionStackPushOperator(Parser, &StackTop, OrderPrefix, Token, Precedence);
                     }
                 }
             }
@@ -439,7 +455,6 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                         case TokenCloseBracket:
                             if (BracketPrecedence == 0)
                             { /* assume this bracket is after the end of the expression */
-                                /* scan and collapse the stack to precedence 0 */
                                 Done = true;
                             }
                             else
@@ -451,21 +466,26 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                                 ProgramFail(Parser, "no matching open square bracket");
 
                             /* scan and collapse the stack to bracket precedence */
+                            ExpressionStackCollapse(Parser, &StackTop, BracketPrecedence);
                             BracketPrecedence -= BRACKET_PRECEDENCE;
                             
                             /* apply the array index operator */
+                            // XXX
                             break;
 
                         default:
-                            /* scan and collapse the stack to the precedence of this operator */
-                            /* push the operator */
+                            /* scan and collapse the stack to the precedence of this operator, then push */
+                            Precedence = BracketPrecedence + OperatorPrecedence[(int)Token].PostfixPrecedence;
+                            ExpressionStackCollapse(Parser, &StackTop, Precedence);
+                            ExpressionStackPushOperator(Parser, &StackTop, OrderPostfix, Token, Precedence);
                             break;
                     }
                 }
                 else if (OperatorPrecedence[(int)Token].InfixPrecedence != 0)
-                {
-                    /* scan and collapse the stack to the precedence of this operator */
-                    /* push the operator */
+                { /* scan and collapse the stack to the precedence of this operator, then push */
+                    Precedence = BracketPrecedence + OperatorPrecedence[(int)Token].InfixPrecedence;
+                    ExpressionStackCollapse(Parser, &StackTop, Precedence);
+                    ExpressionStackPushOperator(Parser, &StackTop, OrderInfix, Token, Precedence);
                     PrefixState = true;
                 }
                 else
@@ -473,23 +493,23 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
             }
         }
         else if ((int)Token <= (int)TokenCharacterConstant)
-        { /* it's a value of some sort */
+        { /* it's a value of some sort, push it */
             if (!PrefixState)
                 ProgramFail(Parser, "value not expected here");
                 
             PrefixState = false;
-            if (Parser->Mode == RunModeRun)
-            {
-                /* push the value */
-            }
+            ExpressionStackPushValue(Parser, &StackTop, LexValue);
         }
         else
         { /* it isn't a token from an expression */
-            /* scan and collapse the stack to precedence 0 */
             Done = true;
         }
         
     } while (!Done);
+    
+    /* scan and collapse the stack to precedence 0 */
+    ExpressionStackCollapse(Parser, &StackTop, 0);
+    XXX - fix up the stack and return the result if we're in run mode
 }
 #endif
 
