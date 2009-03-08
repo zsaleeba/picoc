@@ -263,7 +263,7 @@ void TypeParseIdentPart(struct ParseState *Parser, struct ValueType *BasicTyp, s
                     {
                         enum RunMode OldMode = Parser->Mode;
                         Parser->Mode = RunModeRun;
-                        int ArraySize = ParseIntExpression(Parser);
+                        int ArraySize = ExpressionParseInt(Parser);
                         Parser->Mode = OldMode;
                         
                         if (LexGetToken(Parser, NULL, TRUE) != TokenRightSquareBracket)

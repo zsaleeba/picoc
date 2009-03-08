@@ -7,6 +7,7 @@ Implement:
 * casts
 * enum
 * fix #include
+* char access/char array access/char * access
 
 Improvements:
 * #define with arguments

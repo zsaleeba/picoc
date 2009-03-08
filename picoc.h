@@ -265,12 +265,14 @@ void LexInteractiveCompleted(struct ParseState *Parser);
 void LexInteractiveStatementPrompt();
 
 /* parse.c */
-int ParseExpression(struct ParseState *Parser, struct Value **Result);
-int ParseIntExpression(struct ParseState *Parser);
 int ParseStatement(struct ParseState *Parser);
 struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *ReturnType, char *Identifier, int IsProtoType);
 void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt);
 void ParseInteractive();
+
+/* expression.c */
+int ExpressionParse(struct ParseState *Parser, struct Value **Result);
+int ExpressionParseInt(struct ParseState *Parser);
 
 /* type.c */
 void TypeInit();
