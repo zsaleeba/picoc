@@ -21,7 +21,7 @@
 #define STRUCT_TABLE_SIZE 11                /* size of struct/union member table (can expand) */
 
 #define INTERACTIVE_PROMPT_STATEMENT "picoc> "
-#define INTERACTIVE_PROMPT_LINE "> "
+#define INTERACTIVE_PROMPT_LINE "     > "
 
 /* host platform includes */
 #ifdef UNIX_HOST
