@@ -260,7 +260,9 @@ void LexInitParser(struct ParseState *Parser, void *TokenSource, const char *Fil
 enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int IncPos);
 void LexToEndOfLine(struct ParseState *Parser);
 void *LexCopyTokens(struct ParseState *StartParser, struct ParseState *EndParser);
+void LexInteractiveClear(struct ParseState *Parser);
 void LexInteractiveCompleted(struct ParseState *Parser);
+void LexInteractiveStatementPrompt();
 
 /* parse.c */
 int ParseExpression(struct ParseState *Parser, struct Value **Result);

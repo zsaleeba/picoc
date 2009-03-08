@@ -20,6 +20,9 @@
 #define LOCAL_TABLE_SIZE 11                 /* size of local variable table (can expand) */
 #define STRUCT_TABLE_SIZE 11                /* size of struct/union member table (can expand) */
 
+#define INTERACTIVE_PROMPT_STATEMENT "picoc> "
+#define INTERACTIVE_PROMPT_LINE "> "
+
 /* host platform includes */
 #ifdef UNIX_HOST
 #include <stdio.h>
@@ -31,6 +34,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <setjmp.h>
 #ifndef NO_FP
 #include <math.h>
 #endif

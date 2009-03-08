@@ -72,9 +72,10 @@ struct TokenLine
     int NumBytes;
 };
 
-struct TokenLine *InteractiveHead = NULL;
-struct TokenLine *InteractiveTail = NULL;
-struct TokenLine *InteractiveCurrentLine = NULL;
+static struct TokenLine *InteractiveHead = NULL;
+static struct TokenLine *InteractiveTail = NULL;
+static struct TokenLine *InteractiveCurrentLine = NULL;
+static int LexUseStatementPrompt = FALSE;
 
 
 /* initialise the lexer */
@@ -466,6 +467,9 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
     
     do
     { /* get the next token */
+        if (Parser->Pos == NULL && InteractiveHead != NULL)
+            Parser->Pos = InteractiveHead->Tokens;
+            
         if (Parser->FileName != StrEmpty || InteractiveHead != NULL)
         { /* skip leading newlines */
             while ((Token = (enum LexToken)*(unsigned char *)Parser->Pos) == TokenEndOfLine)
@@ -484,10 +488,13 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
 
             if (InteractiveHead == NULL || (unsigned char *)Parser->Pos == &InteractiveTail->Tokens[InteractiveTail->NumBytes-1])
             { /* get interactive input */
-                if (InteractiveHead == NULL)
-                    PlatformPrintf("picoc> ");
+                if (LexUseStatementPrompt)
+                {
+                    PlatformPrintf(INTERACTIVE_PROMPT_STATEMENT);
+                    LexUseStatementPrompt = FALSE;
+                }
                 else
-                    PlatformPrintf("> ");
+                    PlatformPrintf(INTERACTIVE_PROMPT_LINE);
                     
                 if (PlatformGetLine(&LineBuffer[0], LINEBUFFER_MAX) == NULL)
                     return TokenEOF;
@@ -632,7 +639,42 @@ void *LexCopyTokens(struct ParseState *StartParser, struct ParseState *EndParser
 }
 
 /* indicate that we've completed up to this point in the interactive input and free expired tokens */
+void LexInteractiveClear(struct ParseState *Parser)
+{
+    while (InteractiveHead != NULL)
+    {
+        struct TokenLine *NextLine = InteractiveHead->Next;
+        
+        HeapFree(InteractiveHead->Tokens);
+        HeapFree(InteractiveHead);
+        InteractiveHead = NextLine;
+    }
+
+    Parser->Pos = NULL;
+    InteractiveTail = NULL;
+}
+
+/* indicate that we've completed up to this point in the interactive input and free expired tokens */
 void LexInteractiveCompleted(struct ParseState *Parser)
 {
-    //XXX - write this
+    while (InteractiveHead != NULL && !(Parser->Pos >= (void *)&InteractiveHead->Tokens[0] && Parser->Pos < (void *)&InteractiveHead->Tokens[InteractiveHead->NumBytes]))
+    { /* this token line is no longer needed - free it */
+        struct TokenLine *NextLine = InteractiveHead->Next;
+        
+        HeapFree(InteractiveHead->Tokens);
+        HeapFree(InteractiveHead);
+        InteractiveHead = NextLine;
+        
+        if (InteractiveHead == NULL)
+        { /* we've emptied the list */
+            Parser->Pos = NULL;
+            InteractiveTail = NULL;
+        }
+    }
+}
+
+/* the next time we prompt, make it the full statement prompt */
+void LexInteractiveStatementPrompt()
+{
+    LexUseStatementPrompt = TRUE;
 }

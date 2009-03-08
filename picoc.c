@@ -18,17 +18,23 @@ void Initialise()
 int main(int argc, char **argv)
 {
     if (argc < 2)
-        ProgramFail(NULL, "Format: picoc <program.c> - run a program\n        picoc -i          - interactive mode\n");
+    {
+        PlatformPrintf("Format: picoc <program.c> - run a program\n        picoc -i          - interactive mode\n");
+        exit(1);
+    }
     
     Initialise();
-    if (PlatformSetExitPoint())
-        return 1;
     
     if (strcmp(argv[1], "-i") == 0)
         ParseInteractive();
     else
+    {
+        if (PlatformSetExitPoint())
+            return 1;
+        
         PlatformScanFile(argv[1]);
-    
+    }
+        
     return 0;
 }
 #else

@@ -1075,9 +1075,19 @@ void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt)
 void ParseInteractive()
 {
     struct ParseState Parser;
+    int Ok;
     
     LexInitParser(&Parser, NULL, StrEmpty, 1, TRUE);
-    
-    while (ParseStatement(&Parser))
+    PlatformSetExitPoint();
+    LexInteractiveClear(&Parser);
+
+    do
+    {
+        LexInteractiveStatementPrompt();
+        Ok = ParseStatement(&Parser);
         LexInteractiveCompleted(&Parser);
+        
+    } while (Ok);
+    
+    PlatformPrintf("\n");
 }
