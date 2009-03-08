@@ -473,6 +473,7 @@ void ParseInteractive()
     struct ParseState Parser;
     int Ok;
     
+    PlatformPrintf(INTERACTIVE_PROMPT_START);
     LexInitParser(&Parser, NULL, StrEmpty, 1, TRUE);
     PlatformSetExitPoint();
     LexInteractiveClear(&Parser);
