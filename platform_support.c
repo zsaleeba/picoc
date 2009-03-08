@@ -68,6 +68,25 @@ void PlatformExit()
 /* get a line of interactive input */
 char *PlatformGetLine(char *Buf, int MaxLen)
 {
+    int ix;
+    char ch, *cp;
+    
+    ix = 0;
+    cp = Buf;
+    while (ix++ < MaxLen) {
+        ch = getch();
+        if (ch == 0x1B) { // ESC character - exit
+            printf("leaving picoC\n\r");
+            return NULL;
+        }
+        if (ch == '\n') {
+            *cp++ = '\n';  // if newline, send newline character followed by null
+            *cp = 0;
+            return Buf;
+        }
+        *cp++ = ch;
+        ix++;
+    }
     return NULL;
 }
 

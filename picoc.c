@@ -46,19 +46,23 @@ int picoc(char *SourceStr)
     int ix;
     
     Initialise();
-    for (ix=0; ix<strlen(SourceStr); ix++)  // clear out ctrl-z from XMODEM transfer
-        if (SourceStr[ix] == 0x1A)
-            SourceStr[ix] = 0x20;
-    printf("%s\n\r", SourceStr);  // display program source
-    printf("=====================\n");
+    if (SourceStr) {
+        for (ix=0; ix<strlen(SourceStr); ix++)  // clear out ctrl-z from XMODEM transfer
+            if (SourceStr[ix] == 0x1A)
+                SourceStr[ix] = 0x20;
+        printf("%s\n\r", SourceStr);  // display program source
+        printf("=====================\n");
+    }
     errjmp[40] = 0;
     setjmp(errjmp);
     if (errjmp[40]) {
-        printf("goodbye ...\n\r");
+        printf("leaving picoC\n\r");
         return 1;
     }
         
-    Parse("test.c", SourceStr, strlen(SourceStr), TRUE);
+    if (SourceStr)    
+        Parse("test.c", SourceStr, strlen(SourceStr), TRUE);
+    ParseInteractive();
     return 0;
 }
 # endif
