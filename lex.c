@@ -9,6 +9,10 @@
 #define isCidstart(c) (isalpha(c) || (c)=='_' || (c)=='#')
 #define isCident(c) (isalnum(c) || (c)=='_')
 
+#define IS_HEX_ALPHA_DIGIT(c) (((c) >= 'a' && (c) <= 'f') || ((c) >= 'A' && (c) <= 'F'))
+#define IS_BASE_DIGIT(c,b) (((c) >= '0' && (c) < '0' + (((b)<10)?(b):10)) || (((b) > 10) ? IS_HEX_ALPHA_DIGIT(c) : FALSE))
+#define GET_BASE_DIGIT(c) (((c) <= '9') ? ((c) - '0') : (((c) <= 'F') ? ((c) - 'A' + 10) : ((c) - 'a' + 10)))
+
 #define NEXTIS(c,x,y) { if (NextChar == (c)) { Lexer->Pos++; GotToken = (x); } else GotToken = (y); }
 #define NEXTIS3(c,x,d,y,z) { if (NextChar == (c)) { Lexer->Pos++; GotToken = (x); } else NEXTIS(d,y,z) }
 #define NEXTIS4(c,x,d,y,e,z,a) { if (NextChar == (c)) { Lexer->Pos++; GotToken = (x); } else NEXTIS3(d,y,e,z,a) }
@@ -48,7 +52,7 @@ static struct ReservedWord ReservedWords[] =
     { "int", TokenIntType, NULL },
     { "long", TokenLongType, NULL },
     { "return", TokenReturn, NULL },
-    { "short", TokenShortType, NULL },
+//    { "short", TokenShortType, NULL },
     { "signed", TokenSignedType, NULL },
     { "sizeof", TokenSizeof, NULL },
     { "struct", TokenStructType, NULL },
@@ -96,18 +100,47 @@ enum LexToken LexCheckReservedWord(const char *Word)
     return TokenNone;
 }
 
-/* get a numeric constant - used while scanning */
+int IsBaseDigit(unsigned char c, int b)
+{
+    if (c >= '0' && c < '0' + b)
+        return TRUE;
+    else
+    {
+        if (b > 10)
+            return IS_HEX_ALPHA_DIGIT(c);
+    }
+    
+    return FALSE;
+}
+
+/* get a numeric literal - used while scanning */
 enum LexToken LexGetNumber(struct LexState *Lexer, struct Value *Value)
 {
     int Result = 0;
+    int Base = 10;
 #ifndef NO_FP
     double FPResult;
     double FPDiv;
 #endif
     
-    for (; Lexer->Pos != Lexer->End && isdigit(*Lexer->Pos); Lexer->Pos++)
-        Result = Result * 10 + (*Lexer->Pos - '0');
+    if (*Lexer->Pos == '0')
+    { /* a binary, octal or hex literal */
+        Lexer->Pos++;
+        if (Lexer->Pos != Lexer->End)
+        {
+            if (*Lexer->Pos == 'x' || *Lexer->Pos == 'X')
+                { Base = 16; Lexer->Pos++; }
+            else if (*Lexer->Pos == 'b' || *Lexer->Pos == 'B')
+                { Base = 2; Lexer->Pos++; }
+            else
+                Base = 8;
+        }
+    }
 
+    /* get the value */
+    for (; Lexer->Pos != Lexer->End && IS_BASE_DIGIT(*Lexer->Pos, Base); Lexer->Pos++)
+        Result = Result * Base + GET_BASE_DIGIT(*Lexer->Pos);
+    
     Value->Typ = &IntType;
     Value->Val->Integer = Result;
 #ifndef NO_FP
@@ -116,16 +149,16 @@ enum LexToken LexGetNumber(struct LexState *Lexer, struct Value *Value)
 
     Value->Typ = &FPType;
     Lexer->Pos++;
-    for (FPDiv = 0.1, FPResult = (double)Result; Lexer->Pos != Lexer->End && isdigit(*Lexer->Pos); Lexer->Pos++, FPDiv /= 10.0)
-        FPResult += (*Lexer->Pos - '0') * FPDiv;
+    for (FPDiv = 1.0/Base, FPResult = (double)Result; Lexer->Pos != Lexer->End && IS_BASE_DIGIT(*Lexer->Pos, Base); Lexer->Pos++, FPDiv /= (double)Base)
+        FPResult += GET_BASE_DIGIT(*Lexer->Pos) * FPDiv;
     
     if (Lexer->Pos != Lexer->End && (*Lexer->Pos == 'e' || *Lexer->Pos == 'E'))
     {
         Lexer->Pos++;
-        for (Result = 0; Lexer->Pos != Lexer->End && isdigit(*Lexer->Pos); Lexer->Pos++)
-            Result = Result * 10 + (*Lexer->Pos - '0');
+        for (Result = 0; Lexer->Pos != Lexer->End && IS_BASE_DIGIT(*Lexer->Pos, Base); Lexer->Pos++)
+            Result = Result * (double)Base + GET_BASE_DIGIT(*Lexer->Pos);
             
-        FPResult *= pow(10.0, (double)Result);
+        FPResult *= pow((double)Base, (double)Result);
     }
     
     return TokenFPConstant;

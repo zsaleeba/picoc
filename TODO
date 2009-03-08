@@ -1,6 +1,7 @@
 TODO
 
 Implement:
+* integer literals with 0x
 * operator precedence
 * interactive mode
 * '->'
