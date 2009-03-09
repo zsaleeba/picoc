@@ -175,9 +175,6 @@ void ParseFor(struct ParseState *Parser)
     if (!ParseStatement(Parser))
         ProgramFail(Parser, "statement expected");
     
-    if (LexGetToken(Parser, NULL, TRUE) != TokenSemicolon)
-        ProgramFail(Parser, "';' expected");
-    
     ParserCopyPos(&PreConditional, Parser);
     Condition = ExpressionParseInt(Parser);
     
@@ -254,6 +251,7 @@ int ParseStatement(struct ParseState *Parser)
 {
     struct Value *CValue;
     int Condition;
+    int CheckTrailingSemicolon = TRUE;
     struct ParseState PreState = *Parser;
     enum LexToken Token = LexGetToken(Parser, NULL, TRUE);
     
@@ -291,6 +289,7 @@ int ParseStatement(struct ParseState *Parser)
                 if (!ParseStatementMaybeRun(Parser, !Condition))
                     ProgramFail(Parser, "statement expected");
             }
+            CheckTrailingSemicolon = FALSE;
             break;
         
         case TokenWhile:
@@ -309,6 +308,8 @@ int ParseStatement(struct ParseState *Parser)
                 
                 if (Parser->Mode == RunModeBreak)
                     Parser->Mode = RunModeRun;
+
+                CheckTrailingSemicolon = FALSE;
             }
             break;
                 
@@ -337,6 +338,7 @@ int ParseStatement(struct ParseState *Parser)
                 
         case TokenFor:
             ParseFor(Parser);
+            CheckTrailingSemicolon = FALSE;
             break;
 
         case TokenSemicolon: break;
@@ -354,6 +356,7 @@ int ParseStatement(struct ParseState *Parser)
         
         case TokenHashDefine:
             ParseMacroDefinition(Parser);
+            CheckTrailingSemicolon = FALSE;
             break;
             
         case TokenHashInclude:
@@ -363,6 +366,7 @@ int ParseStatement(struct ParseState *Parser)
                 ProgramFail(Parser, "\"filename.h\" expected");
             
             //ScanFile(LexerValue->Val->String); // XXX - need to dereference char * here
+            CheckTrailingSemicolon = FALSE;
             break;
         }
 
@@ -389,6 +393,8 @@ int ParseStatement(struct ParseState *Parser)
                 Parser->Mode = OldMode;
                 Parser->SearchLabel = OldSearchLabel;
             }
+
+            CheckTrailingSemicolon = FALSE;
             break;
 
         case TokenCase:
@@ -406,6 +412,8 @@ int ParseStatement(struct ParseState *Parser)
             
             if (Parser->Mode == RunModeCaseSearch && Condition == Parser->SearchLabel)
                 Parser->Mode = RunModeRun;
+
+            CheckTrailingSemicolon = FALSE;
             break;
             
         case TokenDefault:
@@ -414,6 +422,8 @@ int ParseStatement(struct ParseState *Parser)
             
             if (Parser->Mode == RunModeCaseSearch)
                 Parser->Mode = RunModeRun;
+                
+            CheckTrailingSemicolon = FALSE;
             break;
 
         case TokenBreak:
@@ -446,6 +456,9 @@ int ParseStatement(struct ParseState *Parser)
             *Parser = PreState;
             return FALSE;
     }
+    
+    if (CheckTrailingSemicolon && LexGetToken(Parser, NULL, FALSE) == TokenSemicolon)
+        LexGetToken(Parser, NULL, TRUE);
     
     return TRUE;
 }
