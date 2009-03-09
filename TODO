@@ -10,6 +10,7 @@ Bugs:
    }
    return (i * fact(i - 1));
 }
+* something wrong with interactive mode after error handling - not clearing token buffer correctly?
 
 Implement:
 * operator precedence

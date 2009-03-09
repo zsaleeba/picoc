@@ -100,9 +100,6 @@ void ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
     do
     {
         TypeParseIdentPart(Parser, BasicType, &Typ, &Identifier);
-        if (Token == TokenVoidType && Identifier != StrEmpty)
-            ProgramFail(Parser, "can't define a void variable");
-            
         if ((Token != TokenVoidType && Token != TokenStructType && Token != TokenUnionType) && Identifier == StrEmpty)
             ProgramFail(Parser, "identifier expected");
             
@@ -113,6 +110,9 @@ void ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
                 ParseFunctionDefinition(Parser, Typ, Identifier, FALSE);
             else
             {
+                if (Token == TokenVoidType && Identifier != StrEmpty)
+                    ProgramFail(Parser, "can't define a void variable");
+                    
                 if (LexGetToken(Parser, NULL, FALSE) != TokenAssign)
                     VariableDefine(Parser, Identifier, VariableAllocValueFromType(Parser, Typ, TRUE, NULL));
                 else
