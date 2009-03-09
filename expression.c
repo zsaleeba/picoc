@@ -192,6 +192,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                 if (Parser->Mode == RunModeRun)
                 {                
                     void *TotalValueData = (void *)TotalValue->Val;
+                    struct Value *TotalLValueFrom = TotalValue->LValueFrom;
 
                     if (TotalValue->Typ->Base != TypeStruct && TotalValue->Typ->Base != TypeUnion)
                         ProgramFail(Parser, "can't use '.' on something that's not a struct or union");
@@ -200,7 +201,37 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                         ProgramFail(Parser, "structure doesn't have a member called '%s'", Ident->Val->Identifier);
                     
                     VariableStackPop(Parser, TotalValue);
-                    TotalValue = VariableAllocValueFromExistingData(Parser, CurrentValue->Typ, TotalValueData + CurrentValue->Val->Integer, TRUE, TotalValue->LValueFrom);
+                    TotalValue = VariableAllocValueFromExistingData(Parser, CurrentValue->Typ, TotalValueData + CurrentValue->Val->Integer, TRUE, TotalLValueFrom);
+                }
+                continue;
+            }
+            case TokenArrow:
+            {
+                struct Value *Ident;
+                
+                LexGetToken(Parser, NULL, TRUE);
+                if (LexGetToken(Parser, &Ident, TRUE) != TokenIdentifier)
+                    ProgramFail(Parser, "need an structure or union member after '->'");
+
+                if (Parser->Mode == RunModeRun)
+                {                
+                    void *TotalValueData;
+                    struct Value *DerefValue;
+
+                    if (TotalValue->Typ->Base != TypePointer)
+                        ProgramFail(Parser, "can't dereference this non-pointer");
+                    
+                    DerefValue = TotalValue->Val->Pointer.Segment;
+                    TotalValueData = (void *)DerefValue->Val;
+
+                    if (DerefValue->Typ->Base != TypeStruct && DerefValue->Typ->Base != TypeUnion)
+                        ProgramFail(Parser, "can't use '->' on something that's not a struct or union");
+                        
+                    if (!TableGet(DerefValue->Typ->Members, Ident->Val->Identifier, &CurrentValue))
+                        ProgramFail(Parser, "structure doesn't have a member called '%s'", Ident->Val->Identifier);
+                    
+                    VariableStackPop(Parser, TotalValue);
+                    TotalValue = VariableAllocValueFromExistingData(Parser, CurrentValue->Typ, TotalValueData + CurrentValue->Val->Integer, TRUE, DerefValue);
                 }
                 continue;
             }

@@ -13,10 +13,8 @@ Bugs:
 
 Implement:
 * operator precedence
-* '->'
 * pointer arithmetic
 * casts
-* enum
 * fix #include
 * char access/char array access/char * access
 

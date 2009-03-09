@@ -21,6 +21,12 @@ printf("bolshevic.a = %d\n", bolshevic.a);
 printf("bolshevic.b = %d\n", bolshevic.b);
 printf("bolshevic.c = %d\n", bolshevic.c);
 
+struct ziggy *tsar = &bolshevic;
+
+printf("tsar->a = %d\n", tsar->a);
+printf("tsar->b = %d\n", tsar->b);
+printf("tsar->c = %d\n", tsar->c);
+
 /*
 b = &(bolshevic.b);
 printf("bolshevic.b = %d\n", *b);
