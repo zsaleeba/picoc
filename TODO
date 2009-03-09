@@ -1,8 +1,7 @@
 TODO
 
 Bugs:
-* defining functions returning void
-* defining functions from interactive mode
+* defining multi-line functions from interactive mode
 * defining functions with no parameters (in interactive mode?)
 * int fact(int i) {
    if (i < 2) {
