@@ -350,6 +350,7 @@ int ParseStatement(struct ParseState *Parser)
         case TokenVoidType:
         case TokenStructType:
         case TokenUnionType:
+        case TokenEnumType:
             *Parser = PreState;
             ParseDeclaration(Parser, Token);
             break;

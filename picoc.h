@@ -115,7 +115,7 @@ struct ValueType
     struct ValueType *FromType; /* the type we're derived from (or NULL) */
     struct ValueType *DerivedTypeList;  /* first in a list of types derived from this one */
     struct ValueType *Next;     /* next item in the derived type list */
-    struct Table *Members;      /* members of a struct, union or enum */
+    struct Table *Members;      /* members of a struct or union */
 };
 
 /* function definition */
@@ -170,7 +170,6 @@ struct Value
     char ValOnHeap;             /* the AnyValue is on the heap (but this Value is on the stack) */
     char ValOnStack;            /* the AnyValue is on the stack along with this Value */
     char IsLValue;              /* is modifiable and is allocated somewhere we can usefully modify it */
-    char TempToken;             /* temporary token used in expression evaluation */
 };
 
 /* hash table data structure */

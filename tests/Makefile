@@ -12,7 +12,8 @@ TESTS=	00_assignment.test \
 	12_hashdefine.test \
 	13_integer_literals.test \
 	14_if.test \
-	16_nesting.test
+	16_nesting.test \
+	17_enum.test
 
 %.test: %.expect %.c
 	@echo Test: $*...

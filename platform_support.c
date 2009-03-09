@@ -4,6 +4,7 @@
 /* get a line of interactive input */
 char *PlatformGetLine(char *Buf, int MaxLen)
 {
+    fflush(stdout);
     return fgets(Buf, MaxLen, stdin);
 }
 
