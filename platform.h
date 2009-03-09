@@ -21,8 +21,8 @@
 #define STRUCT_TABLE_SIZE 11                /* size of struct/union member table (can expand) */
 
 #define INTERACTIVE_PROMPT_START "starting picoc\n"
-#define INTERACTIVE_PROMPT_STATEMENT "c> "
-#define INTERACTIVE_PROMPT_LINE " > "
+#define INTERACTIVE_PROMPT_STATEMENT "picoc> "
+#define INTERACTIVE_PROMPT_LINE "     > "
 
 /* host platform includes */
 #ifdef UNIX_HOST
@@ -57,6 +57,10 @@
 #   include "../neural.h"
 #   include "../i2c.h"
 #   define assert(x)
+#   undef INTERACTIVE_PROMPT_STATEMENT
+#   undef INTERACTIVE_PROMPT_LINE
+#   define INTERACTIVE_PROMPT_STATEMENT "> "
+#   define INTERACTIVE_PROMPT_LINE "- "
 #  endif
 # endif
 #endif

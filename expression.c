@@ -509,7 +509,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
     
     /* scan and collapse the stack to precedence 0 */
     ExpressionStackCollapse(Parser, &StackTop, 0);
-    XXX - fix up the stack and return the result if we're in run mode
+    //XXX - fix up the stack and return the result if we're in run mode
 }
 #endif
 
