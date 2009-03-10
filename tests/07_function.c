@@ -13,3 +13,9 @@ void vfunc(int a)
 
 vfunc(1234);
 
+void qfunc()
+{
+    printf("qfunc()\n");
+}
+
+qfunc();

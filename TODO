@@ -1,7 +1,6 @@
 TODO
 
 Bugs:
-* defining functions with no parameters (in interactive mode?)
 * int fact(int i) {
    if (i < 2) {
        return i;
