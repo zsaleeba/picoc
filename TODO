@@ -1,14 +1,18 @@
 TODO
 
 Bugs:
-* int fact(int i) {
-   if (i < 2) {
-       return i;
-   }
-   return (i * fact(i - 1));
-}
 * something wrong with interactive mode after error handling - not clearing token buffer correctly?
 * parsing of statements not quite right - seems to optionally want extra tokens at end
+* enum doesn't allow declarations without a variable
+*
+bash-3.2$ ./picoc.exe -i
+starting picoc
+picoc> enum fred {a, b, c} hello;
+picoc> printf("%d %d %d\n", a, b, c);
+0 1 2
+picoc> enum fred d;
+:3: 'd' is already defined
+
 
 Implement:
 * operator precedence
