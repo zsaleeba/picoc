@@ -366,7 +366,7 @@ int ParseStatement(struct ParseState *Parser)
             if (LexGetToken(Parser, &LexerValue, TRUE) != TokenStringConstant)
                 ProgramFail(Parser, "\"filename.h\" expected");
             
-            //ScanFile(LexerValue->Val->String); // XXX - need to dereference char * here
+            PlatformScanFile(LexerValue->Val->Pointer.Segment->Val->Array.Data);
             CheckTrailingSemicolon = FALSE;
             break;
         }
