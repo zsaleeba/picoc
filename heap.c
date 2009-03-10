@@ -99,6 +99,8 @@ void *HeapAlloc(int Size)
     if (Size == 0)
         return NULL;
     
+    assert(Size > 0);
+    
     if (Bucket < FREELIST_BUCKETS && FreeListBucket[Bucket] != NULL)
     { /* try to allocate from a freelist bucket first */
 #ifdef DEBUG_HEAP

@@ -1,7 +1,6 @@
 TODO
 
 Bugs:
-* defining multi-line functions from interactive mode
 * defining functions with no parameters (in interactive mode?)
 * int fact(int i) {
    if (i < 2) {
@@ -10,12 +9,12 @@ Bugs:
    return (i * fact(i - 1));
 }
 * something wrong with interactive mode after error handling - not clearing token buffer correctly?
+* parsing of statements not quite right - seems to optionally want extra tokens at end
 
 Implement:
 * operator precedence
 * pointer arithmetic
 * casts
-* fix #include
 * char access/char array access/char * access
 
 Improvements:

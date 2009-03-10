@@ -613,24 +613,24 @@ void *LexCopyTokens(struct ParseState *StartParser, struct ParseState *EndParser
         }
         else
         { /* it's spread across multiple lines */
-            MemSize = &InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes] - Pos;
+            MemSize = &InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes-1] - Pos;
             for (ILine = InteractiveCurrentLine->Next; ILine != NULL && (EndParser->Pos < (void *)&ILine->Tokens[0] || EndParser->Pos >= (void *)&ILine->Tokens[ILine->NumBytes]); ILine = ILine->Next)
-                MemSize += ILine->NumBytes;
+                MemSize += ILine->NumBytes - 1;
             
             assert(ILine != NULL);
-            MemSize += &ILine->Tokens[InteractiveCurrentLine->NumBytes] - Pos;
+            MemSize += EndParser->Pos - (void *)&ILine->Tokens[0];
             NewTokens = VariableAlloc(StartParser, MemSize + 1, TRUE);
             
-            CopySize = &InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes] - Pos;
+            CopySize = &InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes-1] - Pos;
             memcpy(NewTokens, Pos, CopySize);
             NewTokenPos = NewTokens + CopySize;
             for (ILine = InteractiveCurrentLine->Next; ILine != NULL && (EndParser->Pos < (void *)&ILine->Tokens[0] || EndParser->Pos >= (void *)&ILine->Tokens[ILine->NumBytes]); ILine = ILine->Next)
             {
-                memcpy(NewTokenPos, &ILine->Tokens[0], ILine->NumBytes);
-                NewTokenPos += ILine->NumBytes;
+                memcpy(NewTokenPos, &ILine->Tokens[0], ILine->NumBytes-1);
+                NewTokenPos += ILine->NumBytes-1;
             }
             assert(ILine != NULL);
-            memcpy(NewTokenPos, &ILine->Tokens[0], &ILine->Tokens[ILine->NumBytes] - Pos);
+            memcpy(NewTokenPos, &ILine->Tokens[0], EndParser->Pos - (void *)&ILine->Tokens[0]);
         }
     }
     
