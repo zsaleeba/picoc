@@ -269,6 +269,7 @@ int ParseStatement(struct ParseState *Parser)
             
         case TokenLeftBrace:
             ParseBlock(Parser, FALSE, TRUE);
+            CheckTrailingSemicolon = FALSE;
             break;
             
         case TokenIf:
@@ -451,6 +452,8 @@ int ParseStatement(struct ParseState *Parser)
                 memcpy(TopStackFrame->ReturnValue->Val, CValue->Val, TypeSizeValue(CValue));
                 Parser->Mode = RunModeReturn;
             }
+            else
+                ExpressionParse(Parser, &CValue);
             break;
             
         default:

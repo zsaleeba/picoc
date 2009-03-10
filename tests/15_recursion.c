@@ -1,10 +1,12 @@
-int fact(int i) {
-   if (i < 2) {
-       return i;
-   }
-   return (i * fact(i - 1));
+int factorial(int i) 
+{
+    if (i < 2)
+        return i;
+    else
+        return (i * factorial(i - 1));
 }
 
-fact(5)
-fact(6)
+int Count;
 
+for (Count = 1; Count <= 10; Count++)
+    printf("%d\n", factorial(Count));
