@@ -114,9 +114,6 @@ char *TableSetIdentifier(struct Table *Tbl, const char *Ident, int IdentLen)
     else
     {   /* add it to the table - we economise by not allocating the whole structure here */
         struct TableEntry *NewEntry = HeapAlloc(sizeof(struct TableEntry *) + IdentLen + 1);
-        //printf("allocated 0x%lx:%d for '", (unsigned long)NewEntry, sizeof(struct TableEntry *) + IdentLen + 1);
-        //fwrite(Ident, 1, IdentLen, stdout);
-        //printf("'\n");
         if (NewEntry == NULL)
             ProgramFail(NULL, "out of memory");
             

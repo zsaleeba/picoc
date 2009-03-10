@@ -135,7 +135,7 @@ void *HeapAlloc(int Size)
 #ifdef DEBUG_HEAP
                 printf("allocating %d(%d) from freelist, split chunk (%d)", Size, AllocSize, (*FreeNode)->Size);
 #endif
-                NewMem = *FreeNode + (*FreeNode)->Size - AllocSize;
+                NewMem = (void *)*FreeNode + (*FreeNode)->Size - AllocSize;
                 assert((unsigned long)NewMem >= (unsigned long)&HeapMemory[0] && (unsigned char *)NewMem - &HeapMemory[0] < HEAP_SIZE);
                 (*FreeNode)->Size -= AllocSize;
                 NewMem->Size = AllocSize;
