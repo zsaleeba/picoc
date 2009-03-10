@@ -100,7 +100,7 @@ void ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
     do
     {
         TypeParseIdentPart(Parser, BasicType, &Typ, &Identifier);
-        if ((Token != TokenVoidType && Token != TokenStructType && Token != TokenUnionType) && Identifier == StrEmpty)
+        if ((Token != TokenVoidType && Token != TokenStructType && Token != TokenUnionType && Token != TokenEnumType) && Identifier == StrEmpty)
             ProgramFail(Parser, "identifier expected");
             
         if (Identifier != StrEmpty)
