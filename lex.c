@@ -236,6 +236,7 @@ enum LexToken LexGetStringConstant(struct LexState *Lexer, struct Value *Value)
     const char *EndPos;
     char *EscBuf;
     char *EscBufPos;
+    char *RegString;
     struct Value *ArrayValue;
     
     while (Lexer->Pos != Lexer->End && (*Lexer->Pos != '"' || Escape))
@@ -256,11 +257,21 @@ enum LexToken LexGetStringConstant(struct LexState *Lexer, struct Value *Value)
     for (EscBufPos = EscBuf, Lexer->Pos = StartPos; Lexer->Pos != EndPos;)
         *EscBufPos++ = LexUnEscapeCharacter(&Lexer->Pos, EndPos);
     
-    ArrayValue = VariableAllocValueAndData(NULL, sizeof(struct ArrayValue), FALSE, NULL, TRUE);
-    ArrayValue->Typ = CharArrayType;
-    ArrayValue->Val->Array.Size = EscBufPos - EscBuf + 1;
-    ArrayValue->Val->Array.Data = TableStrRegister2(EscBuf, EscBufPos - EscBuf);
+    /* try to find an existing copy of this string literal */
+    RegString = TableStrRegister2(EscBuf, EscBufPos - EscBuf);
     HeapPopStack(EscBuf, EndPos - StartPos);
+    ArrayValue = VariableStringLiteralGet(RegString);
+    if (ArrayValue == NULL)
+    {
+        /* create and store this string literal */
+        ArrayValue = VariableAllocValueAndData(NULL, sizeof(struct ArrayValue), FALSE, NULL, TRUE);
+        ArrayValue->Typ = CharArrayType;
+        ArrayValue->Val->Array.Size = EscBufPos - EscBuf + 1;
+        ArrayValue->Val->Array.Data = RegString;
+        VariableStringLiteralDefine(RegString, ArrayValue);
+    }
+
+    /* create the the pointer for this char* */
     Value->Typ = CharPtrType;
     Value->Val->Pointer.Segment = ArrayValue;
     Value->Val->Pointer.Data.Offset = 0;

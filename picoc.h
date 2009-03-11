@@ -311,6 +311,8 @@ void VariableGet(struct ParseState *Parser, const char *Ident, struct Value **LV
 void VariableDefinePlatformVar(struct ParseState *Parser, char *Ident, struct ValueType *Typ, union AnyValue *FromValue, int IsWritable);
 void VariableStackFrameAdd(struct ParseState *Parser, int NumParams);
 void VariableStackFramePop(struct ParseState *Parser);
+struct Value *VariableStringLiteralGet(char *Ident);
+void VariableStringLiteralDefine(char *Ident, struct Value *Val);
 
 /* library.c */
 void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct LibraryFunction (*FuncList)[]);

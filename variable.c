@@ -4,6 +4,10 @@
 struct Table GlobalTable;
 struct TableEntry *GlobalHashTable[GLOBAL_TABLE_SIZE];
 
+/* the table of string literal values */
+struct Table StringLiteralTable;
+struct TableEntry *StringLiteralHashTable[STRING_LITERAL_TABLE_SIZE];
+
 /* the stack */
 struct StackFrame *TopStackFrame = NULL;
 
@@ -12,20 +16,21 @@ struct StackFrame *TopStackFrame = NULL;
 void VariableInit()
 {
     TableInitTable(&GlobalTable, &GlobalHashTable[0], GLOBAL_TABLE_SIZE, TRUE);
+    TableInitTable(&StringLiteralTable, &StringLiteralHashTable[0], STRING_LITERAL_TABLE_SIZE, TRUE);
     TopStackFrame = NULL;
 }
 
-/* deallocate the global table */
-void VariableCleanup()
+/* deallocate the global table and the string literal table */
+void VariableTableCleanup(struct Table *HashTable)
 {
     struct TableEntry *Entry;
     struct TableEntry *NextEntry;
     struct Value *Val;
     int Count;
     
-    for (Count = 0; Count < GlobalTable.Size; Count++)
+    for (Count = 0; Count < HashTable->Size; Count++)
     {
-        for (Entry = GlobalTable.HashTable[Count]; Entry != NULL; Entry = NextEntry)
+        for (Entry = HashTable->HashTable[Count]; Entry != NULL; Entry = NextEntry)
         {
             NextEntry = Entry->Next;
             Val = Entry->p.v.Val;
@@ -35,6 +40,12 @@ void VariableCleanup()
             HeapFree(Entry);
         }
     }
+}
+
+void VariableCleanup()
+{
+    VariableTableCleanup(&GlobalTable);
+    VariableTableCleanup(&StringLiteralTable);
 }
 
 /* allocate some memory, either on the heap or the stack and check if we've run out */
@@ -215,4 +226,21 @@ void VariableStackFramePop(struct ParseState *Parser)
     *Parser = TopStackFrame->ReturnParser;
     TopStackFrame = TopStackFrame->PreviousStackFrame;
     HeapPopStackFrame();
+}
+
+/* get a string literal. assumes that Ident is already registered. NULL if not found */
+struct Value *VariableStringLiteralGet(char *Ident)
+{
+    struct Value *LVal = NULL;
+
+    if (TableGet(&StringLiteralTable, Ident, &LVal))
+        return LVal;
+    else
+        return NULL;
+}
+
+/* define a string literal. assumes that Ident is already registered */
+void VariableStringLiteralDefine(char *Ident, struct Value *Val)
+{
+    TableSet(&StringLiteralTable, Ident, Val);
 }

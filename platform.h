@@ -13,8 +13,9 @@
 #define LARGE_INT_POWER_OF_TEN 1000000000   /* the largest power of ten which fits in an int on this architecture */
 #define ARCH_ALIGN_WORDSIZE sizeof(int)     /* memory alignment boundary on this architecture */
 
-#define GLOBAL_TABLE_SIZE 397               /* global variable table */
+#define GLOBAL_TABLE_SIZE 97                /* global variable table */
 #define STRING_TABLE_SIZE 97                /* shared string table size */
+#define STRING_LITERAL_TABLE_SIZE 97        /* string literal table size */
 #define PARAMETER_MAX 16                    /* maximum number of parameters to a function */
 #define LINEBUFFER_MAX 256                  /* maximum number of characters on a line */
 #define LOCAL_TABLE_SIZE 11                 /* size of local variable table (can expand) */
