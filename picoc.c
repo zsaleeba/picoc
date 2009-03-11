@@ -17,6 +17,7 @@ void Initialise()
 void Cleanup()
 {
     VariableCleanup();
+    TypeCleanup();
     TableStrFree();
 }
 

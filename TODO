@@ -22,6 +22,7 @@ Improvements:
 * periodic heap cleanup
 * octal/hex character constants
 * see if we can use ParserCopyPos() in other places rather than copying everything
+* how to deallocate char arrays allocated in the lexer?
 
 Need test/debug:
 * all break/continue variations

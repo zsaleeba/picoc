@@ -28,6 +28,7 @@ struct ValueType *TypeAdd(struct ParseState *Parser, struct ValueType *ParentTyp
     NewType->Members = NULL;
     NewType->FromType = ParentType;
     NewType->DerivedTypeList = NULL;
+    NewType->OnHeap = TRUE;
     NewType->Next = ParentType->DerivedTypeList;
     ParentType->DerivedTypeList = NewType;
     
@@ -93,6 +94,7 @@ void TypeAddBaseType(struct ValueType *TypeNode, enum BaseType Base, int Sizeof)
     TypeNode->Members = NULL;
     TypeNode->FromType = NULL;
     TypeNode->DerivedTypeList = NULL;
+    TypeNode->OnHeap = FALSE;
     TypeNode->Next = UberType.DerivedTypeList;
     UberType.DerivedTypeList = TypeNode;
 }
@@ -112,6 +114,26 @@ void TypeInit()
     TypeAddBaseType(&CharType, TypeChar, sizeof(char));
     CharPtrType = TypeAdd(NULL, &CharType, TypePointer, 0, StrEmpty, sizeof(struct PointerValue));
     CharArrayType = TypeAdd(NULL, &CharType, TypeArray, 0, StrEmpty, sizeof(char));
+}
+
+/* deallocate heap-allocated types */
+void TypeCleanupNode(struct ValueType *Typ)
+{
+    struct ValueType *SubType;
+    struct ValueType *NextSubType;
+    
+    for (SubType = Typ->DerivedTypeList; SubType != NULL; SubType = NextSubType)
+    {
+        NextSubType = SubType->Next;
+        TypeCleanupNode(SubType);
+        if (SubType->OnHeap)
+            HeapFree(SubType);
+    }
+}
+
+void TypeCleanup()
+{
+    TypeCleanupNode(&UberType);
 }
 
 /* parse a struct or union declaration */

@@ -116,6 +116,7 @@ struct ValueType
     struct ValueType *DerivedTypeList;  /* first in a list of types derived from this one */
     struct ValueType *Next;     /* next item in the derived type list */
     struct Table *Members;      /* members of a struct or union */
+    int OnHeap;                 /* true if allocated on the heap */
 };
 
 /* function definition */
@@ -276,6 +277,7 @@ int ExpressionParseInt(struct ParseState *Parser);
 
 /* type.c */
 void TypeInit();
+void TypeCleanup();
 int TypeSize(struct ValueType *Typ, int ArraySize);
 int TypeSizeValue(struct Value *Val);
 int TypeStackSizeValue(struct Value *Val);
