@@ -147,8 +147,8 @@ void TableStrFree()
     {
         for (Entry = StringTable.HashTable[Count]; Entry != NULL; Entry = NextEntry)
         {
-            HeapFree(Entry);
             NextEntry = Entry->Next;
+            HeapFree(Entry);
         }
     }
 }

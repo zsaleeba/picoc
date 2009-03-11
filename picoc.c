@@ -16,7 +16,7 @@ void Initialise()
 /* free memory */
 void Cleanup()
 {
-    //TableStrFree();
+    TableStrFree();
 }
 
 /* platform-dependent code for running programs is in this file */
