@@ -94,13 +94,18 @@ void *HeapAlloc(int Size)
     struct AllocNode *NewMem = NULL;
     struct AllocNode **FreeNode;
     int AllocSize = MEM_ALIGN(Size) + sizeof(NewMem->Size);
-    int Bucket = AllocSize >> 2;
+    int Bucket;
     
     if (Size == 0)
         return NULL;
     
     assert(Size > 0);
     
+    /* make sure we have enough space for an AllocNode */
+    if (AllocSize < sizeof(struct AllocNode))
+        AllocSize = sizeof(struct AllocNode);
+    
+    Bucket = AllocSize >> 2;
     if (Bucket < FREELIST_BUCKETS && FreeListBucket[Bucket] != NULL)
     { /* try to allocate from a freelist bucket first */
 #ifdef DEBUG_HEAP
