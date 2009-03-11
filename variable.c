@@ -15,6 +15,28 @@ void VariableInit()
     TopStackFrame = NULL;
 }
 
+/* deallocate the global table */
+void VariableCleanup()
+{
+    struct TableEntry *Entry;
+    struct TableEntry *NextEntry;
+    struct Value *Val;
+    int Count;
+    
+    for (Count = 0; Count < GlobalTable.Size; Count++)
+    {
+        for (Entry = GlobalTable.HashTable[Count]; Entry != NULL; Entry = NextEntry)
+        {
+            NextEntry = Entry->Next;
+            Val = Entry->p.v.Val;
+            if (Val->ValOnHeap)
+                HeapFree(Val);
+                
+            HeapFree(Entry);
+        }
+    }
+}
+
 /* allocate some memory, either on the heap or the stack and check if we've run out */
 void *VariableAlloc(struct ParseState *Parser, int Size, int OnHeap)
 {

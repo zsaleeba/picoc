@@ -16,6 +16,7 @@ void Initialise()
 /* free memory */
 void Cleanup()
 {
+    VariableCleanup();
     TableStrFree();
 }
 

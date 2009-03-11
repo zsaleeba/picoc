@@ -295,6 +295,7 @@ void HeapFree(void *Mem);
 
 /* variable.c */
 void VariableInit();
+void VariableCleanup();
 void *VariableAlloc(struct ParseState *Parser, int Size, int OnHeap);
 void VariableStackPop(struct ParseState *Parser, struct Value *Var);
 struct Value *VariableAllocValueAndData(struct ParseState *Parser, int DataSize, int IsLValue, struct Value *LValueFrom, int OnHeap);
