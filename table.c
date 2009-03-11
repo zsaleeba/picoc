@@ -135,3 +135,20 @@ char *TableStrRegister(const char *Str)
 {
     return TableStrRegister2(Str, strlen(Str));
 }
+
+/* free all the strings */
+void TableStrFree()
+{
+    struct TableEntry *Entry;
+    struct TableEntry *NextEntry;
+    int Count;
+    
+    for (Count = 0; Count < StringTable.Size; Count++)
+    {
+        for (Entry = StringTable.HashTable[Count]; Entry != NULL; Entry = NextEntry)
+        {
+            HeapFree(Entry);
+            NextEntry = Entry->Next;
+        }
+    }
+}

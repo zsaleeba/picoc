@@ -13,6 +13,12 @@ void Initialise()
     PlatformLibraryInit();
 }
 
+/* free memory */
+void Cleanup()
+{
+    //TableStrFree();
+}
+
 /* platform-dependent code for running programs is in this file */
 #ifdef UNIX_HOST
 int main(int argc, char **argv)
@@ -30,11 +36,15 @@ int main(int argc, char **argv)
     else
     {
         if (PlatformSetExitPoint())
+        {
+            Cleanup();
             return 1;
+        }
         
         PlatformScanFile(argv[1]);
     }
-        
+    
+    Cleanup();
     return 0;
 }
 #else
@@ -57,12 +67,14 @@ int picoc(char *SourceStr)
     setjmp(errjmp);
     if (errjmp[40]) {
         printf("leaving picoC\n\r");
+        Cleanup();
         return 1;
     }
         
     if (SourceStr)    
         Parse("test.c", SourceStr, strlen(SourceStr), TRUE);
     ParseInteractive();
+    Cleanup();
     return 0;
 }
 # endif

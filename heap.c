@@ -91,6 +91,9 @@ int HeapPopStackFrame()
 /* allocate some dynamically allocated memory. memory is cleared. can return NULL if out of memory */
 void *HeapAlloc(int Size)
 {
+#ifdef USE_MALLOC_HEAP
+    return calloc(Size, 1);
+#else
     struct AllocNode *NewMem = NULL;
     struct AllocNode **FreeNode;
     int AllocSize = MEM_ALIGN(Size) + sizeof(NewMem->Size);
@@ -166,11 +169,15 @@ void *HeapAlloc(int Size)
     printf(" = %lx\n", (unsigned long)&NewMem->NextFree);
 #endif
     return (void *)&NewMem->NextFree;
+#endif
 }
 
 /* free some dynamically allocated memory */
 void HeapFree(void *Mem)
 {
+#ifdef USE_MALLOC_HEAP
+    return free(Mem);
+#else
     struct AllocNode *MemNode = (struct AllocNode *)(Mem-sizeof(int));
     int Bucket = MemNode->Size >> 2;
     
@@ -204,4 +211,5 @@ void HeapFree(void *Mem)
         MemNode->NextFree = FreeListBig;
         FreeListBig = MemNode;
     }
+#endif
 }

@@ -251,6 +251,7 @@ void TableInitTable(struct Table *Tbl, struct TableEntry **HashTable, int Size, 
 int TableSet(struct Table *Tbl, char *Key, struct Value *Val);
 int TableGet(struct Table *Tbl, const char *Key, struct Value **Val);
 char *TableSetIdentifier(struct Table *Tbl, const char *Ident, int IdentLen);
+void TableStrFree();
 
 /* lex.c */
 void LexInit(void);
