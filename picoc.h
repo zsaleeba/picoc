@@ -255,7 +255,8 @@ char *TableSetIdentifier(struct Table *Tbl, const char *Ident, int IdentLen);
 void TableStrFree();
 
 /* lex.c */
-void LexInit(void);
+void LexInit();
+void LexCleanup();
 void *LexAnalyse(const char *FileName, const char *Source, int SourceLen, int *TokenLen);
 void LexInitParser(struct ParseState *Parser, void *TokenSource, const char *FileName, int Line, int RunIt);
 enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int IncPos);
@@ -270,6 +271,7 @@ int ParseStatement(struct ParseState *Parser);
 struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *ReturnType, char *Identifier, int IsProtoType);
 void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt);
 void ParseInteractive();
+void ParseCleanup();
 
 /* expression.c */
 int ExpressionParse(struct ParseState *Parser, struct Value **Result);
@@ -298,6 +300,7 @@ void HeapFree(void *Mem);
 /* variable.c */
 void VariableInit();
 void VariableCleanup();
+void VariableTableCleanup(struct Table *HashTable);
 void *VariableAlloc(struct ParseState *Parser, int Size, int OnHeap);
 void VariableStackPop(struct ParseState *Parser, struct Value *Var);
 struct Value *VariableAllocValueAndData(struct ParseState *Parser, int DataSize, int IsLValue, struct Value *LValueFrom, int OnHeap);
@@ -323,6 +326,7 @@ void PrintFP(double Num, CharWriter *PutCh);
 /* platform_support.c */
 void ProgramFail(struct ParseState *Parser, const char *Message, ...);
 void LexFail(struct LexState *Lexer, const char *Message, ...);
+void PlatformCleanup();
 void PlatformScanFile(const char *FileName);
 char *PlatformGetLine(char *Buf, int MaxLen);
 void PlatformPutc(unsigned char OutCh);

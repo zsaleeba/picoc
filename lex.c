@@ -87,6 +87,12 @@ void LexInit()
         ReservedWords[Count].SharedWord = TableStrRegister(ReservedWords[Count].Word);
 }
 
+/* deallocate */
+void LexCleanup()
+{
+    LexInteractiveClear(NULL);
+}
+
 /* check if a word is a reserved word - used while scanning */
 enum LexToken LexCheckReservedWord(const char *Word)
 {
@@ -661,7 +667,8 @@ void LexInteractiveClear(struct ParseState *Parser)
         InteractiveHead = NextLine;
     }
 
-    Parser->Pos = NULL;
+    if (Parser != NULL)
+        Parser->Pos = NULL;
     InteractiveTail = NULL;
 }
 

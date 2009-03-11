@@ -122,12 +122,23 @@ void TypeCleanupNode(struct ValueType *Typ)
     struct ValueType *SubType;
     struct ValueType *NextSubType;
     
+    /* clean up and free all the sub-nodes */
     for (SubType = Typ->DerivedTypeList; SubType != NULL; SubType = NextSubType)
     {
         NextSubType = SubType->Next;
         TypeCleanupNode(SubType);
         if (SubType->OnHeap)
+        {
+            /* if it's a struct or union deallocate all the member values */
+            if (SubType->Members != NULL)
+            {
+                VariableTableCleanup(SubType->Members);
+                HeapFree(SubType->Members);
+            }
+
+            /* free this node */
             HeapFree(SubType);
+        }
     }
 }
 

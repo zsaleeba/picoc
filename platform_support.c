@@ -1,6 +1,16 @@
 #include "picoc.h"
 
 #ifdef UNIX_HOST
+/* a source file we need to clean up */
+static char *CleanupText = NULL;
+
+/* deallocate any storage */
+void PlatformCleanup()
+{
+    if (CleanupText != NULL)
+        HeapFree(CleanupText);
+}
+
 /* get a line of interactive input */
 char *PlatformGetLine(char *Buf, int MaxLen)
 {
@@ -47,8 +57,15 @@ char *PlatformReadFile(const char *FileName)
 void PlatformScanFile(const char *FileName)
 {
     char *SourceStr = PlatformReadFile(FileName);
+    char *OrigCleanupText = CleanupText;
+    if (CleanupText == NULL)
+        CleanupText = SourceStr;
+
     Parse(FileName, SourceStr, strlen(SourceStr), TRUE);
     free(SourceStr);
+
+    if (OrigCleanupText == NULL)
+        CleanupText = NULL;
 }
 
 /* mark where to end the program for platforms which require this */
@@ -66,6 +83,12 @@ void PlatformExit()
 #endif
 
 #ifdef SURVEYOR_HOST
+
+/* deallocate any storage */
+void PlatformCleanup()
+{
+}
+
 /* get a line of interactive input */
 char *PlatformGetLine(char *Buf, int MaxLen)
 {

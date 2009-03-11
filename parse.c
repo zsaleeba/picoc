@@ -1,5 +1,15 @@
 #include "picoc.h"
 
+/* a chunk of heap-allocated tokens we should cleanup when we're done */
+static void *CleanupTokens = NULL;
+
+/* deallocate any memory */
+void ParseCleanup()
+{
+    if (CleanupTokens != NULL)
+        HeapFree(CleanupTokens);
+}
+
 /* parse a statement, but only run it if Condition is TRUE */
 int ParseStatementMaybeRun(struct ParseState *Parser, int Condition)
 {
@@ -472,7 +482,11 @@ void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt)
 {
     struct ParseState Parser;
     
+    void *OldCleanupTokens = CleanupTokens;
     void *Tokens = LexAnalyse(FileName, Source, SourceLen, NULL);
+    if (OldCleanupTokens == NULL)
+        CleanupTokens = Tokens;
+
     LexInitParser(&Parser, Tokens, FileName, 1, RunIt);
 
     while (ParseStatement(&Parser))
@@ -482,6 +496,8 @@ void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt)
         ProgramFail(&Parser, "parse error");
     
     HeapFree(Tokens);
+    if (OldCleanupTokens == NULL)
+        CleanupTokens = NULL;
 }
 
 /* parse interactively */

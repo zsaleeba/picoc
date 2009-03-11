@@ -16,6 +16,9 @@ void Initialise()
 /* free memory */
 void Cleanup()
 {
+    PlatformCleanup();
+    ParseCleanup();
+    LexCleanup();
     VariableCleanup();
     TypeCleanup();
     TableStrFree();

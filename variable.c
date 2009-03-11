@@ -35,8 +35,20 @@ void VariableTableCleanup(struct Table *HashTable)
             NextEntry = Entry->Next;
             Val = Entry->p.v.Val;
             if (Val->ValOnHeap)
+            {
+                /* free function bodies */
+                if (Val->Typ == &FunctionType && Val->Val->FuncDef.Intrinsic == NULL)
+                    HeapFree((void *)Val->Val->FuncDef.Body.Pos);
+
+                /* free macro bodies */
+                if (Val->Typ == &MacroType)
+                    HeapFree((void *)Val->Val->Parser.Pos);
+
+                /* free the value */
                 HeapFree(Val);
+            }
                 
+            /* free the hash table entry */
             HeapFree(Entry);
         }
     }
