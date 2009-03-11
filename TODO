@@ -22,7 +22,7 @@ Improvements:
 * periodic heap cleanup
 * octal/hex character constants
 * see if we can use ParserCopyPos() in other places rather than copying everything
-* how to deallocate char arrays allocated in the lexer?
+* do deallocation for 03_structs, 07_function, 10_pointer, 12_hashdefine, 15_recursion and 18_include called from wrong directory
 
 Need test/debug:
 * all break/continue variations
