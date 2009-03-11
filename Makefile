@@ -18,7 +18,7 @@ clean:
 	rm -f $(TARGET) $(OBJS) *~
 
 count:
-	wc picoc.h picoc.c table.c lex.c parse.c expression.c heap.c type.c variable.c clibrary.c
+	cat picoc.h picoc.c table.c lex.c parse.c expression.c heap.c type.c variable.c clibrary.c | grep -v '^[ 	]*/\*' | grep -v '^[ 	]*$$' | wc
 
 depend:
 	$(CC) -MM $(SRCS) >.depend
