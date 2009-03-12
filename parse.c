@@ -371,6 +371,7 @@ int ParseStatement(struct ParseState *Parser)
             CheckTrailingSemicolon = FALSE;
             break;
             
+#ifndef NO_HASH_INCLUDE
         case TokenHashInclude:
         {
             struct Value *LexerValue;
@@ -381,6 +382,7 @@ int ParseStatement(struct ParseState *Parser)
             CheckTrailingSemicolon = FALSE;
             break;
         }
+#endif
 
         case TokenSwitch:
             if (LexGetToken(Parser, NULL, TRUE) != TokenOpenBracket)

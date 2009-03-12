@@ -48,6 +48,7 @@
 #  ifdef SURVEYOR_HOST
 #   define NO_FP
 #   define NO_CTYPE
+#   define NO_HASH_INCLUDE
 #   include <cdefBF537.h>
 #   include "../string.h"
 #   include "../print.h"
