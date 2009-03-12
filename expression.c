@@ -1,5 +1,10 @@
 #include "picoc.h"
 
+
+/* whether evaluation is left to right for a given precedence level */
+#define IS_LEFT_TO_RIGHT(p) ((p) != 2 && (p) != 3 && (p) != 14)
+
+
 /* local prototypes */
 void ExpressionParseFunctionCall(struct ParseState *Parser, struct Value **Result, const char *FuncName);
 
@@ -396,6 +401,24 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
 }
 #else
 
+enum OperatorOrder
+{
+    OrderPrefix,
+    OrderInfix,
+    OrderPostfix
+};
+
+/* a stack of expressions we use in evaluation */
+struct ExpressionStack
+{
+    struct ExprStack *Next;         /* the next lower item on the stack */
+    struct Value *Val;              /* the value for this stack node */
+    enum EvaluationOrder Order;     /* the evaluation order of this operator */
+    enum LexToken Op;               /* the operator */
+    short Precedence;               /* the operator precedence of this node */
+    short LeftToRight;              /* indicates left to right evaluation, otherwise right to left */
+};
+
 /* operator precedence definitions */
 struct OpPrecedence
 {
@@ -433,13 +456,25 @@ void ExpressionStackCollapse(struct ParseState *Parser, struct ExpressionStack *
 }
 
 /* push an operator on to the expression stack */
-void ExpressionStackPushOperator(struct ParseState *Parser, struct ExpressionStack **StackTop, enum OperatorOrder Order, enum LexToken Token, int Precedence)
+void ExpressionStackPushOperator(struct ParseState *Parser, struct ExpressionStack **StackTop, enum OperatorOrder Order, enum LexToken Token, int Precedence, int LeftToRight)
 {
+    struct ExpressionStack *StackNode = VariableAlloc(Parser, sizeof(struct ExpressionStack), FALSE);
+    StackNode->Next = *StackTop;
+    StackNode->Order = Order;
+    StackNode->Op = Token;
+    StackNode->Precedence = Precedence;
+    StackNode->LeftToRight = LeftToRight;
+    *StackTop = StackNode;
 }
 
 /* push a value on to the expression stack */
 void ExpressionStackPushValue(struct ParseState *Parser, struct ExpressionStack **StackTop, struct Value *PushValue)
 {
+    struct Value *ValueLoc = VariableAllocValueAndCopy(Parser, PushValue, FALSE);
+    struct ExpressionStack *StackNode = VariableAlloc(Parser, sizeof(struct ExpressionStack), FALSE);
+    StackNode->Next = *StackTop;
+    StackNode->Val = ValueLoc;
+    *StackTop = StackNode;
 }
 
 /* parse an expression with operator precedence */
@@ -449,6 +484,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
     bool PrefixState = false;
     bool Done = false;
     int BracketPrecedence = 0;
+    int LocalPrecedence;
     int Precedence = 0;
     struct ExpressionStack *StackTop = NULL;
     
@@ -464,11 +500,12 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                 
                 if (Parser->Mode == RunModeRun)
                 {   
-                    Precedence = BracketPrecedence + OperatorPrecedence[(int)Token].PrefixPrecedence;
+                    LocalPrecedence = OperatorPrecedence[(int)Token].PrefixPrecedence;
+                    Precedence = BracketPrecedence + LocalPrecedence;
                     if (Token == TokenOpenBracket || Token == TokenLeftSquareBracket)
                     { /* boost the bracket operator precedence, then push */
                         BracketPrecedence += BRACKET_PREDECENCE;
-                        ExpressionStackPushOperator(Parser, &StackTop, OrderPrefix, Token, Precedence);
+                        ExpressionStackPushOperator(Parser, &StackTop, OrderPrefix, Token, Precedence, IS_LEFT_TO_RIGHT(LocalPrecedence));
                     }
                     else
                     { /* scan and collapse the stack to the precedence of this operator, then push */
