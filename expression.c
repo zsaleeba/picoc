@@ -58,11 +58,6 @@ int ExpressionParseValue(struct ParseState *Parser, struct Value **Result)
             
             LocalLValue = (*Result)->Val->Pointer.Segment;
             VariableStackPop(Parser, *Result);
-#if 0
-            *Result = VariableAllocValueAndCopy(struct ParseState *Parser, struct Value *FromValue, int OnHeap)
-            *Result = VariableAllocValueFromExistingData(Parser, (*Result)->Typ->FromType, (void *)LocalLValue->Val + LocalLValue->Val->Pointer.Segment, 
-                            LocalLValue->IsLValue, FromValue->IsLValue ? FromValue : NULL);
-#endif
             *Result = VariableAllocValueShared(Parser, LocalLValue);
             break;
 
@@ -415,8 +410,7 @@ struct ExpressionStack
     struct Value *Val;              /* the value for this stack node */
     enum EvaluationOrder Order;     /* the evaluation order of this operator */
     enum LexToken Op;               /* the operator */
-    short Precedence;               /* the operator precedence of this node */
-    short LeftToRight;              /* indicates left to right evaluation, otherwise right to left */
+    int Precedence;                 /* the operator precedence of this node */
 };
 
 /* operator precedence definitions */
@@ -438,9 +432,9 @@ static struct OpPrecedence OperatorPrecedence[] =
     /* TokenLogicalOr, */ { 0, 0, 4 },
     /* TokenLogicalAnd, */ { 0, 0, 5 },
     /* TokenArithmeticOr, */ { 0, 0, 6 },
-    /* TokenTilde, */ { 0, 0, 7 },
+    /* TokenArithmeticExor, */ { 0, 0, 7 },
     /* TokenAmpersand, */ { 14, 0, 8 },
-    /* TokenEqual, TokenNotEqual, */ { 0, 0, 9 },
+    /* TokenEqual, */  { 0, 0, 9 }, /* TokenNotEqual, */ { 0, 0, 9 },
     /* TokenLessThan, */ { 0, 0, 10 }, /* TokenGreaterThan, */ { 0, 0, 10 }, /* TokenLessEqual, */ { 0, 0, 10 }, /* TokenGreaterEqual, */ { 0, 0, 10 },
     /* TokenShiftLeft, */ { 0, 0, 11 }, /* TokenShiftRight, */ { 0, 0, 11 },
     /* TokenPlus, */ { 14, 0, 12 }, /* TokenMinus, */ { 14, 0, 12 },
@@ -450,13 +444,278 @@ static struct OpPrecedence OperatorPrecedence[] =
     /* TokenOpenBracket, */ { 15, 0, 0 }, /* TokenCloseBracket, */ { 0, 15, 0 }
 };
 
+/* evaluate a prefix operator */
+void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack **StackTop, struct LexToken Op, struct Value *TopValue)
+{
+    switch (TopOperatorNode->Op)
+    {
+        case TokenAmpersand:
+            if (!TopValue->IsLValue)
+                ProgramFail(Parser, "can't get the address of this");
+
+            TempLValue = TopValue->LValueFrom;
+            Result = VariableAllocValueFromType(Parser, TypeGetMatching(Parser, TopValue->Typ, TypePointer, 0, StrEmpty), FALSE, NULL);
+            Result->Val->Pointer.Segment = TempLValue;
+            Result->Val->Pointer.Data.Offset = (void *)Result->Val - (void *)Result->LValueFrom;
+            ExpressionStackPushValueNode(Parser, StackTop, Result);
+            break;
+        
+        case TokenAsterisk:
+            if (TopValue->Typ->Base != TypePointer)
+                ProgramFail(Parser, "can't dereference this non-pointer");
+            
+            Result = VariableAllocValueShared(Parser, TopValue->Val->Pointer.Segment);
+            ExpressionStackPushValueNode(Parser, StackTop, Result);
+            break;
+        
+        case TokenSizeof:
+            // XXX
+            break;
+        
+        case TokenLeftSquareBracket:
+            // XXX
+            break;
+        
+        case TokenOpenBracket:
+            // XXX
+            break;
+
+        default:
+            /* an arithmetic operator */
+            if (IS_INTEGER_COERCIBLE(TopValue))
+            {
+                /* integer prefix arithmetic */
+                int TopInt = COERCE_INTEGER(TopValue);
+                switch (TopOperatorNode->Op)
+                {
+                    case TokenPlus:         ResultInt = TopInt; break;
+                    case TokenMinus:        ResultInt = -TopInt; break;
+                    case TokenIncrement:    TopValue->Val->Integer++; ResultInt = COERCE_INTEGER(TopValue); break;  // XXX - what about non-lvalues?
+                    case TokenDecrement:    TopValue->Val->Integer--; ResultInt = COERCE_INTEGER(TopValue); break;  // XXX - what about non-lvalues?
+                    case TokenUnaryNot:     ResultInt = !TopInt; break;
+                    case TokenUnaryExor:    ResultInt = ~TopInt; break;
+                    default:                ProgramError(Parser, "invalid operation"); break;
+                }
+
+                ExpressionPushInt(Parser, StackTop, ResultInt);
+            }
+#ifndef NO_FP
+            else if (TopValue->Typ == &FPType)
+            {
+                /* floating point prefix arithmetic */
+                switch (TopOperatorNode->Op)
+                {
+                    case TokenPlus:         ResultFP = TopValue->Val->FP; break;
+                    case TokenMinus:        ResultFP = -TopValue->Val->FP; break;
+                    default:                ProgramError(Parser, "invalid operation"); break;
+                }
+            }
+#endif
+            else
+            {
+                /* pointer prefix arithmetic */
+                int TopInt = COERCE_INTEGER(TopValue);
+            }
+            break;
+    }
+}
+
+/* evaluate a postfix operator */
+void ExpressionPostfixOperator(struct ParseState *Parser, struct ExpressionStack **StackTop, struct LexToken Op, struct Value *TopValue)
+{
+    if (IS_INTEGER_COERCIBLE(TopValue))
+    {
+        int TopInt = COERCE_INTEGER(TopValue);
+        switch (TopOperatorNode->Op)
+        {
+            case TokenIncrement:            ResultInt = TopInt; TopValue->Val->Integer++; break;  // XXX - what about non-lvalues?
+            case TokenDecrement:            ResultInt = TopInt; TopValue->Val->Integer--; break;  // XXX - what about non-lvalues?
+            case TokenRightSquareBracket:   break;  // XXX
+            case TokenCloseBracket:         break;  // XXX
+            default:                        ProgramError(Parser, "invalid operation"); break;
+        }
+    }
+    
+    ExpressionPushInt(Parser, StackTop, ResultInt);
+}
+
+/* evaluate an infix operator */
+void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack **StackTop, struct LexToken Op, struct Value *BottomValue, struct Value *TopValue)
+{
+    switch (TopOperatorNode->Op)
+    {
+        case TokenComma:
+        case TokenAssign:
+        case TokenDot:
+        case TokenArrow:
+        default:
+            if (IS_INTEGER_COERCIBLE(TopValue) && IS_INTEGER_COERCIBLE(BottomValue))
+            {
+                int TopInt = COERCE_INTEGER(TopValue);
+                int BottomInt = COERCE_INTEGER(BottomValue);
+                switch (TopOperatorNode->Op)
+                {
+                    case TokenAddAssign:            break; // XXX
+                    case TokenSubtractAssign:       break; // XXX
+                    case TokenMultiplyAssign:       break; // XXX
+                    case TokenDivideAssign:         break; // XXX
+                    case TokenModulusAssign:        break; // XXX
+                    case TokenShiftLeftAssign:      break; // XXX
+                    case TokenShiftRightAssign:     break; // XXX
+                    case TokenArithmeticAndAssign:  break; // XXX
+                    case TokenArithmeticOrAssign:   break; // XXX
+                    case TokenArithmeticExorAssign: break; // XXX
+                    case TokenQuestionMark:         break; // XXX
+                    case TokenColon:                break; // XXX
+                    case TokenLogicalOr:            Result = BottomInt || TopInt; break;
+                    case TokenLogicalAnd:           Result = BottomInt && TopInt; break;
+                    case TokenArithmeticOr:         Result = BottomInt | TopInt; break;
+                    case TokenArithmeticExor:       Result = BottomInt ~ TopInt; break;
+                    case TokenAmpersand:            Result = BottomInt & TopInt; break;
+                    case TokenEqual:                Result = BottomInt == TopInt; break;
+                    case TokenNotEqual:             Result = BottomInt != TopInt; break;
+                    case TokenLessThan:             Result = BottomInt < TopInt; break;
+                    case TokenGreaterThan:          Result = BottomInt > TopInt; break;
+                    case TokenLessEqual:            Result = BottomInt <= TopInt; break;
+                    case TokenGreaterEqual:         Result = BottomInt >= TopInt; break;
+                    case TokenShiftLeft:            Result = BottomInt << TopInt; break;
+                    case TokenShiftRight:           Result = BottomInt << TopInt; break;
+                    case TokenPlus:                 Result = BottomInt + TopInt; break;
+                    case TokenMinus:                Result = BottomInt - TopInt; break;
+                    case TokenAsterisk:             Result = BottomInt * TopInt; break;
+                    case TokenSlash:                Result = BottomInt / TopInt; break;
+                    case TokenModulus:              Result = BottomInt % TopInt; break;
+                    default:                        ProgramError(Parser, "invalid operation"); break;
+                }
+                
+                ExpressionPushInt(Parser, StackTop, ResultInt);
+            }
+#ifndef NO_FP
+            else if ( (TopValue->Typ == &FPType && BottomValue->Typ == &FPType) ||
+                      (TopValue->Typ == &FPType && IS_INTEGER_COERCIBLE(BottomValue)) ||
+                      (IS_INTEGER_COERCIBLE(TopValue) && BottomValue->Typ == &FPType) )
+            {
+                /* floating point infix arithmetic */
+                double TopFP = (TopValue->Typ == &FPType) ? TopValue->Val->FP : (double)COERCE_INTEGER(TopValue);
+                double BottomFP = (BottomValue->Typ == &FPType) ? BottomValue->Val->FP : (double)COERCE_INTEGER(BottomValue);
+
+                switch (TopOperatorNode->Op)
+                {
+                    case TokenAddAssign:            break; // XXX
+                    case TokenSubtractAssign:       break; // XXX
+                    case TokenMultiplyAssign:       break; // XXX
+                    case TokenDivideAssign:         break; // XXX
+                    case TokenModulusAssign:        break; // XXX
+                    case TokenEqual:                Result = BottomInt == TopInt; break;
+                    case TokenNotEqual:             Result = BottomInt != TopInt; break;
+                    case TokenLessThan:             Result = BottomInt < TopInt; break;
+                    case TokenGreaterThan:          Result = BottomInt > TopInt; break;
+                    case TokenLessEqual:            Result = BottomInt <= TopInt; break;
+                    case TokenGreaterEqual:         Result = BottomInt >= TopInt; break;
+                    case TokenPlus:                 Result = BottomInt + TopInt; break;
+                    case TokenMinus:                Result = BottomInt - TopInt; break;
+                    case TokenAsterisk:             Result = BottomInt * TopInt; break;
+                    case TokenSlash:                Result = BottomInt / TopInt; break;
+                    case TokenModulus:              Result = BottomInt % TopInt; break;
+                    default:                        ProgramError(Parser, "invalid operation"); break;
+                }
+
+                ExpressionPushFP(Parser, StackTop, ResultInt);
+            }
+#endif
+            else if ( (TopValue->Typ->Base == TypePointer && IS_INTEGER_COERCIBLE(BottomValue)) ||
+                      (IS_INTEGER_COERCIBLE(TopValue) && BottomValue->Typ->Base == TypePointer) )
+            {
+                /* pointer infix arithmetic */
+                
+                switch (TopOperatorNode->Op)
+                {
+                    case TokenEqual:                Result = BottomInt == TopInt; break;
+                    case TokenNotEqual:             Result = BottomInt != TopInt; break;
+                    case TokenLessThan:             Result = BottomInt < TopInt; break;
+                    case TokenGreaterThan:          Result = BottomInt > TopInt; break;
+                    case TokenLessEqual:            Result = BottomInt <= TopInt; break;
+                    case TokenGreaterEqual:         Result = BottomInt >= TopInt; break;
+                    case TokenShiftLeft:            Result = BottomInt << TopInt; break;
+                    case TokenShiftRight:           Result = BottomInt << TopInt; break;
+                    case TokenPlus:                 Result = BottomInt + TopInt; break;
+                    case TokenMinus:                Result = BottomInt - TopInt; break;
+                    default:                        ProgramError(Parser, "invalid operation"); break;
+                }
+                
+                // XXX - push it back on the stack
+            }
+            else
+                ProgramError(Parser, "invalid operation"); break;
+            break;
+    }
+}
+
 /* take the contents of the expression stack and compute the top until there's nothing greater than the given precedence */
 void ExpressionStackCollapse(struct ParseState *Parser, struct ExpressionStack **StackTop, int Precedence)
 {
+    int FoundPrecedence = Precedence;
+    struct Value *TopValue;
+    struct Value *BottomValue;
+    struct ExpressionStack *TopStackNode = *StackTop;
+    struct ExpressionStack *TopOperatorNode;
+    
+    while (TopStackNode != NULL && FoundPrecedence >= Precedence)
+    {
+        /* find the top operator on the stack */
+        if (TopStackNode->Value != NULL)
+            TopOperatorNode = TopStackNode->Next;
+        else
+            TopOperatorNode = TopStackNode;
+        
+        /* does it have a high enough precedence? */
+        if (FoundPrecedence >= Precedence)
+        {
+            /* execute this operator */
+            switch (TopOperatorNode->Order)
+            {
+                case OrderPrefix:
+                    /* prefix evaluation */
+                    TopValue = TopStackNode->Val;
+                    
+                    /* pop the value and then the prefix operator - assume they'll still be there until we're done */
+                    StackTop = TopOperatorNode->Next;
+                    StackPop(TopOperatorNode, sizeof(struct ExpressionStack)*2 + TypeStackSizeValue(TopValue));
+                    
+                    /* do the prefix operation */
+                    ExpressionPrefixOperator(Parser, StackTop, TopOperatorNode->Op, TopValue);
+                    break;
+                
+                case OrderPostfix:
+                    /* postfix evaluation */
+                    TopValue = TopStackNode->Next->Val;
+                    
+                    /* pop the prefix operator and then the value - assume they'll still be there until we're done */
+                    StackTop = TopValue->Next;
+                    StackPop(TopOperatorNode, sizeof(struct ExpressionStack)*2 + TypeStackSizeValue(TopValue));
+
+                    /* do the postfix operation */
+                    ExpressionPostfixOperator(Parser, StackTop, TopOperatorNode->Op, TopValue);
+                    break;
+                
+                case OrderInfix:
+                    /* infix evaluation */
+                    TopValue = TopStackNode->Val;
+                    BottomValue = TopOperatorNode->Next->Val;
+                    
+                    /* pop a value, the operator and another value */
+                    StackPop(TopOperatorNode, sizeof(struct ExpressionStack)*3 + TypeStackSizeValue(TopValue) + TypeStackSizeValue(BottomValue));
+
+                    /* do the infix operation */
+                    ExpressionInfixOperator(Parser, StackTop, TopOperatorNode->Op, BottomValue, TopValue);
+                    break;
+            }
+        }
+    }
 }
 
 /* push an operator on to the expression stack */
-void ExpressionStackPushOperator(struct ParseState *Parser, struct ExpressionStack **StackTop, enum OperatorOrder Order, enum LexToken Token, int Precedence, int LeftToRight)
+void ExpressionStackPushOperator(struct ParseState *Parser, struct ExpressionStack **StackTop, enum OperatorOrder Order, enum LexToken Token, int Precedence)
 {
     struct ExpressionStack *StackNode = VariableAlloc(Parser, sizeof(struct ExpressionStack), FALSE);
     StackNode->Next = *StackTop;
@@ -467,14 +726,20 @@ void ExpressionStackPushOperator(struct ParseState *Parser, struct ExpressionSta
     *StackTop = StackNode;
 }
 
-/* push a value on to the expression stack */
-void ExpressionStackPushValue(struct ParseState *Parser, struct ExpressionStack **StackTop, struct Value *PushValue)
+/* push a node on to the expression stack */
+void ExpressionStackPushValueNode(struct ParseState *Parser, struct ExpressionStack **StackTop, struct Value *ValueLoc)
 {
-    struct Value *ValueLoc = VariableAllocValueAndCopy(Parser, PushValue, FALSE);
     struct ExpressionStack *StackNode = VariableAlloc(Parser, sizeof(struct ExpressionStack), FALSE);
     StackNode->Next = *StackTop;
     StackNode->Val = ValueLoc;
     *StackTop = StackNode;
+}
+
+/* push a value on to the expression stack */
+void ExpressionStackPushValue(struct ParseState *Parser, struct ExpressionStack **StackTop, struct Value *PushValue)
+{
+    struct Value *ValueLoc = VariableAllocValueAndCopy(Parser, PushValue, FALSE);
+    ExpressionStackPushValueNode(Parser, StackTop, ValueLoc);
 }
 
 /* parse an expression with operator precedence */
@@ -505,7 +770,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                     if (Token == TokenOpenBracket || Token == TokenLeftSquareBracket)
                     { /* boost the bracket operator precedence, then push */
                         BracketPrecedence += BRACKET_PREDECENCE;
-                        ExpressionStackPushOperator(Parser, &StackTop, OrderPrefix, Token, Precedence, IS_LEFT_TO_RIGHT(LocalPrecedence));
+                        ExpressionStackPushOperator(Parser, &StackTop, OrderPrefix, Token, Precedence);
                     }
                     else
                     { /* scan and collapse the stack to the precedence of this operator, then push */
@@ -550,9 +815,16 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                     }
                 }
                 else if (OperatorPrecedence[(int)Token].InfixPrecedence != 0)
-                { /* scan and collapse the stack to the precedence of this operator, then push */
+                { /* scan and collapse the stack, then push */
                     Precedence = BracketPrecedence + OperatorPrecedence[(int)Token].InfixPrecedence;
-                    ExpressionStackCollapse(Parser, &StackTop, Precedence);
+                    
+                    /* for right to left order, only go down to the next higher precedence so we evaluate it in reverse order */
+                    /* for left to right order, collapse down to this precedence so we evaluate it in forward order */
+                    if (IS_LEFT_TO_RIGHT(Precedence))
+                        ExpressionStackCollapse(Parser, &StackTop, Precedence);
+                    else
+                        ExpressionStackCollapse(Parser, &StackTop, Precedence+1);
+
                     ExpressionStackPushOperator(Parser, &StackTop, OrderInfix, Token, Precedence);
                     PrefixState = true;
                 }

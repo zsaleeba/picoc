@@ -11,7 +11,7 @@ all: depend $(TARGET)
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) $(LIBS)
 
-test:	picoc
+test:	all
 	(cd tests; make test)
 
 clean:
