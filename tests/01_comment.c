@@ -1,5 +1,5 @@
-sayhello();
-sayhello(); /* this is a comment */ sayhello();
-sayhello();
+printf("Hello\n");
+printf("Hello\n"); /* this is a comment */ printf("Hello\n");
+printf("Hello\n");
 // this is also a comment sayhello();
-sayhello();
+printf("Hello\n");

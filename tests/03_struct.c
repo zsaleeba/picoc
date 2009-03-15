@@ -9,5 +9,5 @@ struct fred bloggs;
 bloggs.boris = 12;
 bloggs.natasha = 34;
 
-printint(bloggs.boris);
-printint(bloggs.natasha);
+printf("%d\n", bloggs.boris);
+printf("%d\n", bloggs.natasha);

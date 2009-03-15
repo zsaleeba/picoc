@@ -2,19 +2,19 @@ int Count;
 
 for (Count = 0; Count < 4; Count++)
 {
-    printint(Count);
+    printf("%d\n", Count);
     switch (Count)
     {
         case 1:
-            printint(1);
+            printf("%d\n", 1);
 	    break;
 
         case 2:
-            printint(2);
+            printf("%d\n", 2);
 	    break;
 
         default:
-            printint(0);
+            printf("%d\n", 0);
             break;
     }
 }

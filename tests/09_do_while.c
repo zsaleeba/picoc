@@ -8,7 +8,7 @@ t = 0;
 
 do
 {
-    printint(a);
+    printf("%d\n", a);
     t = a;
     a = t + p;
     p = t;
