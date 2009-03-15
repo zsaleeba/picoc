@@ -57,6 +57,7 @@
 #   include "../stdarg.h"
 #   include "../colors.h"
 #   include "../neural.h"
+#   include "../gps.h"
 #   include "../i2c.h"
 #   define assert(x)
 #   undef INTERACTIVE_PROMPT_STATEMENT
