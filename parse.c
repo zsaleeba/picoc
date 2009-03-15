@@ -99,7 +99,7 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
 }
 
 /* declare a variable or function */
-void ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
+int ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
 {
     char *Identifier;
     struct ValueType *BasicType;
@@ -117,7 +117,10 @@ void ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
         {
             /* handle function definitions */
             if (LexGetToken(Parser, NULL, FALSE) == TokenOpenBracket)
+            {
                 ParseFunctionDefinition(Parser, Typ, Identifier, FALSE);
+                return FALSE;
+            }
             else
             {
                 if (Token == TokenVoidType && Identifier != StrEmpty)
@@ -143,6 +146,8 @@ void ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
             LexGetToken(Parser, NULL, TRUE);
             
     } while (Token == TokenComma);
+    
+    return TRUE;
 }
 
 /* parse a #define macro definition and store it for later */
@@ -364,7 +369,7 @@ int ParseStatement(struct ParseState *Parser)
         case TokenUnionType:
         case TokenEnumType:
             *Parser = PreState;
-            ParseDeclaration(Parser, Token);
+            CheckTrailingSemicolon = ParseDeclaration(Parser, Token);
             break;
         
         case TokenHashDefine:
