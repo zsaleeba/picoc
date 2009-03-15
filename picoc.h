@@ -54,7 +54,7 @@ enum LexToken
     TokenIntType, TokenCharType, TokenFloatType, TokenDoubleType, TokenVoidType, TokenEnumType,
     TokenLongType, TokenSignedType, TokenShortType, TokenStructType, TokenUnionType, TokenUnsignedType, TokenTypedef,
     TokenContinue, TokenDo, TokenElse, TokenFor, TokenIf, TokenWhile, TokenBreak, TokenSwitch, TokenCase, TokenDefault, TokenReturn,
-    TokenHashDefine, TokenHashInclude,
+    TokenHashDefine, TokenHashInclude, TokenDelete,
     TokenNone, TokenEOF, TokenEndOfLine, TokenEndOfFunction
 };
 
@@ -248,6 +248,7 @@ char *TableStrRegister2(const char *Str, int Len);
 void TableInitTable(struct Table *Tbl, struct TableEntry **HashTable, int Size, int OnHeap);
 int TableSet(struct Table *Tbl, char *Key, struct Value *Val);
 int TableGet(struct Table *Tbl, const char *Key, struct Value **Val);
+struct Value *TableDelete(struct Table *Tbl, const char *Key);
 char *TableSetIdentifier(struct Table *Tbl, const char *Ident, int IdentLen);
 void TableStrFree();
 
@@ -297,6 +298,7 @@ void HeapFree(void *Mem);
 /* variable.c */
 void VariableInit();
 void VariableCleanup();
+void VariableFree(struct Value *Val);
 void VariableTableCleanup(struct Table *HashTable);
 void *VariableAlloc(struct ParseState *Parser, int Size, int OnHeap);
 void VariableStackPop(struct ParseState *Parser, struct Value *Var);

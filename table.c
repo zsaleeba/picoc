@@ -87,6 +87,25 @@ int TableGet(struct Table *Tbl, const char *Key, struct Value **Val)
     return TRUE;
 }
 
+/* remove an entry from the table */
+struct Value *TableDelete(struct Table *Tbl, const char *Key)
+{
+    struct TableEntry **EntryPtr;
+    int HashValue = ((unsigned long)Key) % Tbl->Size;   /* shared strings have unique addresses so we don't need to hash them */
+    
+    for (EntryPtr = &Tbl->HashTable[HashValue]; *EntryPtr != NULL; EntryPtr = &(*EntryPtr)->Next)
+    {
+        if ((*EntryPtr)->p.v.Key == Key)
+        {
+            struct Value *Val = (*EntryPtr)->p.v.Val;
+            *EntryPtr = (*EntryPtr)->Next;
+            return Val;
+        }
+    }
+
+    return NULL;
+}
+
 /* check a hash table entry for an identifier */
 static struct TableEntry *TableSearchIdentifier(struct Table *Tbl, const char *Key, int Len, int *AddAt)
 {

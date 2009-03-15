@@ -20,12 +20,29 @@ void VariableInit()
     TopStackFrame = NULL;
 }
 
+/* deallocate the contents of a variable */
+void VariableFree(struct Value *Val)
+{
+    if (Val->ValOnHeap)
+    {
+        /* free function bodies */
+        if (Val->Typ == &FunctionType && Val->Val->FuncDef.Intrinsic == NULL)
+            HeapFree((void *)Val->Val->FuncDef.Body.Pos);
+
+        /* free macro bodies */
+        if (Val->Typ == &MacroType)
+            HeapFree((void *)Val->Val->Parser.Pos);
+
+        /* free the value */
+        HeapFree(Val);
+    }
+}
+
 /* deallocate the global table and the string literal table */
 void VariableTableCleanup(struct Table *HashTable)
 {
     struct TableEntry *Entry;
     struct TableEntry *NextEntry;
-    struct Value *Val;
     int Count;
     
     for (Count = 0; Count < HashTable->Size; Count++)
@@ -33,20 +50,7 @@ void VariableTableCleanup(struct Table *HashTable)
         for (Entry = HashTable->HashTable[Count]; Entry != NULL; Entry = NextEntry)
         {
             NextEntry = Entry->Next;
-            Val = Entry->p.v.Val;
-            if (Val->ValOnHeap)
-            {
-                /* free function bodies */
-                if (Val->Typ == &FunctionType && Val->Val->FuncDef.Intrinsic == NULL)
-                    HeapFree((void *)Val->Val->FuncDef.Body.Pos);
-
-                /* free macro bodies */
-                if (Val->Typ == &MacroType)
-                    HeapFree((void *)Val->Val->Parser.Pos);
-
-                /* free the value */
-                HeapFree(Val);
-            }
+            VariableFree(Entry->p.v.Val);
                 
             /* free the hash table entry */
             HeapFree(Entry);
@@ -140,14 +144,14 @@ struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *
     return VariableAllocValueFromExistingData(Parser, FromValue->Typ, FromValue->Val, FromValue->IsLValue, FromValue->IsLValue ? FromValue : NULL);
 }
 
-/* define a variable */
+/* define a variable. Ident must be registered */
 void VariableDefine(struct ParseState *Parser, char *Ident, struct Value *InitValue)
 {
     if (!TableSet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, Ident, VariableAllocValueAndCopy(Parser, InitValue, TopStackFrame == NULL)))
         ProgramFail(Parser, "'%s' is already defined", Ident);
 }
 
-/* check if a variable with a given name is defined */
+/* check if a variable with a given name is defined. Ident must be registered */
 int VariableDefined(const char *Ident)
 {
     struct Value *FoundValue;
@@ -161,7 +165,7 @@ int VariableDefined(const char *Ident)
     return TRUE;
 }
 
-/* get the value of a variable. must be defined */
+/* get the value of a variable. must be defined. Ident must be registered */
 void VariableGet(struct ParseState *Parser, const char *Ident, struct Value **LVal)
 {
     if (TopStackFrame == NULL || !TableGet(&TopStackFrame->LocalTable, Ident, LVal))
@@ -171,7 +175,7 @@ void VariableGet(struct ParseState *Parser, const char *Ident, struct Value **LV
     }
 }
 
-/* define a global variable shared with a platform global */
+/* define a global variable shared with a platform global. Ident will be registered */
 void VariableDefinePlatformVar(struct ParseState *Parser, char *Ident, struct ValueType *Typ, union AnyValue *FromValue, int IsWritable)
 {
     struct Value *SomeValue = VariableAllocValueAndData(NULL, (Typ->Base == TypeArray) ? sizeof(struct ArrayValue) : 0, IsWritable, NULL, TRUE);

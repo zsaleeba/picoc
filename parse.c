@@ -260,6 +260,7 @@ enum RunMode ParseBlock(struct ParseState *Parser, int AbsorbOpenBrace, int Cond
 int ParseStatement(struct ParseState *Parser)
 {
     struct Value *CValue;
+    struct Value *LexerValue;
     int Condition;
     int CheckTrailingSemicolon = TRUE;
     struct ParseState PreState = *Parser;
@@ -373,15 +374,12 @@ int ParseStatement(struct ParseState *Parser)
             
 #ifndef NO_HASH_INCLUDE
         case TokenHashInclude:
-        {
-            struct Value *LexerValue;
             if (LexGetToken(Parser, &LexerValue, TRUE) != TokenStringConstant)
                 ProgramFail(Parser, "\"filename.h\" expected");
             
             PlatformScanFile(LexerValue->Val->Pointer.Segment->Val->Array.Data);
             CheckTrailingSemicolon = FALSE;
             break;
-        }
 #endif
 
         case TokenSwitch:
@@ -467,7 +465,19 @@ int ParseStatement(struct ParseState *Parser)
             else
                 ExpressionParse(Parser, &CValue);
             break;
+        
+        case TokenDelete:
+            if (LexGetToken(Parser, &LexerValue, TRUE) != TokenIdentifier)
+                ProgramFail(Parser, "identifier expected");
+                
+            CValue = TableDelete(&GlobalTable, LexerValue->Val->Identifier);
+
+            if (CValue == NULL)
+                ProgramFail(Parser, "'%s' is not defined", LexerValue->Val->Identifier);
             
+            VariableFree(CValue);
+            break;
+        
         default:
             *Parser = PreState;
             return FALSE;

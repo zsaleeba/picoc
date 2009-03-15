@@ -38,6 +38,7 @@ static struct ReservedWord ReservedWords[] =
     { "char", TokenCharType, NULL },
     { "continue", TokenContinue, NULL },
     { "default", TokenDefault, NULL },
+    { "delete", TokenDelete, NULL },
     { "do", TokenDo, NULL },
 #ifndef NO_FP
     { "double", TokenDoubleType, NULL },
