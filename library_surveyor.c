@@ -1,6 +1,7 @@
 #include "picoc.h"
 
 static int Blobcnt, Blobx1, Blobx2, Bloby1, Bloby2, Iy1, Iy2, Iu1, Iu2, Iv1, Iv2;
+static int GPSlatdeg, GPSlatmin, GPSlondeg, GPSlonmin, GPSalt, GPSfix, GPSsat, GPSutc;
 void PlatformLibraryInit()
 {
     VariableDefinePlatformVar(NULL, "blobcnt", &IntType, (union AnyValue *)&Blobcnt, FALSE);
@@ -14,6 +15,14 @@ void PlatformLibraryInit()
     VariableDefinePlatformVar(NULL, "u2", &IntType, (union AnyValue *)&Iu2, FALSE);
     VariableDefinePlatformVar(NULL, "v1", &IntType, (union AnyValue *)&Iv1, FALSE);
     VariableDefinePlatformVar(NULL, "v2", &IntType, (union AnyValue *)&Iv2, FALSE);
+    VariableDefinePlatformVar(NULL, "gpslatdeg", &IntType, (union AnyValue *)&GPSlatdeg, FALSE);
+    VariableDefinePlatformVar(NULL, "gpslatmin", &IntType, (union AnyValue *)&GPSlatmin, FALSE);
+    VariableDefinePlatformVar(NULL, "gpslondeg", &IntType, (union AnyValue *)&GPSlondeg, FALSE);
+    VariableDefinePlatformVar(NULL, "gpslonmin", &IntType, (union AnyValue *)&GPSlonmin, FALSE);
+    VariableDefinePlatformVar(NULL, "gpsalt", &IntType, (union AnyValue *)&GPSalt, FALSE);
+    VariableDefinePlatformVar(NULL, "gpsfix", &IntType, (union AnyValue *)&GPSfix, FALSE);
+    VariableDefinePlatformVar(NULL, "gpssat", &IntType, (union AnyValue *)&GPSsat, FALSE);
+    VariableDefinePlatformVar(NULL, "gpsutc", &IntType, (union AnyValue *)&GPSutc, FALSE);
 }
 
 void Csignal(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // check for kbhit, return t or nil
@@ -214,11 +223,24 @@ void Ccompass(struct ParseState *Parser, struct Value *ReturnValue, struct Value
     unsigned int ix;
     
     i2c_data[0] = 0x41;  // read compass twice to clear last reading
-    i2cread(0x21, (unsigned char *)i2c_data, 2, SCCB_ON);
+    i2cread(0x22, (unsigned char *)i2c_data, 2, SCCB_ON);
     i2c_data[0] = 0x41;
-    i2cread(0x21, (unsigned char *)i2c_data, 2, SCCB_ON);
+    i2cread(0x22, (unsigned char *)i2c_data, 2, SCCB_ON);
     ix = ((i2c_data[0] << 8) + i2c_data[1]) / 10;
     ReturnValue->Val->Integer = ix;
+}
+
+void Cgps(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    gps_parse();
+    GPSlatdeg = gps_gga.latdeg;
+    GPSlatmin = gps_gga.latmin;
+    GPSlondeg = gps_gga.londeg;
+    GPSlonmin = gps_gga.lonmin;
+    GPSalt = gps_gga.alt;
+    GPSfix = gps_gga.fix;
+    GPSsat = gps_gga.sat;
+    GPSutc = gps_gga.utc;
 }
 
 void Creadi2c(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  //  syntax   val = readi2c(device, register);
@@ -496,8 +518,6 @@ void Cnnlearnblob (struct ParseState *Parser, struct Value *ReturnValue, struct 
 /* list of all library functions and their prototypes */
 struct LibraryFunction PlatformLibrary[] =
 {
-    { SayHello,     "void sayhello()" },
-    { PrintInteger, "void printint(int)" },
     { Csignal,      "int signal()" },
     { Cinput,       "int input()" },
     { Cdelay,       "void delay(int)" },
@@ -517,6 +537,7 @@ struct LibraryFunction PlatformLibrary[] =
     { Cvmean,       "void vmean()" },
     { Cvblob,       "int vblob(int, int)" },
     { Ccompass,     "int compass()" },
+    { Cgps,         "void gps()" },
     { Creadi2c,     "int readi2c(int, int)" },
     { Creadi2c2,    "int readi2c2(int, int)" },
     { Cwritei2c,    "void writei2c(int, int, int)" },
