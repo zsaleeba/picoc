@@ -1,31 +1,8 @@
 #include "picoc.h"
 
-void SayHello(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
-{
-    PlatformPrintf("Hello\n");
-}
-
-void PrintInteger(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
-{
-    PlatformPrintf("%d\n", Param[0]->Val->Integer);
-}
-
-#ifdef UNIX_HOST
-void Random(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
-{
-    ReturnValue->Val->Integer = rand();
-}
-#endif
-
-static int SomeVar = 42;
-static int SomeArray[4];
 static int Blobcnt, Blobx1, Blobx2, Bloby1, Bloby2, Iy1, Iy2, Iu1, Iu2, Iv1, Iv2;
 void PlatformLibraryInit()
 {
-    struct ValueType *IntArrayType;
-
-    VariableDefinePlatformVar(NULL, "somevar", &IntType, (union AnyValue *)&SomeVar, TRUE);
-
     VariableDefinePlatformVar(NULL, "blobcnt", &IntType, (union AnyValue *)&Blobcnt, FALSE);
     VariableDefinePlatformVar(NULL, "blobx1", &IntType, (union AnyValue *)&Blobx1, FALSE);
     VariableDefinePlatformVar(NULL, "blobx2", &IntType, (union AnyValue *)&Blobx2, FALSE);
@@ -37,16 +14,7 @@ void PlatformLibraryInit()
     VariableDefinePlatformVar(NULL, "u2", &IntType, (union AnyValue *)&Iu2, FALSE);
     VariableDefinePlatformVar(NULL, "v1", &IntType, (union AnyValue *)&Iv1, FALSE);
     VariableDefinePlatformVar(NULL, "v2", &IntType, (union AnyValue *)&Iv2, FALSE);
-    
-    IntArrayType = TypeGetMatching(NULL, &IntType, TypeArray, 4, NULL);
-    SomeArray[0] = 12;
-    SomeArray[1] = 34;
-    SomeArray[2] = 56;
-    SomeArray[3] = 78;
-    VariableDefinePlatformVar(NULL, "somearray", IntArrayType, (union AnyValue *)&SomeArray, FALSE);
 }
-
-#ifdef SURVEYOR_HOST
 
 void Csignal(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // check for kbhit, return t or nil
 {
@@ -567,16 +535,4 @@ struct LibraryFunction PlatformLibrary[] =
     { Cnnlearnblob, "void nnlearnblob(int)" },
     { NULL,         NULL }
 };
-#endif
-
-#ifdef UNIX_HOST
-/* list of all library functions and their prototypes */
-struct LibraryFunction PlatformLibrary[] =
-{
-    { SayHello,     "void sayhello()" },
-    { PrintInteger, "void printint(int)" },
-    { Random,       "int random()" },
-    { NULL,         NULL }
-};
-#endif
 

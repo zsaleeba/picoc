@@ -70,7 +70,7 @@ int ExpressionParseValue(struct ParseState *Parser, struct Value **Result)
             VariableStackPop(Parser, *Result);
             *Result = VariableAllocValueFromType(Parser, TypeGetMatching(Parser, VType, TypePointer, 0, StrEmpty), FALSE, NULL);
             (*Result)->Val->Pointer.Segment = LocalLValue;
-            (*Result)->Val->Pointer.Data.Offset = (void *)(*Result)->Val - (void *)(*Result)->LValueFrom;
+            (*Result)->Val->Pointer.Offset = (void *)(*Result)->Val - (void *)(*Result)->LValueFrom;
             break;
             
         case TokenIdentifier:

@@ -108,15 +108,15 @@ enum BaseType
 /* data type */
 struct ValueType
 {
-    enum BaseType Base;         /* what kind of type this is */
-    int ArraySize;              /* the size of an array type */
-    int Sizeof;                 /* the storage required */
-    const char *Identifier;     /* the name of a struct or union */
-    struct ValueType *FromType; /* the type we're derived from (or NULL) */
+    enum BaseType Base;             /* what kind of type this is */
+    int ArraySize;                  /* the size of an array type */
+    int Sizeof;                     /* the storage required */
+    const char *Identifier;         /* the name of a struct or union */
+    struct ValueType *FromType;     /* the type we're derived from (or NULL) */
     struct ValueType *DerivedTypeList;  /* first in a list of types derived from this one */
-    struct ValueType *Next;     /* next item in the derived type list */
-    struct Table *Members;      /* members of a struct or union */
-    int OnHeap;                 /* true if allocated on the heap */
+    struct ValueType *Next;         /* next item in the derived type list */
+    struct Table *Members;          /* members of a struct or union */
+    int OnHeap;                     /* true if allocated on the heap */
 };
 
 /* function definition */
@@ -134,17 +134,14 @@ struct FuncDef
 /* values */
 struct ArrayValue
 {
-    unsigned int Size;          /* the number of elements in the array */
-    void *Data;                 /* pointer to the array data */
+    unsigned int Size;              /* the number of elements in the array */
+    void *Data;                     /* pointer to the array data */
 };
 
 struct PointerValue
 {
-    struct Value *Segment;      /* array or basic value which this points to, NULL for machine memory access */
-    union s {
-        unsigned int Offset;    /* index into an array */
-        void *Memory;           /* machine memory pointer for raw memory access */
-    } Data;
+    struct Value *Segment;          /* array or basic value which this points to, NULL for machine memory access */
+    unsigned int Offset;            /* index into an array */
 };
 
 union AnyValue
@@ -165,27 +162,27 @@ union AnyValue
 
 struct Value
 {
-    struct ValueType *Typ;      /* the type of this value */
-    union AnyValue *Val;        /* pointer to the AnyValue which holds the actual content */
-    struct Value *LValueFrom;   /* if an LValue, this is a Value our LValue is contained within (or NULL) */
-    char ValOnHeap;             /* the AnyValue is on the heap (but this Value is on the stack) */
-    char ValOnStack;            /* the AnyValue is on the stack along with this Value */
-    char IsLValue;              /* is modifiable and is allocated somewhere we can usefully modify it */
+    struct ValueType *Typ;          /* the type of this value */
+    union AnyValue *Val;            /* pointer to the AnyValue which holds the actual content */
+    struct Value *LValueFrom;       /* if an LValue, this is a Value our LValue is contained within (or NULL) */
+    char ValOnHeap;                 /* the AnyValue is on the heap (but this Value is on the stack) */
+    char ValOnStack;                /* the AnyValue is on the stack along with this Value */
+    char IsLValue;                  /* is modifiable and is allocated somewhere we can usefully modify it */
 };
 
 /* hash table data structure */
 struct TableEntry
 {
-    struct TableEntry *Next;    /* next item in this hash chain */
+    struct TableEntry *Next;        /* next item in this hash chain */
     union TableEntryPayload
     {
         struct ValueEntry
         {
-            char *Key;          /* points to the shared string table */
-            struct Value *Val;  /* the value we're storing */
-        } v;                    /* used for tables of values */
+            char *Key;              /* points to the shared string table */
+            struct Value *Val;      /* the value we're storing */
+        } v;                        /* used for tables of values */
         
-        char Key[1];            /* dummy size - used for the shared string table */
+        char Key[1];                /* dummy size - used for the shared string table */
     } p;
 };
     

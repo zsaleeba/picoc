@@ -9,6 +9,8 @@ Implement:
 * pointer arithmetic
 * casts
 * char access/char array access/char * access
+* getc()/gets()/malloc()/free()
+* "delete" for interactive mode to remove old functions
 
 Improvements:
 * #define with arguments

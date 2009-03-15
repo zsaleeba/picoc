@@ -280,7 +280,7 @@ enum LexToken LexGetStringConstant(struct LexState *Lexer, struct Value *Value)
     /* create the the pointer for this char* */
     Value->Typ = CharPtrType;
     Value->Val->Pointer.Segment = ArrayValue;
-    Value->Val->Pointer.Data.Offset = 0;
+    Value->Val->Pointer.Offset = 0;
     
     if (*Lexer->Pos == '"')
         Lexer->Pos++;

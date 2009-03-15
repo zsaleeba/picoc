@@ -96,10 +96,10 @@ void LibPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
     struct ValueType *FormatType;
     int ArgCount = 1;
     
-    if (Param[0]->Val->Pointer.Data.Offset < 0 || Param[0]->Val->Pointer.Data.Offset >= CharArray->Val->Array.Size)
+    if (Param[0]->Val->Pointer.Offset < 0 || Param[0]->Val->Pointer.Offset >= CharArray->Val->Array.Size)
         Format = StrEmpty;
     else
-        Format = CharArray->Val->Array.Data + Param[0]->Val->Pointer.Data.Offset;
+        Format = CharArray->Val->Array.Data + Param[0]->Val->Pointer.Offset;
     
     for (FPos = Format; *FPos != '\0'; FPos++)
     {
@@ -136,10 +136,10 @@ void LibPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
                                 struct Value *CharArray = NextArg->Val->Pointer.Segment;
                                 char *Str;
                                 
-                                if (NextArg->Val->Pointer.Data.Offset < 0 || NextArg->Val->Pointer.Data.Offset >= CharArray->Val->Array.Size)
+                                if (NextArg->Val->Pointer.Offset < 0 || NextArg->Val->Pointer.Offset >= CharArray->Val->Array.Size)
                                     Str = StrEmpty;
                                 else
-                                    Str = CharArray->Val->Array.Data + NextArg->Val->Pointer.Data.Offset;
+                                    Str = CharArray->Val->Array.Data + NextArg->Val->Pointer.Offset;
                                     
                                 PrintStr(Str, PlatformPutc); 
                                 break;
@@ -161,9 +161,19 @@ void LibPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
     }
 }
 
+void LibGets(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+}
+
+void LibGetc(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+}
+
 /* list of all library functions and their prototypes */
 struct LibraryFunction CLibrary[] =
 {
     { LibPrintf,        "void printf(char *, ...)" },
+    { LibGets,          "void gets(char *, int)" },
+    { LibGetc,          "int getc()" },
     { NULL,             NULL }
 };
