@@ -17,6 +17,13 @@ char *PlatformGetLine(char *Buf, int MaxLen)
     return fgets(Buf, MaxLen, stdin);
 }
 
+/* get a character of interactive input */
+int PlatformGetCharacter()
+{
+    fflush(stdout);
+    return getchar();
+}
+
 /* write a character to the console */
 void PlatformPutc(unsigned char OutCh)
 {

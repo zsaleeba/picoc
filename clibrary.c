@@ -161,12 +161,30 @@ void LibPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
     }
 }
 
+/* get a line of input. protected from buffer overrun */
 void LibGets(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
+    struct Value *CharArray = Param[0]->Val->Pointer.Segment;
+    char *ReadBuffer = CharArray->Val->Array.Data + Param[0]->Val->Pointer.Offset;
+    int MaxLength = CharArray->Val->Array.Size - Param[0]->Val->Pointer.Offset;
+    char *Result;
+
+    ReturnValue->Val->Pointer.Segment = 0;
+    ReturnValue->Val->Pointer.Offset = 0;
+    
+    if (Param[0]->Val->Pointer.Offset < 0 || MaxLength < 0)
+        return; /* no room for data */
+    
+    Result = PlatformGetLine(ReadBuffer, MaxLength);
+    if (Result == NULL)
+        return;
+    
+    ReturnValue->Val->Pointer = Param[0]->Val->Pointer;
 }
 
 void LibGetc(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
+    ReturnValue->Val->Integer = PlatformGetCharacter();
 }
 
 /* list of all library functions and their prototypes */
@@ -174,6 +192,6 @@ struct LibraryFunction CLibrary[] =
 {
     { LibPrintf,        "void printf(char *, ...)" },
     { LibGets,          "void gets(char *, int)" },
-    { LibGetc,          "int getc()" },
+    { LibGetc,          "int getchar()" },
     { NULL,             NULL }
 };

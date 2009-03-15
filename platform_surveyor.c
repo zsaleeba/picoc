@@ -37,8 +37,8 @@ void PlatformPutc(unsigned char OutCh)
     putchar(OutCh);
 }
 
-/* write a character to the console */
-int PlatformGetc()
+/* read a character */
+int PlatformGetCharacter()
 {
     return getch();
 }
