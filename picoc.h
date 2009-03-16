@@ -54,7 +54,7 @@ enum LexToken
     TokenIntType, TokenCharType, TokenFloatType, TokenDoubleType, TokenVoidType, TokenEnumType,
     TokenLongType, TokenSignedType, TokenShortType, TokenStructType, TokenUnionType, TokenUnsignedType, TokenTypedef,
     TokenContinue, TokenDo, TokenElse, TokenFor, TokenIf, TokenWhile, TokenBreak, TokenSwitch, TokenCase, TokenDefault, TokenReturn,
-    TokenHashDefine, TokenHashInclude, TokenDelete,
+    TokenHashDefine, TokenHashInclude, TokenNew, TokenDelete,
     TokenNone, TokenEOF, TokenEndOfLine, TokenEndOfFunction
 };
 

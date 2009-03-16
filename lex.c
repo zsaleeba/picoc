@@ -52,6 +52,7 @@ static struct ReservedWord ReservedWords[] =
     { "if", TokenIf, NULL },
     { "int", TokenIntType, NULL },
     { "long", TokenLongType, NULL },
+    { "new", TokenNew, NULL },
     { "return", TokenReturn, NULL },
 //    { "short", TokenShortType, NULL },
     { "signed", TokenSignedType, NULL },

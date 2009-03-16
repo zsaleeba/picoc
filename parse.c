@@ -472,16 +472,43 @@ int ParseStatement(struct ParseState *Parser)
             break;
         
         case TokenDelete:
-            if (LexGetToken(Parser, &LexerValue, TRUE) != TokenIdentifier)
-                ProgramFail(Parser, "identifier expected");
-                
-            CValue = TableDelete(&GlobalTable, LexerValue->Val->Identifier);
-
-            if (CValue == NULL)
-                ProgramFail(Parser, "'%s' is not defined", LexerValue->Val->Identifier);
+        {
+            /* first try to parse this as "delete a pointer from an expression" */
+            struct ParseState PreExpression = *Parser;
+            int WasPointer = FALSE;
             
-            VariableFree(CValue);
+            if (ExpressionParse(Parser, &CValue))
+            { /* found an expression */
+                if (Parser->Mode == RunModeRun)
+                {
+                    if (TopStackFrame->ReturnValue->Typ->Base == TypePointer)
+                    { /* this was a pointer to something - delete the object we're pointing to */
+                        // XXX - now I'm having second thoughts about this
+                        WasPointer = TRUE;
+                    }
+                    
+                    VariableStackPop(Parser, CValue);
+                }
+            }
+            
+            if (!WasPointer)
+            { /* go back and try it as a function or variable name to delete */
+                *Parser = PreExpression;
+                if (LexGetToken(Parser, &LexerValue, TRUE) != TokenIdentifier)
+                    ProgramFail(Parser, "identifier expected");
+                    
+                if (Parser->Mode == RunModeRun)
+                { /* delete this variable or function */
+                    CValue = TableDelete(&GlobalTable, LexerValue->Val->Identifier);
+    
+                    if (CValue == NULL)
+                        ProgramFail(Parser, "'%s' is not defined", LexerValue->Val->Identifier);
+                    
+                    VariableFree(CValue);
+                }
+            }
             break;
+        }
         
         default:
             *Parser = PreState;

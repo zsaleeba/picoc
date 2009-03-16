@@ -18,6 +18,7 @@ int ExpressionParseValue(struct ParseState *Parser, struct Value **Result)
     enum LexToken Token = LexGetToken(Parser, &LexValue, TRUE);
     struct Value *LocalLValue = NULL;
     struct ValueType *VType;
+    char *Identifier;
     int Success = TRUE;
     
     switch (Token)
@@ -131,6 +132,20 @@ int ExpressionParseValue(struct ParseState *Parser, struct Value **Result)
                         *Result = VariableAllocValueFromExistingData(Parser, (*Result)->Typ->FromType, (union AnyValue *)((*Result)->Val->Array.Data + TypeSize((*Result)->Typ->FromType, 0) * IntValue), (*Result)->IsLValue, (*Result)->LValueFrom);
                     }
                 }
+            }
+            break;
+
+        case TokenNew:
+            TypeParse(Parser, &VType, &Identifier);
+            if (Identifier != StrEmpty)
+                ProgramFail(Parser, "identifier not expected here");
+            
+            if (Parser->Mode == RunModeRun)
+            { /* create an object of this type on the heap and a pointer to it on the stack */
+                LocalLValue = VariableAllocValueFromType(Parser, VType, TRUE, NULL);
+                *Result = VariableAllocValueFromType(Parser, TypeGetMatching(Parser, VType, TypePointer, 0, StrEmpty), FALSE, NULL);
+                (*Result)->Val->Pointer.Segment = LocalLValue;
+                (*Result)->Val->Pointer.Offset = 0;
             }
             break;
             

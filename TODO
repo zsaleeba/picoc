@@ -26,6 +26,7 @@ Improvements:
 Need test/debug:
 * all break/continue variations
 * getchar()/gets() tests
+* new/delete heap allocation
 
 Also:
 * Remove Var parameter from HeapPopStack() once we're certain it all works
