@@ -11,6 +11,7 @@ void ProgramFail(struct ParseState *Parser, const char *Message, ...)
         
     va_start(Args, Message);
     PlatformVPrintf(Message, Args);
+    va_end(Args);
     PlatformPrintf("\n");
     PlatformExit(1);
 }
@@ -23,6 +24,7 @@ void LexFail(struct LexState *Lexer, const char *Message, ...)
     PlatformPrintf("%s:%d: ", Lexer->FileName, Lexer->Line);      
     va_start(Args, Message);
     PlatformVPrintf(Message, Args);
+    va_end(Args);
     PlatformPrintf("\n");
     PlatformExit(1);
 }
