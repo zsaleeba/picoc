@@ -31,6 +31,7 @@ struct Table;
 /* lexical tokens */
 enum LexToken
 {
+    TokenNone, 
     TokenComma,
     TokenAssign, TokenAddAssign, TokenSubtractAssign, TokenMultiplyAssign, TokenDivideAssign, TokenModulusAssign,
     TokenShiftLeftAssign, TokenShiftRightAssign, TokenArithmeticAndAssign, TokenArithmeticOrAssign, TokenArithmeticExorAssign,
@@ -55,7 +56,7 @@ enum LexToken
     TokenLongType, TokenSignedType, TokenShortType, TokenStructType, TokenUnionType, TokenUnsignedType, TokenTypedef,
     TokenContinue, TokenDo, TokenElse, TokenFor, TokenIf, TokenWhile, TokenBreak, TokenSwitch, TokenCase, TokenDefault, TokenReturn,
     TokenHashDefine, TokenHashInclude, TokenNew, TokenDelete,
-    TokenNone, TokenEOF, TokenEndOfLine, TokenEndOfFunction
+    TokenEOF, TokenEndOfLine, TokenEndOfFunction
 };
 
 /* used in dynamic memory allocation */

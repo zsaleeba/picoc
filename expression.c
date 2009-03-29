@@ -422,6 +422,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
 
 enum OperatorOrder
 {
+    OrderNone,
     OrderPrefix,
     OrderInfix,
     OrderPostfix
@@ -447,6 +448,7 @@ struct OpPrecedence
 
 static struct OpPrecedence OperatorPrecedence[] =
 {
+    /* TokenNone, */ { 0, 0, 0 },
     /* TokenComma, */ { 0, 0, 1 },
     /* TokenAssign, */ { 0, 0, 2 }, /* TokenAddAssign, */ { 0, 0, 2 }, /* TokenSubtractAssign, */ { 0, 0, 2 }, 
     /* TokenMultiplyAssign, */ { 0, 0, 2 }, /* TokenDivideAssign, */ { 0, 0, 2 }, /* TokenModulusAssign, */ { 0, 0, 2 },
@@ -734,7 +736,7 @@ void ExpressionStackCollapse(struct ParseState *Parser, struct ExpressionStack *
     struct ExpressionStack *TopStackNode = *StackTop;
     struct ExpressionStack *TopOperatorNode;
     
-    while (TopStackNode != NULL && FoundPrecedence >= Precedence)
+    while (TopStackNode != NULL && TopStackNode->Next != NULL && FoundPrecedence >= Precedence)
     {
         /* find the top operator on the stack */
         if (TopStackNode->Val != NULL)
@@ -743,7 +745,7 @@ void ExpressionStackCollapse(struct ParseState *Parser, struct ExpressionStack *
             TopOperatorNode = TopStackNode;
         
         /* does it have a high enough precedence? */
-        if (FoundPrecedence >= Precedence)
+        if (FoundPrecedence >= Precedence && TopOperatorNode != NULL)
         {
             /* execute this operator */
             switch (TopOperatorNode->Order)
@@ -783,6 +785,9 @@ void ExpressionStackCollapse(struct ParseState *Parser, struct ExpressionStack *
                     /* do the infix operation */
                     ExpressionInfixOperator(Parser, StackTop, TopOperatorNode->Op, BottomValue, TopValue);
                     break;
+
+                case OrderNone:
+                    break;
             }
         }
     }
@@ -803,7 +808,7 @@ void ExpressionStackPushOperator(struct ParseState *Parser, struct ExpressionSta
 int ExpressionParse(struct ParseState *Parser, struct Value **Result)
 {
     struct Value *LexValue;
-    int PrefixState = FALSE;
+    int PrefixState = TRUE;
     int Done = FALSE;
     int BracketPrecedence = 0;
     int LocalPrecedence;
@@ -906,7 +911,13 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
     
     /* scan and collapse the stack to precedence 0 */
     ExpressionStackCollapse(Parser, &StackTop, 0);
-    //XXX - fix up the stack and return the result if we're in run mode
+    
+    /* fix up the stack and return the result if we're in run mode */
+    if (StackTop != NULL)
+    {
+        /* all that should be left is a single value on the stack */
+        HeapPopStack((void *)StackTop - sizeof(struct ExpressionStack), sizeof(struct ExpressionStack));
+    }
     
     return TRUE;
 }
