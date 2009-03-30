@@ -271,6 +271,7 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
 void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt);
 void ParseInteractive();
 void ParseCleanup();
+void ParserCopyPos(struct ParseState *To, struct ParseState *From);
 
 /* expression.c */
 int ExpressionParse(struct ParseState *Parser, struct Value **Result);

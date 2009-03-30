@@ -817,6 +817,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
     
     do
     {
+        struct ParseState PreState = *Parser;
         enum LexToken Token = LexGetToken(Parser, &LexValue, TRUE);
         if ((int)Token <= (int)TokenCloseBracket)
         { /* it's an operator with precedence */
@@ -904,6 +905,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
         }
         else
         { /* it isn't a token from an expression */
+            *Parser = PreState;
             Done = TRUE;
         }
         
@@ -916,7 +918,10 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
     if (StackTop != NULL)
     {
         /* all that should be left is a single value on the stack */
-        HeapPopStack((void *)StackTop - sizeof(struct ExpressionStack), sizeof(struct ExpressionStack));
+        if (Parser->Mode == RunModeRun)
+            *Result = StackTop->Val;
+
+        HeapPopStack(StackTop, sizeof(struct ExpressionStack));
     }
     
     return TRUE;
