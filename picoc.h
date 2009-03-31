@@ -334,7 +334,6 @@ int PlatformGetCharacter();
 void PlatformPutc(unsigned char OutCh);
 void PlatformPrintf(const char *Format, ...);
 void PlatformVPrintf(const char *Format, va_list Args);
-int PlatformSetExitPoint();
 void PlatformExit();
 void PlatformLibraryInit();
 

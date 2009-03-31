@@ -75,11 +75,7 @@ void PlatformScanFile(const char *FileName)
 }
 
 /* mark where to end the program for platforms which require this */
-static jmp_buf ExitBuf;
-int PlatformSetExitPoint()
-{
-    return setjmp(ExitBuf);
-}
+jmp_buf ExitBuf;
 
 /* exit the program */
 void PlatformExit()

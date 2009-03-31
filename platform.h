@@ -25,6 +25,8 @@
 #define INTERACTIVE_PROMPT_STATEMENT "picoc> "
 #define INTERACTIVE_PROMPT_LINE "     > "
 
+#define PlatformSetExitPoint() setjmp(ExitBuf)
+
 /* host platform includes */
 #ifdef UNIX_HOST
 #include <stdio.h>
@@ -40,6 +42,8 @@
 #ifndef NO_FP
 #include <math.h>
 #endif
+
+extern jmp_buf ExitBuf;
 
 #else
 # ifdef FLYINGFOX_HOST

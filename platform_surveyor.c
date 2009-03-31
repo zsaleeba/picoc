@@ -43,12 +43,6 @@ int PlatformGetCharacter()
     return getch();
 }
 
-/* mark where to end the program for platforms which require this */
-int PlatformSetExitPoint()
-{
-    return 0;
-}
-
 /* exit the program */
 extern int errjmp[];
 

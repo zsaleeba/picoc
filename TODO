@@ -2,7 +2,13 @@ TODO
 
 Bugs:
 * something wrong with interactive mode after error handling - not clearing token buffer correctly?
+
+* interactive mode sometimes bombs out
+  eg. "printf("fred\n", zorch);"
+  
 * parsing of statements not quite right - seems to optionally want extra tokens at end
+  eg. "while (1) {" then end of file
+  eg. "test" then end of file
 
 Implement:
 * operator precedence
