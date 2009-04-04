@@ -120,7 +120,7 @@ struct Value *VariableAllocValueAndCopy(struct ParseState *Parser, struct Value 
     int CopySize = TypeSizeValue(FromValue);
     struct Value *NewValue = VariableAllocValueAndData(Parser, CopySize, FromValue->IsLValue, FromValue->LValueFrom, OnHeap);
     NewValue->Typ = FromValue->Typ;
-    memcpy(NewValue->Val, FromValue->Val, CopySize);
+    memcpy((void *)NewValue->Val, (void *)FromValue->Val, CopySize);
     return NewValue;
 }
 

@@ -429,7 +429,7 @@ void *LexTokenise(struct LexState *Lexer, int *TokenLen)
         ValueSize = LexTokenSize(Token);
         if (ValueSize > 0)
         { /* store a value as well */
-            memcpy(TokenPos, GotValue->Val, ValueSize);
+            memcpy(TokenPos, (void *)GotValue->Val, ValueSize);
             TokenPos += ValueSize;
             MemUsed += ValueSize;
         }
@@ -567,7 +567,7 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
                 default: break;
             }
             
-            memcpy(LexValue.Val, Parser->Pos+1, ValueSize);
+            memcpy((void *)LexValue.Val, (void *)Parser->Pos+1, ValueSize);
             LexValue.ValOnHeap = FALSE;
             LexValue.ValOnStack = FALSE;
             LexValue.IsLValue = FALSE;
@@ -617,7 +617,7 @@ void *LexCopyTokens(struct ParseState *StartParser, struct ParseState *EndParser
     { /* non-interactive mode - copy the tokens */
         MemSize = EndParser->Pos - StartParser->Pos;
         NewTokens = VariableAlloc(StartParser, MemSize + 1, TRUE);
-        memcpy(NewTokens, StartParser->Pos, MemSize);
+        memcpy(NewTokens, (void *)StartParser->Pos, MemSize);
     }
     else
     { /* we're in interactive mode - add up line by line */
@@ -628,7 +628,7 @@ void *LexCopyTokens(struct ParseState *StartParser, struct ParseState *EndParser
         { /* all on a single line */
             MemSize = EndParser->Pos - StartParser->Pos;
             NewTokens = VariableAlloc(StartParser, MemSize + 1, TRUE);
-            memcpy(NewTokens, StartParser->Pos, MemSize);
+            memcpy(NewTokens, (void *)StartParser->Pos, MemSize);
         }
         else
         { /* it's spread across multiple lines */

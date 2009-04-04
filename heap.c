@@ -164,7 +164,7 @@ void *HeapAlloc(int Size)
         NewMem->Size = AllocSize;
     }
     
-    memset(&NewMem->NextFree, '\0', AllocSize-sizeof(NewMem->Size));
+    memset((void *)&NewMem->NextFree, '\0', AllocSize-sizeof(NewMem->Size));
 #ifdef DEBUG_HEAP
     printf(" = %lx\n", (unsigned long)&NewMem->NextFree);
 #endif

@@ -35,7 +35,7 @@ void TableInitTable(struct Table *Tbl, struct TableEntry **HashTable, int Size, 
     Tbl->Size = Size;
     Tbl->OnHeap = OnHeap;
     Tbl->HashTable = HashTable;
-    memset(HashTable, '\0', sizeof(struct TableEntry *) * Size);
+    memset((void *)HashTable, '\0', sizeof(struct TableEntry *) * Size);
 }
 
 /* check a hash table entry for a key */
@@ -114,7 +114,7 @@ static struct TableEntry *TableSearchIdentifier(struct Table *Tbl, const char *K
     
     for (Entry = Tbl->HashTable[HashValue]; Entry != NULL; Entry = Entry->Next)
     {
-        if (strncmp(&Entry->p.Key[0], Key, Len) == 0 && Entry->p.Key[Len] == '\0')
+        if (strncmp(&Entry->p.Key[0], (char *)Key, Len) == 0 && Entry->p.Key[Len] == '\0')
             return Entry;   /* found */
     }
     
@@ -136,7 +136,7 @@ char *TableSetIdentifier(struct Table *Tbl, const char *Ident, int IdentLen)
         if (NewEntry == NULL)
             ProgramFail(NULL, "out of memory");
             
-        strncpy((char *)&NewEntry->p.Key[0], Ident, IdentLen);
+        strncpy((char *)&NewEntry->p.Key[0], (char *)Ident, IdentLen);
         NewEntry->p.Key[IdentLen] = '\0';
         NewEntry->Next = Tbl->HashTable[AddAt];
         Tbl->HashTable[AddAt] = NewEntry;
@@ -152,7 +152,7 @@ char *TableStrRegister2(const char *Str, int Len)
 
 char *TableStrRegister(const char *Str)
 {
-    return TableStrRegister2(Str, strlen(Str));
+    return TableStrRegister2(Str, strlen((char *)Str));
 }
 
 /* free all the strings */

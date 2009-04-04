@@ -274,7 +274,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                         ProgramFail(Parser, "can't assign incompatible types");
 
                     if (TotalValue->Typ->Base != TypeArray)
-                        memcpy(TotalValue->Val, CurrentValue->Val, TotalValue->Typ->Sizeof);
+                        memcpy((void *)TotalValue->Val, (void *)CurrentValue->Val, TotalValue->Typ->Sizeof);
                     else
                     { /* array assignment */
                         if (TotalValue->Val->Array.Size != CurrentValue->Val->Array.Size)
@@ -407,7 +407,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                     case TokenAmpersand:        IntResult = IntX & IntY; break;
                     case TokenArithmeticOr:     IntResult = IntX | IntY; break;
                     case TokenArithmeticExor:   IntResult = IntX ^ IntY; break;
-                    default: break;
+                    default:                    IntResult = 0; break;
                 }
                 TotalValue = ParsePushInt(Parser, IntResult);
             }
@@ -954,7 +954,7 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct Value **Resul
 {
     struct Value *FuncValue;
     struct Value *Param;
-    struct Value **ParamArray;
+    struct Value **ParamArray = NULL;
     int ArgCount;
     enum LexToken Token = LexGetToken(Parser, NULL, TRUE);    /* open bracket */
     

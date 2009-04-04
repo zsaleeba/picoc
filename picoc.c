@@ -54,8 +54,6 @@ int main(int argc, char **argv)
 }
 #else
 # ifdef SURVEYOR_HOST
-int errjmp[41];
-
 int picoc(char *SourceStr)
 {    
     int ix;
@@ -68,9 +66,9 @@ int picoc(char *SourceStr)
         printf("%s\n\r", SourceStr);  // display program source
         printf("=====================\n");
     }
-    errjmp[40] = 0;
-    setjmp(errjmp);
-    if (errjmp[40]) {
+    ExitBuf[40] = 0;
+    PlatformSetExitPoint();
+    if (ExitBuf[40]) {
         printf("leaving picoC\n\r");
         Cleanup();
         return 1;

@@ -70,6 +70,9 @@ extern jmp_buf ExitBuf;
 #   define INTERACTIVE_PROMPT_LINE "- "
 #  endif
 # endif
+
+extern int ExitBuf[];
+
 #endif
 
 #endif /* PLATFORM_H */
