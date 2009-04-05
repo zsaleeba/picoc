@@ -14,10 +14,10 @@
 #define BRACKET_PRECEDENCE 20
 
 
+#if 1
 /* local prototypes */
 void ExpressionParseFunctionCall(struct ParseState *Parser, struct Value **Result, const char *FuncName);
 
-#if 1
 /* parse a single value */
 int ExpressionParseValue(struct ParseState *Parser, struct Value **Result)
 {
@@ -418,8 +418,97 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
     
     return TRUE;
 }
+
+/* do a function call */
+void ExpressionParseFunctionCall(struct ParseState *Parser, struct Value **Result, const char *FuncName)
+{
+    struct Value *FuncValue;
+    struct Value *Param;
+    struct Value **ParamArray = NULL;
+    int ArgCount;
+    enum LexToken Token = LexGetToken(Parser, NULL, TRUE);    /* open bracket */
+    
+    if (Parser->Mode == RunModeRun) 
+    { /* get the function definition */
+        VariableGet(Parser, FuncName, &FuncValue);
+        if (FuncValue->Typ->Base != TypeFunction)
+            ProgramFail(Parser, "not a function - can't call");
+    
+        *Result = VariableAllocValueFromType(Parser, FuncValue->Val->FuncDef.ReturnType, FALSE, NULL);
+        HeapPushStackFrame();
+        ParamArray = HeapAllocStack(sizeof(struct Value *) * FuncValue->Val->FuncDef.NumParams);
+        if (ParamArray == NULL)
+            ProgramFail(Parser, "out of memory");
+    }
+        
+    /* parse arguments */
+    ArgCount = 0;
+    do {
+        if (ExpressionParse(Parser, &Param))
+        {
+            if (Parser->Mode == RunModeRun)
+            { 
+                if (ArgCount >= FuncValue->Val->FuncDef.NumParams)
+                {
+                    if (!FuncValue->Val->FuncDef.VarArgs)
+                        ProgramFail(Parser, "too many arguments to %s()", FuncName);
+                }
+                else
+                {
+                    if (FuncValue->Val->FuncDef.ParamType[ArgCount] != Param->Typ)
+                        ProgramFail(Parser, "parameter %d to %s() is the wrong type", ArgCount+1, FuncName);
+                }
+                
+                if (ArgCount < FuncValue->Val->FuncDef.NumParams)
+                    ParamArray[ArgCount] = Param;
+            }
+            
+            ArgCount++;
+            Token = LexGetToken(Parser, NULL, TRUE);
+            if (Token != TokenComma && Token != TokenCloseBracket)
+                ProgramFail(Parser, "comma expected");
+        }
+        else
+        { /* end of argument list? */
+            Token = LexGetToken(Parser, NULL, TRUE);
+            if (!TokenCloseBracket)
+                ProgramFail(Parser, "bad argument");
+        }
+    } while (Token != TokenCloseBracket);
+    
+    if (Parser->Mode == RunModeRun) 
+    { /* run the function */
+        if (ArgCount < FuncValue->Val->FuncDef.NumParams)
+            ProgramFail(Parser, "not enough arguments to '%s'", FuncName);
+        
+        if (FuncValue->Val->FuncDef.Intrinsic == NULL)
+        { /* run a user-defined function */
+            struct ParseState FuncParser = FuncValue->Val->FuncDef.Body;
+            int Count;
+            
+            VariableStackFrameAdd(Parser, FuncValue->Val->FuncDef.Intrinsic ? FuncValue->Val->FuncDef.NumParams : 0);
+            TopStackFrame->NumParams = ArgCount;
+            TopStackFrame->ReturnValue = *Result;
+            for (Count = 0; Count < FuncValue->Val->FuncDef.NumParams; Count++)
+                VariableDefine(Parser, FuncValue->Val->FuncDef.ParamName[Count], ParamArray[Count]);
+                
+            if (!ParseStatement(&FuncParser))
+                ProgramFail(&FuncParser, "function body expected");
+        
+            if (FuncValue->Val->FuncDef.ReturnType != (*Result)->Typ)
+                ProgramFail(&FuncParser, "bad type of return value");
+
+            VariableStackFramePop(Parser);
+        }
+        else
+            FuncValue->Val->FuncDef.Intrinsic(Parser, *Result, ParamArray, ArgCount);
+
+        HeapPopStackFrame();
+    }
+}
 #else
 
+/* local prototypes */
 enum OperatorOrder
 {
     OrderNone,
@@ -470,6 +559,8 @@ static struct OpPrecedence OperatorPrecedence[] =
     /* TokenOpenBracket, */ { 15, 0, 0 }, /* TokenCloseBracket, */ { 0, 15, 0 }
 };
 
+void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionStack **StackTop, const char *FuncName);
+
 
 /* push a node on to the expression stack */
 void ExpressionStackPushValueNode(struct ParseState *Parser, struct ExpressionStack **StackTop, struct Value *ValueLoc)
@@ -478,6 +569,13 @@ void ExpressionStackPushValueNode(struct ParseState *Parser, struct ExpressionSt
     StackNode->Next = *StackTop;
     StackNode->Val = ValueLoc;
     *StackTop = StackNode;
+}
+
+/* push a blank value on to the expression stack by type */
+void ExpressionStackPushValueByType(struct ParseState *Parser, struct ExpressionStack **StackTop, struct ValueType *PushType)
+{
+    struct Value *ValueLoc = VariableAllocValueFromType(Parser, PushType, FALSE, NULL);
+    ExpressionStackPushValueNode(Parser, StackTop, ValueLoc);
 }
 
 /* push a value on to the expression stack */
@@ -496,7 +594,7 @@ void ExpressionPushInt(struct ParseState *Parser, struct ExpressionStack **Stack
 
 void ExpressionPushFP(struct ParseState *Parser, struct ExpressionStack **StackTop, double FPValue)
 {
-    struct Value *ValueLoc = VariableAllocValueFromType(Parser, &IntType, FALSE, NULL);
+    struct Value *ValueLoc = VariableAllocValueFromType(Parser, &FPType, FALSE, NULL);
     ValueLoc->Val->FP = FPValue;
     ExpressionStackPushValueNode(Parser, StackTop, ValueLoc);
 }
@@ -895,6 +993,38 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                     ProgramFail(Parser, "operator not expected here");
             }
         }
+        else if (Token == TokenIdentifier)
+        { /* it's a variable, function or a macro */
+            if (LexGetToken(Parser, NULL, FALSE) == TokenOpenBracket)
+                ExpressionParseFunctionCall(Parser, &StackTop, LexValue->Val->Identifier);
+            else
+            {
+                if (Parser->Mode == RunModeRun)
+                {
+                    struct Value *VariableValue = NULL;
+                    
+                    VariableGet(Parser, LexValue->Val->Identifier, &VariableValue);
+                    if (VariableValue->Typ->Base == TypeMacro)
+                    {
+                        ProgramFail(Parser, "XXX macros unimplemented");
+#if 0
+                        struct ParseState MacroParser = VariableValue->Val->Parser;
+                        
+                        if (!ExpressionParse(&MacroParser, Result) || LexGetToken(&MacroParser, NULL, FALSE) != TokenEndOfFunction)
+                            ProgramFail(&MacroParser, "expression expected");
+#endif
+                    }
+                    else if (VariableValue->Typ == TypeVoid)
+                        ProgramFail(Parser, "a void value isn't much use here");
+                    else
+                    { /* it's a value variable */
+                        ExpressionStackPushValue(Parser, &StackTop, VariableValue);
+                    }
+                }
+                else /* push a dummy value */
+                    ExpressionStackPushValueByType(Parser, &StackTop, &VoidType);
+            }
+        }
         else if ((int)Token <= (int)TokenCharacterConstant)
         { /* it's a value of some sort, push it */
             if (!PrefixState)
@@ -926,32 +1056,12 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
     
     return TRUE;
 }
-#endif
 
-/* parse an expression. operator precedence is not supported */
-int ExpressionParseInt(struct ParseState *Parser)
-{
-    struct Value *Val;
-    int Result = 0;
-    
-    if (!ExpressionParse(Parser, &Val))
-        ProgramFail(Parser, "expression expected");
-    
-    if (Parser->Mode == RunModeRun)
-    { 
-        if (Val->Typ->Base != TypeInt)
-            ProgramFail(Parser, "integer value expected");
-    
-        Result = Val->Val->Integer;
-        VariableStackPop(Parser, Val);
-    }
-    
-    return Result;
-}
 
 /* do a function call */
-void ExpressionParseFunctionCall(struct ParseState *Parser, struct Value **Result, const char *FuncName)
+void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionStack **StackTop, const char *FuncName)
 {
+    struct Value *ReturnValue;
     struct Value *FuncValue;
     struct Value *Param;
     struct Value **ParamArray = NULL;
@@ -964,7 +1074,8 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct Value **Resul
         if (FuncValue->Typ->Base != TypeFunction)
             ProgramFail(Parser, "not a function - can't call");
     
-        *Result = VariableAllocValueFromType(Parser, FuncValue->Val->FuncDef.ReturnType, FALSE, NULL);
+        ExpressionStackPushValueByType(Parser, StackTop, FuncValue->Val->FuncDef.ReturnType);
+        ReturnValue = (*StackTop)->Val;
         HeapPushStackFrame();
         ParamArray = HeapAllocStack(sizeof(struct Value *) * FuncValue->Val->FuncDef.NumParams);
         if (ParamArray == NULL)
@@ -1018,21 +1129,44 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct Value **Resul
             
             VariableStackFrameAdd(Parser, FuncValue->Val->FuncDef.Intrinsic ? FuncValue->Val->FuncDef.NumParams : 0);
             TopStackFrame->NumParams = ArgCount;
-            TopStackFrame->ReturnValue = *Result;
+            TopStackFrame->ReturnValue = ReturnValue;
             for (Count = 0; Count < FuncValue->Val->FuncDef.NumParams; Count++)
                 VariableDefine(Parser, FuncValue->Val->FuncDef.ParamName[Count], ParamArray[Count]);
                 
             if (!ParseStatement(&FuncParser))
                 ProgramFail(&FuncParser, "function body expected");
         
-            if (FuncValue->Val->FuncDef.ReturnType != (*Result)->Typ)
+            if (FuncValue->Val->FuncDef.ReturnType != ReturnValue->Typ)
                 ProgramFail(&FuncParser, "bad type of return value");
 
             VariableStackFramePop(Parser);
         }
         else
-            FuncValue->Val->FuncDef.Intrinsic(Parser, *Result, ParamArray, ArgCount);
+            FuncValue->Val->FuncDef.Intrinsic(Parser, ReturnValue, ParamArray, ArgCount);
 
         HeapPopStackFrame();
     }
 }
+#endif
+
+/* parse an expression. operator precedence is not supported */
+int ExpressionParseInt(struct ParseState *Parser)
+{
+    struct Value *Val;
+    int Result = 0;
+    
+    if (!ExpressionParse(Parser, &Val))
+        ProgramFail(Parser, "expression expected");
+    
+    if (Parser->Mode == RunModeRun)
+    { 
+        if (Val->Typ->Base != TypeInt)
+            ProgramFail(Parser, "integer value expected");
+    
+        Result = Val->Val->Integer;
+        VariableStackPop(Parser, Val);
+    }
+    
+    return Result;
+}
+
