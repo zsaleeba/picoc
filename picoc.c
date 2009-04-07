@@ -9,8 +9,8 @@ void Initialise()
     LexInit();
     TypeInit();
     LibraryInit(&GlobalTable, "c library", &CLibrary);
-    LibraryInit(&GlobalTable, "platform library", &PlatformLibrary);
     PlatformLibraryInit();
+    LibraryInit(&GlobalTable, "platform library", &PlatformLibrary);
 }
 
 /* free memory */

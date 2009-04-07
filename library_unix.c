@@ -2,7 +2,6 @@
 
 void PlatformLibraryInit()
 {
-#if 0
     struct ParseState Parser;
     char *Identifier;
     struct ValueType *ParsedType;
@@ -15,12 +14,10 @@ void PlatformLibraryInit()
     LexInitParser(&Parser, Tokens, IntrinsicName, 1, TRUE);
     TypeParse(&Parser, &ParsedType, &Identifier);
     HeapFree(Tokens);
-#endif
 }
 
 void ShowComplex(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-#if 0
     struct Value *ComplexVal = Param[0]->Val->Pointer.Segment;  /* dereferences the pointer */
     struct Value *RealOffset;
     struct Value *ComplexOffset;
@@ -29,7 +26,7 @@ void ShowComplex(struct ParseState *Parser, struct Value *ReturnValue, struct Va
     struct ValueType *StructComplexType;
     
     /* find the type */
-    StructComplexType = TypeGetMatching(Parser, NULL, TypeStruct, 0, TableStrRegister("complex"));
+    StructComplexType = TypeGetMatching(Parser, &UberType, TypeStruct, 0, TableStrRegister("complex"));
     
     /* get the real and complex members */
     TableGet(StructComplexType->Members, TableStrRegister("i"), &RealOffset);
@@ -42,13 +39,12 @@ void ShowComplex(struct ParseState *Parser, struct Value *ReturnValue, struct Va
     PrintInt(RealPart, PlatformPutc);
     PlatformPutc(',');
     PrintInt(ComplexPart, PlatformPutc);
-#endif
 }
 
 /* list of all library functions and their prototypes */
 struct LibraryFunction PlatformLibrary[] =
 {
-//    { ShowComplex,   "void ShowComplex(struct complex *)" },
+    { ShowComplex,   "void ShowComplex(struct complex *)" },
     { NULL,         NULL }
 };
 

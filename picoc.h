@@ -228,6 +228,7 @@ typedef void CharWriter(unsigned char);
 /* globals */
 extern struct Table GlobalTable;
 extern struct StackFrame *TopStackFrame;
+extern struct ValueType UberType;
 extern struct ValueType IntType;
 extern struct ValueType CharType;
 #ifndef NO_FP
