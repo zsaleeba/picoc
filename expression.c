@@ -274,7 +274,10 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                         ProgramFail(Parser, "can't assign incompatible types");
 
                     if (TotalValue->Typ->Base != TypeArray)
+                    {
+                        // XXX printf("assigning to 0x%lx\n", (long)TotalValue->Val);
                         memcpy((void *)TotalValue->Val, (void *)CurrentValue->Val, TotalValue->Typ->Sizeof);
+                    }
                     else
                     { /* array assignment */
                         if (TotalValue->Val->Array.Size != CurrentValue->Val->Array.Size)

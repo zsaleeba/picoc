@@ -41,10 +41,78 @@ void ShowComplex(struct ParseState *Parser, struct Value *ReturnValue, struct Va
     PrintInt(ComplexPart, PlatformPutc);
 }
 
+void Cpeek(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int size, ptr;
+    unsigned char *cp;
+    unsigned short *sp;
+    unsigned int *ip;
+    
+    /* x = peek(addr, size);
+       mask ptr to align with word size */
+    ptr = Param[0]->Val->Integer;
+    size = Param[1]->Val->Integer;
+    switch (size) {
+        case 1: // char *
+            cp = (unsigned char *)ptr;
+            ReturnValue->Val->Integer = (int)((unsigned int)*cp);
+            break;
+        case 2: // short *
+            sp = (unsigned short *)(ptr & 0xFFFFFFFE);  // align with even boundary
+            ReturnValue->Val->Integer = (int)((unsigned short)*sp);
+            break;
+        case 4: // int *
+            ip = (unsigned int *)(ptr & 0xFFFFFFFC);  // aling with quad boundary
+            ReturnValue->Val->Integer = 0 /*(int)*ip*/;
+            break;
+        default:
+            ReturnValue->Val->Integer = 0;
+            break;
+    }
+}
+
+void Crandom(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = 1234;
+}
+
+void Cpoke(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int size, ptr, val;
+    unsigned char *cp;
+    unsigned short *sp;
+    unsigned int *ip;
+    
+    /* x = poke(addr, size, val);
+       mask ptr to align with word size */
+    ptr = Param[0]->Val->Integer;
+    size = Param[1]->Val->Integer;
+    val = Param[2]->Val->Integer;
+    switch (size) {
+        case 1: // char *
+            cp = (unsigned char *)ptr;
+            *cp = (unsigned char)(val & 0x000000FF);
+            break;
+        case 2: // short *
+            sp = (unsigned short *)(ptr & 0xFFFFFFFE);
+            *sp = (unsigned short)(val & 0x0000FFFF);
+            break;
+        case 4: // int *
+            ip = (unsigned int *)(ptr & 0xFFFFFFFC);
+            *ip = val;
+            break;
+        default: // don't bother with bad value
+            break;
+    }
+}
+
 /* list of all library functions and their prototypes */
 struct LibraryFunction PlatformLibrary[] =
 {
     { ShowComplex,   "void ShowComplex(struct complex *)" },
+    { Cpeek,        "int peak(int, int)" },
+    { Cpoke,        "void poke(int, int, int)" },
+    { Crandom,      "int random(int, int)" },
     { NULL,         NULL }
 };
 
