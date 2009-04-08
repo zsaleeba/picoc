@@ -59,6 +59,86 @@ void Ctime(struct ParseState *Parser, struct Value *ReturnValue, struct Value **
     ReturnValue->Val->Integer = (int)readRTC();
 }
 
+void Ciodir(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int dir;
+    
+    dir = Param[0]->Val->Integer;
+    *pPORTHIO_DIR |= ((dir << 26) & 0xFC00);  // H15/14/13/12/11/10 - 1=output, 0=input
+    *pPORTHIO_INEN |= ((~dir << 26) & 0xFC00); // invert dir bits to enable inputs
+}
+
+void Cioread(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = (*pPORTHIO >> 26) & 0x003F;
+}
+
+void Ciowrite(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    *pPORTHIO = ((Param[0]->Val->Integer << 26) & 0xFC00) + (*pPORTHIO & 0x03FF);
+}
+
+void Cpeek(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int size, ptr;
+    unsigned char *cp;
+    unsigned short *sp;
+    unsigned int *ip;
+    
+    /* x = peek(addr, size);
+       mask ptr to align with word size */
+    ptr = Param[0]->Val->Integer;
+    size = Param[1]->Val->Integer;
+    switch (size) {
+        case 1: // char *
+            cp = (unsigned char *)ptr;
+            ReturnValue->Val->Integer = (int)((unsigned int)*cp);
+            break;
+        case 2: // short *
+            sp = (unsigned short *)(ptr & 0xFFFFFFFE);  // align with even boundary
+            ReturnValue->Val->Integer = (int)((unsigned short)*sp);
+            break;
+        case 4: // int *
+            ip = (unsigned int *)(ptr & 0xFFFFFFFC);  // aling with quad boundary
+            ReturnValue->Val->Integer = (int)*ip;
+            break;
+        default:
+            ReturnValue->Val->Integer = 0;
+            break;
+    }
+}
+
+void Cpoke(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int size, ptr, val;
+    unsigned char *cp;
+    unsigned short *sp;
+    unsigned int *ip;
+    
+    /* x = poke(addr, size, val);
+       mask ptr to align with word size */
+    ptr = Param[0]->Val->Integer;
+    size = Param[1]->Val->Integer;
+    val = Param[2]->Val->Integer;
+    switch (size) {
+        case 1: // char *
+            cp = (unsigned char *)ptr;
+            printf("cp = 0x%x\n\r", (int)cp);
+            *cp = (unsigned char)(val & 0x000000FF);
+            break;
+        case 2: // short *
+            sp = (unsigned short *)(ptr & 0xFFFFFFFE);
+            printf("sp = 0x%x\n\r", (int)sp);
+            *sp = (unsigned short)(val & 0x0000FFFF);
+            break;
+        case 4: // int *
+            ip = (unsigned int *)(ptr & 0xFFFFFFFC);
+            printf("ip = 0x%x\n\r", (int)ip);
+            *ip = val;
+            break;
+    }
+}
+
 void Cmotors(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     lspeed = Param[0]->Val->Integer;
@@ -74,6 +154,23 @@ void Cmotors(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
         base_speed = 50;
     }
     setPWM(lspeed, rspeed);
+}
+
+void Cmotors2(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    lspeed2 = Param[0]->Val->Integer;
+    if ((lspeed2 < -100) || (lspeed2 > 100))
+        ProgramFail(NULL, "motors2():  left motor value out of range");
+    rspeed2 = Param[1]->Val->Integer;
+    if ((rspeed2 < -100) || (rspeed2 > 100))
+        ProgramFail(NULL, "motors2():  right motor value out of range");
+    if (!pwm2_init) {
+        initPWM2();
+        pwm2_init = 1;
+        pwm2_mode = PWM_PWM;
+        base_speed2 = 50;
+    }
+    setPWM2(lspeed2, rspeed2);
 }
 
 void Cservos(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -142,6 +239,14 @@ void Csonar(struct ParseState *Parser, struct Value *ReturnValue, struct Value *
 void Crange(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     ReturnValue->Val->Integer = laser_range(0);
+}
+
+void Cbattery(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    if (*pPORTHIO & 0x0004)
+        ReturnValue->Val->Integer = 0;  // low battery voltage detected
+    else
+        ReturnValue->Val->Integer = 1;  // battery voltage okay
 }
 
 void Cvcolor(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) // set color bin - 
@@ -523,12 +628,18 @@ struct LibraryFunction PlatformLibrary[] =
     { Cdelay,       "void delay(int)" },
     { Crand,        "int rand(int)" },
     { Ctime,        "int time()" },
+    { Ciodir,       "void iodir(int)" },
+    { Cioread,      "int ioread()" },
+    { Ciowrite,     "void iowrite(int)" },
+    { Cpeek,        "int peek(int, int)" },
+    { Cpoke,        "void poke(int, int, int)" },
     { Cmotors,      "void motors(int, int)" },
     { Cservos,      "void servos(int, int)" },
     { Cservos2,     "void servos2(int, int)" },
     { Claser,       "void laser(int)" },
-    { Csonar,       "void sonar(int)" },
+    { Csonar,       "int sonar(int)" },
     { Crange,       "int range()" },
+    { Cbattery,     "int battery()" },
     { Cvcolor,      "void vcolor(int, int, int, int, int, int, int)" },
     { Cvcap,        "void vcap()" },
     { Cvrcap,       "void vrcap()" },
