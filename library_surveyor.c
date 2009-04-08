@@ -123,18 +123,17 @@ void Cpoke(struct ParseState *Parser, struct Value *ReturnValue, struct Value **
     switch (size) {
         case 1: // char *
             cp = (unsigned char *)ptr;
-            printf("cp = 0x%x\n\r", (int)cp);
             *cp = (unsigned char)(val & 0x000000FF);
             break;
         case 2: // short *
             sp = (unsigned short *)(ptr & 0xFFFFFFFE);
-            printf("sp = 0x%x\n\r", (int)sp);
             *sp = (unsigned short)(val & 0x0000FFFF);
             break;
         case 4: // int *
             ip = (unsigned int *)(ptr & 0xFFFFFFFC);
-            printf("ip = 0x%x\n\r", (int)ip);
             *ip = val;
+            break;
+        default: // don't bother with bad value
             break;
     }
 }
@@ -634,6 +633,7 @@ struct LibraryFunction PlatformLibrary[] =
     { Cpeek,        "int peek(int, int)" },
     { Cpoke,        "void poke(int, int, int)" },
     { Cmotors,      "void motors(int, int)" },
+    { Cmotors2,     "void motors2(int, int)" },
     { Cservos,      "void servos(int, int)" },
     { Cservos2,     "void servos2(int, int)" },
     { Claser,       "void laser(int)" },
