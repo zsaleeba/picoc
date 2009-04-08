@@ -64,18 +64,18 @@ void Ciodir(struct ParseState *Parser, struct Value *ReturnValue, struct Value *
     int dir;
     
     dir = Param[0]->Val->Integer;
-    *pPORTHIO_DIR |= ((dir << 26) & 0xFC00);  // H15/14/13/12/11/10 - 1=output, 0=input
-    *pPORTHIO_INEN |= ((~dir << 26) & 0xFC00); // invert dir bits to enable inputs
+    *pPORTHIO_DIR = ((dir << 10) & 0xFC00) + (*pPORTHIO_DIR & 0x03FF);  // H15/14/13/12/11/10 - 1=output, 0=input
+    *pPORTHIO_INEN = (((~dir) << 10) & 0xFC00) + (*pPORTHIO_INEN & 0x03FF); // invert dir bits to enable inputs
 }
 
 void Cioread(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = (*pPORTHIO >> 26) & 0x003F;
+    ReturnValue->Val->Integer = (*pPORTHIO >> 10) & 0x003F;
 }
 
 void Ciowrite(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    *pPORTHIO = ((Param[0]->Val->Integer << 26) & 0xFC00) + (*pPORTHIO & 0x03FF);
+    *pPORTHIO = ((Param[0]->Val->Integer << 10) & 0xFC00) + (*pPORTHIO & 0x03FF);
 }
 
 void Cpeek(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -231,7 +231,7 @@ void Csonar(struct ParseState *Parser, struct Value *ReturnValue, struct Value *
     if ((i<1) || (i>4)) {
         ProgramFail(NULL, "sonar():  1, 2, 3, 4 are only valid selections");
     }
-    ping_sonar();
+    sonar();
     ReturnValue->Val->Integer = sonar_data[i] / 100;
 }
 
