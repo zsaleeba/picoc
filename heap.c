@@ -20,6 +20,19 @@ static void *StackTop = &HeapMemory[0];             /* the top of the stack */
 static struct AllocNode *FreeListBucket[FREELIST_BUCKETS];      /* we keep a pool of freelist buckets to reduce fragmentation */
 static struct AllocNode *FreeListBig;                           /* free memory which doesn't fit in a bucket */
 
+#ifdef DEBUG_HEAP
+void ShowBigList()
+{
+    struct AllocNode *LPos;
+    
+    printf("Heap: bottom=0x%lx 0x%lx-0x%lx, big freelist=", (long)HeapBottom, (long)&HeapMemory[0], (long)&HeapMemory[HEAP_SIZE]);
+    for (LPos = FreeListBig; LPos != NULL; LPos = LPos->NextFree)
+        printf("0x%lx:%d ", (long)LPos, LPos->Size);
+    
+    printf("\n");
+}
+#endif
+
 /* initialise the stack and heap storage */
 void HeapInit()
 {
@@ -154,7 +167,7 @@ void *HeapAlloc(int Size)
     if (NewMem == NULL)
     { /* couldn't allocate from a freelist - try to increase the size of the heap area */
 #ifdef DEBUG_HEAP
-        printf("allocating %d(%d) at bottom of heap", Size, AllocSize);
+        printf("allocating %d(%d) at bottom of heap (0x%lx-0x%lx)", Size, AllocSize, (long)(HeapBottom - AllocSize), (long)HeapBottom);
 #endif
         if (HeapBottom - AllocSize < StackTop)
             return NULL;
@@ -191,7 +204,10 @@ void HeapFree(void *Mem)
 #ifdef DEBUG_HEAP
         printf("freeing %d from bottom of heap\n", MemNode->Size);
 #endif
-        HeapBottom += sizeof(int) + MemNode->Size;
+        HeapBottom += MemNode->Size;
+#ifdef DEBUG_HEAP
+        ShowBigList();
+#endif
     }
     else if (Bucket < FREELIST_BUCKETS)
     { /* we can fit it in a bucket */
@@ -210,6 +226,9 @@ void HeapFree(void *Mem)
         assert(FreeListBig == NULL || ((unsigned long)FreeListBig >= (unsigned long)&HeapMemory[0] && (unsigned char *)FreeListBig - &HeapMemory[0] < HEAP_SIZE));
         MemNode->NextFree = FreeListBig;
         FreeListBig = MemNode;
+#ifdef DEBUG_HEAP
+        ShowBigList();
+#endif
     }
 #endif
 }
