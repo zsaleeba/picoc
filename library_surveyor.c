@@ -328,9 +328,58 @@ void Ccompass(struct ParseState *Parser, struct Value *ReturnValue, struct Value
     
     i2c_data[0] = 0x41;  // read compass twice to clear last reading
     i2cread(0x22, (unsigned char *)i2c_data, 2, SCCB_ON);
+    delayMS(10);
     i2c_data[0] = 0x41;
     i2cread(0x22, (unsigned char *)i2c_data, 2, SCCB_ON);
     ix = ((i2c_data[0] << 8) + i2c_data[1]) / 10;
+    ReturnValue->Val->Integer = ix;
+}
+
+void Canalog(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // return reading from HMC6352 I2C compass
+{
+    unsigned char i2c_data[3], device_id;
+    unsigned int ix, channel;
+    unsigned char mask1[] = { 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x04, 0x08 };
+    unsigned char mask2[] = { 0x10, 0x20, 0x40, 0x80, 0x00, 0x00, 0x00, 0x00 };
+    
+    // decide which i2c device based on channel range
+    ix = (unsigned char)Param[0]->Val->Integer;
+    if ((ix<1) || (ix>28))
+        ProgramFail(NULL, "analog():  invalid channel");
+    device_id = 0;
+    switch (ix / 10) {
+        case 0:
+            device_id = 0x20;  // channels 1-8
+            break;
+        case 1:
+            device_id = 0x23;  // channels 11-18
+            break;
+        case 2:
+            device_id = 0x24;  // channels 21-28
+            break;
+    }
+    channel = ix % 10;
+    if ((channel<1) || (channel>8))
+        ProgramFail(NULL, "analog():  invalid channel");
+    
+    // set timer register 3
+    i2c_data[0] = 0x03;
+    i2c_data[1] = 0x01;
+    i2cwrite(device_id, (unsigned char *)i2c_data, 1, SCCB_ON);
+
+    // set analog channel 
+    i2c_data[0] = 0x02;
+    i2c_data[1] = mask1[channel-1];
+    i2c_data[2] = mask2[channel-1];
+    i2cwritex(device_id, (unsigned char *)i2c_data, 3, SCCB_ON);
+
+    // small delay
+    delayUS(1000);
+
+    // read data
+    i2c_data[0] = 0x00;
+    i2cread(device_id, (unsigned char *)i2c_data, 2, SCCB_ON);
+    ix = (((i2c_data[0] & 0x0F) << 8) + i2c_data[1]);
     ReturnValue->Val->Integer = ix;
 }
 
@@ -648,6 +697,7 @@ struct LibraryFunction PlatformLibrary[] =
     { Cvmean,       "void vmean()" },
     { Cvblob,       "int vblob(int, int)" },
     { Ccompass,     "int compass()" },
+    { Canalog,      "int analog(int)" },
     { Cgps,         "void gps()" },
     { Creadi2c,     "int readi2c(int, int)" },
     { Creadi2c2,    "int readi2c2(int, int)" },
