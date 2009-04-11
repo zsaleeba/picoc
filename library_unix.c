@@ -63,7 +63,7 @@ void Cpeek(struct ParseState *Parser, struct Value *ReturnValue, struct Value **
             break;
         case 4: // int *
             ip = (unsigned int *)(ptr & 0xFFFFFFFC);  // aling with quad boundary
-            ReturnValue->Val->Integer = 0 /*(int)*ip*/;
+            ReturnValue->Val->Integer = (int)*ip;
             break;
         default:
             ReturnValue->Val->Integer = 0;
@@ -110,7 +110,7 @@ void Cpoke(struct ParseState *Parser, struct Value *ReturnValue, struct Value **
 struct LibraryFunction PlatformLibrary[] =
 {
     { ShowComplex,   "void ShowComplex(struct complex *)" },
-    { Cpeek,        "int peak(int, int)" },
+    { Cpeek,        "int peek(int, int)" },
     { Cpoke,        "void poke(int, int, int)" },
     { Crandom,      "int random(int, int)" },
     { NULL,         NULL }
