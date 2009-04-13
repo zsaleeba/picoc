@@ -12,6 +12,7 @@
 #endif
 
 #define ASSIGN_INT(d,s) { if (!(d)->IsLValue) ProgramFail(Parser, "can't assign to this"); ResultInt = (s); (d)->Val->Integer = ResultInt; }
+#define ASSIGN_INT_AFTER(d,s) { if (!(d)->IsLValue) ProgramFail(Parser, "can't assign to this"); ResultInt = (d)->Val->Integer; (d)->Val->Integer = (s); }
 
 #define BRACKET_PRECEDENCE 20
 
@@ -681,6 +682,13 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
     struct Value *TempLValue;
     struct Value *Result;
 
+    if (Parser->Mode != RunModeRun)
+    {
+        /* we're not running it so just return 0 */
+        ExpressionPushInt(Parser, StackTop, 0);
+        return;
+    }
+    
     debugf("ExpressionPrefixOperator()\n");
     switch (Op)
     {
@@ -725,8 +733,8 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
                 {
                     case TokenPlus:         ResultInt = TopInt; break;
                     case TokenMinus:        ResultInt = -TopInt; break;
-                    case TokenIncrement:    TopValue->Val->Integer++; ResultInt = COERCE_INTEGER(TopValue); break;  // XXX - what about non-lvalues?
-                    case TokenDecrement:    TopValue->Val->Integer--; ResultInt = COERCE_INTEGER(TopValue); break;  // XXX - what about non-lvalues?
+                    case TokenIncrement:    ASSIGN_INT(TopValue, TopInt+1); break;
+                    case TokenDecrement:    ASSIGN_INT(TopValue, TopInt-1); break;
                     case TokenUnaryNot:     ResultInt = !TopInt; break;
                     case TokenUnaryExor:    ResultInt = ~TopInt; break;
                     default:                ProgramFail(Parser, "invalid operation"); break;
@@ -762,6 +770,13 @@ XXX - finish this
 /* evaluate a postfix operator */
 void ExpressionPostfixOperator(struct ParseState *Parser, struct ExpressionStack **StackTop, enum LexToken Op, struct Value *TopValue)
 {
+    if (Parser->Mode != RunModeRun)
+    {
+        /* we're not running it so just return 0 */
+        ExpressionPushInt(Parser, StackTop, 0);
+        return;
+    }
+    
     debugf("ExpressionPostfixOperator()\n");
     if (IS_INTEGER_COERCIBLE(TopValue))
     {
@@ -769,8 +784,8 @@ void ExpressionPostfixOperator(struct ParseState *Parser, struct ExpressionStack
         int TopInt = COERCE_INTEGER(TopValue);
         switch (Op)
         {
-            case TokenIncrement:            ResultInt = TopInt; TopValue->Val->Integer++; break;  // XXX - what about non-lvalues?
-            case TokenDecrement:            ResultInt = TopInt; TopValue->Val->Integer--; break;  // XXX - what about non-lvalues?
+            case TokenIncrement:            ASSIGN_INT_AFTER(TopValue, TopInt+1); break;
+            case TokenDecrement:            ASSIGN_INT_AFTER(TopValue, TopInt+1); break;
             case TokenRightSquareBracket:   break;  // XXX
             case TokenCloseBracket:         break;  // XXX
             default:                        ProgramFail(Parser, "invalid operation"); break;
@@ -786,6 +801,13 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
     int ResultIsInt = FALSE;
     int ResultInt;
 
+    if (Parser->Mode != RunModeRun)
+    {
+        /* we're not running it so just return 0 */
+        ExpressionPushInt(Parser, StackTop, 0);
+        return;
+    }
+    
     debugf("ExpressionInfixOperator()\n");
     switch (Op)
     {
@@ -920,7 +942,7 @@ void ExpressionStackCollapse(struct ParseState *Parser, struct ExpressionStack *
     while (TopStackNode != NULL && TopStackNode->Next != NULL && FoundPrecedence >= Precedence)
     {
         /* find the top operator on the stack */
-        if (TopStackNode->p.Val != NULL)
+        if (TopStackNode->Order == OrderNone)
             TopOperatorNode = TopStackNode->Next;
         else
             TopOperatorNode = TopStackNode;
@@ -939,8 +961,8 @@ void ExpressionStackCollapse(struct ParseState *Parser, struct ExpressionStack *
                     TopValue = TopStackNode->p.Val;
                     
                     /* pop the value and then the prefix operator - assume they'll still be there until we're done */
-                    *StackTop = TopOperatorNode->Next;
                     HeapPopStack(TopOperatorNode, sizeof(struct ExpressionStack)*2 + sizeof(struct Value) + TypeStackSizeValue(TopValue));
+                    *StackTop = TopOperatorNode->Next;
                     
                     /* do the prefix operation */
                     ExpressionPrefixOperator(Parser, StackTop, TopOperatorNode->p.Op, TopValue);
@@ -951,9 +973,9 @@ void ExpressionStackCollapse(struct ParseState *Parser, struct ExpressionStack *
                     debugf("postfix evaluation\n");
                     TopValue = TopStackNode->Next->p.Val;
                     
-                    /* pop the prefix operator and then the value - assume they'll still be there until we're done */
+                    /* pop the postfix operator and then the value - assume they'll still be there until we're done */
+                    HeapPopStack(TopValue, sizeof(struct ExpressionStack)*2 + sizeof(struct Value) + TypeStackSizeValue(TopValue));
                     *StackTop = TopStackNode->Next->Next;
-                    HeapPopStack(TopOperatorNode, sizeof(struct ExpressionStack)*2 + sizeof(struct Value) + TypeStackSizeValue(TopValue));
 
                     /* do the postfix operation */
                     ExpressionPostfixOperator(Parser, StackTop, TopOperatorNode->p.Op, TopValue);
@@ -1023,20 +1045,17 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                 if (OperatorPrecedence[(int)Token].PrefixPrecedence == 0)
                     ProgramFail(Parser, "operator not expected here");
                 
-                if (Parser->Mode == RunModeRun)
-                {   
-                    LocalPrecedence = OperatorPrecedence[(int)Token].PrefixPrecedence;
-                    Precedence = BracketPrecedence + LocalPrecedence;
-                    if (Token == TokenOpenBracket || Token == TokenLeftSquareBracket)
-                    { /* boost the bracket operator precedence, then push */
-                        BracketPrecedence += BRACKET_PRECEDENCE;
-                        ExpressionStackPushOperator(Parser, &StackTop, OrderPrefix, Token, Precedence);
-                    }
-                    else
-                    { /* scan and collapse the stack to the precedence of this operator, then push */
-                        ExpressionStackCollapse(Parser, &StackTop, Precedence);
-                        ExpressionStackPushOperator(Parser, &StackTop, OrderPrefix, Token, Precedence);
-                    }
+                LocalPrecedence = OperatorPrecedence[(int)Token].PrefixPrecedence;
+                Precedence = BracketPrecedence + LocalPrecedence;
+                if (Token == TokenOpenBracket || Token == TokenLeftSquareBracket)
+                { /* boost the bracket operator precedence, then push */
+                    BracketPrecedence += BRACKET_PRECEDENCE;
+                    ExpressionStackPushOperator(Parser, &StackTop, OrderPrefix, Token, Precedence);
+                }
+                else
+                { /* scan and collapse the stack to the precedence of this operator, then push */
+                    ExpressionStackCollapse(Parser, &StackTop, Precedence);
+                    ExpressionStackPushOperator(Parser, &StackTop, OrderPrefix, Token, Precedence);
                 }
             }
             else
@@ -1122,7 +1141,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                     }
                 }
                 else /* push a dummy value */
-                    ExpressionStackPushValueByType(Parser, &StackTop, &VoidType);
+                    ExpressionPushInt(Parser, &StackTop, 0);
 
                 PrefixState = FALSE;
             }
@@ -1157,7 +1176,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
     }
     
     debugf("ExpressionParse() done\n");
-    return TRUE;
+    return StackTop != NULL;
 }
 
 
