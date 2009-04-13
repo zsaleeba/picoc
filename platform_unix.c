@@ -7,7 +7,7 @@ static char *CleanupText = NULL;
 void PlatformCleanup()
 {
     if (CleanupText != NULL)
-        HeapFree(CleanupText);
+        free(CleanupText);
 }
 
 /* get a line of interactive input */
