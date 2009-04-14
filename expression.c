@@ -26,7 +26,7 @@ void debugf(char *Format, ...)
 }
 #endif
 
-#if 1
+#ifndef NEW_EXPRESSION_SYSTEM
 /* local prototypes */
 void ExpressionParseFunctionCall(struct ParseState *Parser, struct Value **Result, const char *FuncName);
 
@@ -571,7 +571,7 @@ static struct OpPrecedence OperatorPrecedence[] =
     /* TokenPlus, */ { 14, 0, 12, "+" }, /* TokenMinus, */ { 14, 0, 12, "-" },
     /* TokenAsterisk, */ { 14, 0, 13, "*" }, /* TokenSlash, */ { 0, 0, 13, "/" }, /* TokenModulus, */ { 0, 0, 13, "%" },
     /* TokenIncrement, */ { 14, 15, 0, "++" }, /* TokenDecrement, */ { 14, 15, 0, "--" }, /* TokenUnaryNot, */ { 14, 0, 0, "!" }, /* TokenUnaryExor, */ { 14, 0, 0, "~" }, /* TokenSizeof, */ { 14, 0, 0, "sizeof" },
-    /* TokenLeftSquareBracket, */ { 15, 0, 0, "[" }, /* TokenRightSquareBracket, */ { 0, 15, 0, "]" }, /* TokenDot, */ { 0, 0, 15, "." }, /* TokenArrow, */ { 0, 0, 15, "->" },
+    /* TokenLeftSquareBracket, */ { 0, 0, 15, "[" }, /* TokenRightSquareBracket, */ { 0, 15, 0, "]" }, /* TokenDot, */ { 0, 0, 15, "." }, /* TokenArrow, */ { 0, 0, 15, "->" },
     /* TokenOpenBracket, */ { 15, 0, 0, "(" }, /* TokenCloseBracket, */ { 0, 15, 0, ")" }
 };
 
@@ -586,7 +586,8 @@ void ExpressionStackShow(struct ExpressionStack *StackTop)
     while (StackTop != NULL)
     {
         if (StackTop->Order == OrderNone)
-        { /* it's a value */
+        { 
+            /* it's a value */
             if (StackTop->p.Val->IsLValue)
                 printf("lvalue=");
             else
@@ -722,7 +723,7 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
             break;
         
         case TokenOpenBracket:
-            // XXX
+            // XXX - cast
             break;
 
         default:
@@ -812,8 +813,29 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
     }
     
     debugf("ExpressionInfixOperator()\n");
-    if (IS_INTEGER_COERCIBLE(TopValue) && IS_INTEGER_COERCIBLE(BottomValue))
-    {
+    if (Op == TokenLeftSquareBracket)
+    { 
+        /* array index */
+        int ArrayIndex;
+        struct Value *Result;
+        
+        if (BottomValue->Typ->Base != TypeArray)
+            ProgramFail(Parser, "not an array");
+        
+        if (!IS_INTEGER_COERCIBLE(TopValue))
+            ProgramFail(Parser, "array index must be an integer");
+        
+        ArrayIndex = COERCE_INTEGER(TopValue);
+        if (ArrayIndex < 0 || ArrayIndex >= BottomValue->Val->Array.Size)
+            ProgramFail(Parser, "illegal array index %d [0..%d]", ArrayIndex, BottomValue->Val->Array.Size-1);
+        
+        /* make the array element result */
+        Result = VariableAllocValueFromExistingData(Parser, BottomValue->Typ->FromType, (union AnyValue *)(BottomValue->Val->Array.Data + TypeSize(BottomValue->Typ->FromType, 0) * ArrayIndex), BottomValue->IsLValue, BottomValue->LValueFrom);
+        ExpressionStackPushValueNode(Parser, StackTop, Result);
+    }
+    else if (IS_INTEGER_COERCIBLE(TopValue) && IS_INTEGER_COERCIBLE(BottomValue))
+    { 
+        /* integer operation */
         int TopInt = COERCE_INTEGER(TopValue);
         int BottomInt = COERCE_INTEGER(BottomValue);
         switch (Op)
@@ -1026,7 +1048,8 @@ void ExpressionGetStructElement(struct ParseState *Parser, struct ExpressionStac
         ProgramFail(Parser, "need an structure or union member after '%s'", (Token == TokenDot) ? "." : "->");
 
     if (Parser->Mode == RunModeRun)
-    { /* look up the struct element */
+    { 
+        /* look up the struct element */
         struct Value *StructVal = (*StackTop)->p.Val;
         struct Value *MemberValue;
         struct Value *Result;
@@ -1067,34 +1090,41 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
         struct ParseState PreState = *Parser;
         enum LexToken Token = LexGetToken(Parser, &LexValue, TRUE);
         if ((int)Token > TokenComma && (int)Token <= (int)TokenCloseBracket)
-        { /* it's an operator with precedence */
+        { 
+            /* it's an operator with precedence */
             if (PrefixState)
-            { /* expect a prefix operator */
+            { 
+                /* expect a prefix operator */
                 if (OperatorPrecedence[(int)Token].PrefixPrecedence == 0)
                     ProgramFail(Parser, "operator not expected here");
                 
                 LocalPrecedence = OperatorPrecedence[(int)Token].PrefixPrecedence;
                 Precedence = BracketPrecedence + LocalPrecedence;
-                if (Token == TokenOpenBracket || Token == TokenLeftSquareBracket)
-                { /* boost the bracket operator precedence, then push */
+                if (Token == TokenOpenBracket)
+                { 
+                    /* boost the bracket operator precedence, then push */
                     BracketPrecedence += BRACKET_PRECEDENCE;
-                    ExpressionStackPushOperator(Parser, &StackTop, OrderPrefix, Token, Precedence);
+                    // XXX ExpressionStackPushOperator(Parser, &StackTop, OrderPrefix, Token, Precedence);
                 }
                 else
-                { /* scan and collapse the stack to the precedence of this operator, then push */
+                { 
+                    /* scan and collapse the stack to the precedence of this operator, then push */
                     ExpressionStackCollapse(Parser, &StackTop, Precedence);
                     ExpressionStackPushOperator(Parser, &StackTop, OrderPrefix, Token, Precedence);
                 }
             }
             else
-            { /* expect an infix or postfix operator */
+            { 
+                /* expect an infix or postfix operator */
                 if (OperatorPrecedence[(int)Token].PostfixPrecedence != 0)
                 {
                     switch (Token)
                     {
                         case TokenCloseBracket:
+                        case TokenRightSquareBracket:
                             if (BracketPrecedence == 0)
-                            { /* assume this bracket is after the end of the expression */
+                            { 
+                                /* assume this bracket is after the end of the expression */
                                 *Parser = PreState;
                                 Done = TRUE;
                             }
@@ -1102,18 +1132,6 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                                 BracketPrecedence -= BRACKET_PRECEDENCE;
                             break;
                     
-                        case TokenRightSquareBracket:
-                            if (BracketPrecedence == 0)
-                                ProgramFail(Parser, "no matching open square bracket");
-
-                            /* scan and collapse the stack to bracket precedence */
-                            ExpressionStackCollapse(Parser, &StackTop, BracketPrecedence);
-                            BracketPrecedence -= BRACKET_PRECEDENCE;
-                            
-                            /* apply the array index operator */
-                            // XXX
-                            break;
-
                         default:
                             /* scan and collapse the stack to the precedence of this operator, then push */
                             Precedence = BracketPrecedence + OperatorPrecedence[(int)Token].PostfixPrecedence;
@@ -1123,11 +1141,13 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                     }
                 }
                 else if (OperatorPrecedence[(int)Token].InfixPrecedence != 0)
-                { /* scan and collapse the stack, then push */
+                { 
+                    /* scan and collapse the stack, then push */
                     if (Token == TokenDot || Token == TokenArrow)
                         ExpressionGetStructElement(Parser, &StackTop, Token); /* this operator is followed by a struct element so handle it as a special case */
                     else
-                    { /* a standard infix operator */
+                    { 
+                        /* a standard infix operator */
                         Precedence = BracketPrecedence + OperatorPrecedence[(int)Token].InfixPrecedence;
                         
                         /* for right to left order, only go down to the next higher precedence so we evaluate it in reverse order */
@@ -1140,13 +1160,22 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                         ExpressionStackPushOperator(Parser, &StackTop, OrderInfix, Token, Precedence);
                         PrefixState = TRUE;
                     }
+
+                    /* treat an open square bracket as an infix array index operator followed by an open bracket */
+                    if (Token == TokenLeftSquareBracket)
+                    { 
+                        /* boost the bracket operator precedence, then push */
+                        BracketPrecedence += BRACKET_PRECEDENCE;
+                        // XXX ExpressionStackPushOperator(Parser, &StackTop, OrderPrefix, Token, Precedence);
+                    }
                 }
                 else
                     ProgramFail(Parser, "operator not expected here");
             }
         }
         else if (Token == TokenIdentifier)
-        { /* it's a variable, function or a macro */
+        { 
+            /* it's a variable, function or a macro */
             if (LexGetToken(Parser, NULL, FALSE) == TokenOpenBracket)
                 ExpressionParseFunctionCall(Parser, &StackTop, LexValue->Val->Identifier);
             else
@@ -1169,9 +1198,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                     else if (VariableValue->Typ == TypeVoid)
                         ProgramFail(Parser, "a void value isn't much use here");
                     else
-                    { /* it's a value variable */
-                        ExpressionStackPushLValue(Parser, &StackTop, VariableValue);
-                    }
+                        ExpressionStackPushLValue(Parser, &StackTop, VariableValue); /* it's a value variable */
                 }
                 else /* push a dummy value */
                     ExpressionPushInt(Parser, &StackTop, 0);
@@ -1180,7 +1207,8 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
             }
         }
         else if ((int)Token > TokenComma && (int)Token <= (int)TokenCharacterConstant)
-        { /* it's a value of some sort, push it */
+        { 
+            /* it's a value of some sort, push it */
             if (!PrefixState)
                 ProgramFail(Parser, "value not expected here");
                 
@@ -1188,7 +1216,8 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
             ExpressionStackPushValue(Parser, &StackTop, LexValue);
         }
         else
-        { /* it isn't a token from an expression */
+        { 
+            /* it isn't a token from an expression */
             *Parser = PreState;
             Done = TRUE;
         }
@@ -1224,7 +1253,8 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
     enum LexToken Token = LexGetToken(Parser, NULL, TRUE);    /* open bracket */
     
     if (Parser->Mode == RunModeRun) 
-    { /* get the function definition */
+    { 
+        /* get the function definition */
         VariableGet(Parser, FuncName, &FuncValue);
         if (FuncValue->Typ->Base != TypeFunction)
             ProgramFail(Parser, "not a function - can't call");
@@ -1265,7 +1295,8 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
                 ProgramFail(Parser, "comma expected");
         }
         else
-        { /* end of argument list? */
+        { 
+            /* end of argument list? */
             Token = LexGetToken(Parser, NULL, TRUE);
             if (!TokenCloseBracket)
                 ProgramFail(Parser, "bad argument");
@@ -1273,12 +1304,14 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
     } while (Token != TokenCloseBracket);
     
     if (Parser->Mode == RunModeRun) 
-    { /* run the function */
+    { 
+        /* run the function */
         if (ArgCount < FuncValue->Val->FuncDef.NumParams)
             ProgramFail(Parser, "not enough arguments to '%s'", FuncName);
         
         if (FuncValue->Val->FuncDef.Intrinsic == NULL)
-        { /* run a user-defined function */
+        { 
+            /* run a user-defined function */
             struct ParseState FuncParser = FuncValue->Val->FuncDef.Body;
             int Count;
             
