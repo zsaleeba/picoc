@@ -1090,8 +1090,13 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
     {
         struct ParseState PreState = *Parser;
         enum LexToken Token = LexGetToken(Parser, &LexValue, TRUE);
-        if ((int)Token > TokenComma && (int)Token <= (int)TokenCloseBracket && (Token != TokenColon || TernaryDepth != 0))
+        if ( ( ( (int)Token > TokenComma && (int)Token <= (int)TokenOpenBracket) || 
+               (Token == TokenCloseBracket && BracketPrecedence != 0)) &&
+             (Token != TokenColon || TernaryDepth != 0) )
         { 
+            if (Token == TokenColon)
+                printf("It's a colon\n");
+                
             /* it's an operator with precedence */
             if (PrefixState)
             { 
