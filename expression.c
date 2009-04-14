@@ -1083,13 +1083,14 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
     int LocalPrecedence;
     int Precedence = 0;
     struct ExpressionStack *StackTop = NULL;
-    debugf("ExpressionParse():\n");
+    int TernaryDepth = 0;
     
+    debugf("ExpressionParse():\n");
     do
     {
         struct ParseState PreState = *Parser;
         enum LexToken Token = LexGetToken(Parser, &LexValue, TRUE);
-        if ((int)Token > TokenComma && (int)Token <= (int)TokenCloseBracket)
+        if ((int)Token > TokenComma && (int)Token <= (int)TokenCloseBracket && (Token != TokenColon || TernaryDepth != 0))
         { 
             /* it's an operator with precedence */
             if (PrefixState)
@@ -1206,7 +1207,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                 PrefixState = FALSE;
             }
         }
-        else if ((int)Token > TokenComma && (int)Token <= (int)TokenCharacterConstant)
+        else if ((int)Token > TokenCloseBracket && (int)Token <= TokenCharacterConstant)
         { 
             /* it's a value of some sort, push it */
             if (!PrefixState)
@@ -1224,6 +1225,10 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
         
     } while (!Done);
     
+    /* check that brackets have been closed */
+    if (BracketPrecedence > 0)
+        ProgramFail(Parser, "brackets not closed");
+        
     /* scan and collapse the stack to precedence 0 */
     ExpressionStackCollapse(Parser, &StackTop, 0);
     
