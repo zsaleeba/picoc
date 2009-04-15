@@ -711,6 +711,7 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
             if (TopValue->Typ->Base != TypePointer)
                 ProgramFail(Parser, "can't dereference this non-pointer");
             
+            // XXX - should also do offset + checks
             ExpressionStackPushLValue(Parser, StackTop, TopValue->Val->Pointer.Segment);
             break;
         
@@ -1062,12 +1063,20 @@ void ExpressionGetStructElement(struct ParseState *Parser, struct ExpressionStac
     if (Parser->Mode == RunModeRun)
     { 
         /* look up the struct element */
-        struct Value *StructVal = (*StackTop)->p.Val;
+        struct Value *ParamVal = (*StackTop)->p.Val;
+        struct Value *StructVal = ParamVal;
         struct Value *MemberValue;
         struct Value *Result;
 
         if (Token == TokenArrow)
-            ProgramFail(Parser, "'->' not implemented yet");
+        {
+            /* dereference the struct pointer first */
+            if (StructVal->Typ->Base != TypePointer)
+                ProgramFail(Parser, "can't dereference this non-pointer");
+            
+            // XXX - should also do offset + checks
+            StructVal = ParamVal->Val->Pointer.Segment;
+        }
         
         if (StructVal->Typ->Base != TypeStruct && StructVal->Typ->Base != TypeUnion)
             ProgramFail(Parser, "can't use '%s' on something that's not a struct or union %s", (Token == TokenDot) ? "." : "->", (Token == TokenArrow) ? "pointer" : "");
@@ -1076,7 +1085,7 @@ void ExpressionGetStructElement(struct ParseState *Parser, struct ExpressionStac
             ProgramFail(Parser, "doesn't have a member called '%s'", Ident->Val->Identifier);
         
         /* pop the value - assume it'll still be there until we're done */
-        HeapPopStack(StructVal, sizeof(struct ExpressionStack) + sizeof(struct Value) + TypeStackSizeValue(StructVal));
+        HeapPopStack(ParamVal, sizeof(struct ExpressionStack) + sizeof(struct Value) + TypeStackSizeValue(StructVal));
         *StackTop = (*StackTop)->Next;
         
         /* make the result value for this member only */
