@@ -938,6 +938,18 @@ XXX - finish this
             ExpressionPushPointer(Parser, StackTop, ResultInt);
     }
 #endif
+    else if (Op == TokenAssign)
+    {
+        /* assign a non-numeric type */
+        if (!BottomValue->IsLValue) 
+            ProgramFail(Parser, "can't assign to this"); 
+        
+        if (BottomValue->Typ != TopValue->Typ)
+            ProgramFail(Parser, "can't assign to a different type of variable");
+            
+        memcpy(BottomValue->Val, TopValue->Val, TypeSizeValue(TopValue));
+        ExpressionStackPushValue(Parser, StackTop, TopValue);
+    }
     else
         ProgramFail(Parser, "invalid operation");
 }
