@@ -2,6 +2,7 @@ TODO
 
 Implement:
 * pointer arithmetic
+* ternary operator
 * casts
 * char access/char array access/char * access
 

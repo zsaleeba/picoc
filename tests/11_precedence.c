@@ -16,9 +16,9 @@ f = 1;
 
 printf("%d\n", c + d);
 printf("%d\n", (y = c + d));
+/* printf("%d\n", a ? b+c : c+d);
 printf("%d\n", a ? b+c : c+d);
-printf("%d\n", a ? b+c : c+d);
-printf("%d\n", a || b ? b+c : c+d);
+printf("%d\n", a || b ? b+c : c+d); */
 printf("%d\n", e || e && f);
 printf("%d\n", e || f && f);
 printf("%d\n", e && e || f);
