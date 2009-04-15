@@ -73,7 +73,7 @@ void Cpeek(struct ParseState *Parser, struct Value *ReturnValue, struct Value **
 
 void Crandom(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = 1234;
+    ReturnValue->Val->Integer = random() % Param[0]->Val->Integer;
 }
 
 void Cpoke(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -112,7 +112,7 @@ struct LibraryFunction PlatformLibrary[] =
     { ShowComplex,   "void ShowComplex(struct complex *)" },
     { Cpeek,        "int peek(int, int)" },
     { Cpoke,        "void poke(int, int, int)" },
-    { Crandom,      "int random(int, int)" },
+    { Crandom,      "int random(int)" },
     { NULL,         NULL }
 };
 
