@@ -465,6 +465,7 @@ int ParseStatement(struct ParseState *Parser)
                 // XXX - make assignment a separate function
                 // XXX - also arrays need cleverer assignment
                 memcpy((void *)TopStackFrame->ReturnValue->Val, (void *)CValue->Val, TypeSizeValue(CValue));
+                VariableStackPop(Parser, CValue);
                 Parser->Mode = RunModeReturn;
             }
             else

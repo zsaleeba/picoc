@@ -14,8 +14,8 @@ d = 78;
 e = 0;
 f = 1;
 
-printf("%d\n", (a + b, c + d));
-printf("%d\n", (x = a + b, y = c + d));
+printf("%d\n", c + d);
+printf("%d\n", (y = c + d));
 printf("%d\n", a ? b+c : c+d);
 printf("%d\n", a ? b+c : c+d);
 printf("%d\n", a || b ? b+c : c+d);

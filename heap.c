@@ -8,13 +8,13 @@
 #define HEAP_SIZE C_HEAPSIZE
 static unsigned char *HeapMemory = (unsigned char *)C_HEAPSTART;      /* all memory - stack and heap */
 static void *HeapBottom = (void *)C_HEAPSTART + HEAP_SIZE;  /* the bottom of the (downward-growing) heap */
-static void *StackFrame = (void *)C_HEAPSTART;           /* the current stack frame */
-static void *StackTop = (void *)C_HEAPSTART;             /* the top of the stack */
+static void *StackFrame = (void *)C_HEAPSTART;              /* the current stack frame */
+static void *HeapStackTop = (void *)C_HEAPSTART;            /* the top of the stack */
 #else
 static unsigned char HeapMemory[HEAP_SIZE];         /* all memory - stack and heap */
 static void *HeapBottom = &HeapMemory[HEAP_SIZE];   /* the bottom of the (downward-growing) heap */
 static void *StackFrame = &HeapMemory[0];           /* the current stack frame */
-static void *StackTop = &HeapMemory[0];             /* the top of the stack */
+void *HeapStackTop = &HeapMemory[0];                /* the top of the stack */
 #endif
 
 static struct AllocNode *FreeListBucket[FREELIST_BUCKETS];      /* we keep a pool of freelist buckets to reduce fragmentation */
@@ -39,7 +39,7 @@ void HeapInit()
     int Count;
     
     StackFrame = &HeapMemory[0];
-    StackTop = &HeapMemory[0];
+    HeapStackTop = &HeapMemory[0];
     *(void **)StackFrame = NULL;
     HeapBottom = &HeapMemory[HEAP_SIZE];
     FreeListBig = NULL;
@@ -51,12 +51,12 @@ void HeapInit()
  * clears memory. can return NULL if out of stack space */
 void *HeapAllocStack(int Size)
 {
-    void *NewMem = StackTop;
-    void *NewTop = StackTop + MEM_ALIGN(Size);
+    void *NewMem = HeapStackTop;
+    void *NewTop = HeapStackTop + MEM_ALIGN(Size);
     if (NewTop > HeapBottom)
         return NULL;
         
-    StackTop = NewTop;
+    HeapStackTop = NewTop;
     memset(NewMem, '\0', Size);
     return NewMem;
 }
@@ -65,11 +65,13 @@ void *HeapAllocStack(int Size)
 int HeapPopStack(void *Addr, int Size)
 {
     int ToLose = MEM_ALIGN(Size);
-    if (ToLose > (StackTop - (void *)&HeapMemory[0]))
+    if (ToLose > (HeapStackTop - (void *)&HeapMemory[0]))
         return FALSE;
     
-    StackTop -= ToLose;
-    assert(StackTop == Addr);
+    HeapStackTop -= ToLose;
+    if (HeapStackTop != Addr) 
+        printf("fail\n");
+    assert(HeapStackTop == Addr);
     
     return TRUE;
 }
@@ -78,11 +80,11 @@ int HeapPopStack(void *Addr, int Size)
 void HeapPushStackFrame()
 {
 #ifdef DEBUG_HEAP
-    printf("Adding stack frame at 0x%lx\n", (unsigned long)StackTop);
+    printf("Adding stack frame at 0x%lx\n", (unsigned long)HeapStackTop);
 #endif
-    *(void **)StackTop = StackFrame;
-    StackFrame = StackTop;
-    StackTop += sizeof(void *);
+    *(void **)HeapStackTop = StackFrame;
+    StackFrame = HeapStackTop;
+    HeapStackTop += sizeof(void *);
 }
 
 /* pop the current stack frame, freeing all memory in the frame. can return NULL */
@@ -90,10 +92,10 @@ int HeapPopStackFrame()
 {
     if (*(void **)StackFrame != NULL)
     {
-        StackTop = StackFrame;
+        HeapStackTop = StackFrame;
         StackFrame = *(void **)StackFrame;
 #ifdef DEBUG_HEAP
-        printf("Popping stack frame back to 0x%lx\n", (unsigned long)StackTop);
+        printf("Popping stack frame back to 0x%lx\n", (unsigned long)HeapStackTop);
 #endif
         return TRUE;
     }
@@ -169,7 +171,7 @@ void *HeapAlloc(int Size)
 #ifdef DEBUG_HEAP
         printf("allocating %d(%d) at bottom of heap (0x%lx-0x%lx)", Size, AllocSize, (long)(HeapBottom - AllocSize), (long)HeapBottom);
 #endif
-        if (HeapBottom - AllocSize < StackTop)
+        if (HeapBottom - AllocSize < HeapStackTop)
             return NULL;
         
         HeapBottom -= AllocSize;

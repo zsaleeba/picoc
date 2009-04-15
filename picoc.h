@@ -226,6 +226,7 @@ struct LibraryFunction
 typedef void CharWriter(unsigned char);
 
 /* globals */
+extern void *HeapStackTop;
 extern struct Table GlobalTable;
 extern struct StackFrame *TopStackFrame;
 extern struct ValueType UberType;

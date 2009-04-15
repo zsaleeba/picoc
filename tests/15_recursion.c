@@ -3,7 +3,7 @@ int factorial(int i)
     if (i < 2)
         return i;
     else
-        return (i * factorial(i - 1));
+        return i * factorial(i - 1);
 }
 
 int Count;

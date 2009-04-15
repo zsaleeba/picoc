@@ -13,6 +13,7 @@ Improvements:
 * periodic heap cleanup
 * octal/hex character constants
 * see if we can use ParserCopyPos() in other places rather than copying everything
+* check for no value returned in functions with a return value
 
 Need test/debug:
 * new/delete heap allocation
