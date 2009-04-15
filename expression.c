@@ -1214,13 +1214,14 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                     VariableGet(Parser, LexValue->Val->Identifier, &VariableValue);
                     if (VariableValue->Typ->Base == TypeMacro)
                     {
-                        ProgramFail(Parser, "XXX macros unimplemented");
-#if 0
+                        /* evaluate a macro as a kind of simple subroutine */
                         struct ParseState MacroParser = VariableValue->Val->Parser;
+                        struct Value *MacroResult;
                         
-                        if (!ExpressionParse(&MacroParser, Result) || LexGetToken(&MacroParser, NULL, FALSE) != TokenEndOfFunction)
+                        if (!ExpressionParse(&MacroParser, &MacroResult) || LexGetToken(&MacroParser, NULL, FALSE) != TokenEndOfFunction)
                             ProgramFail(&MacroParser, "expression expected");
-#endif
+                        
+                        ExpressionStackPushValueNode(Parser, &StackTop, MacroResult);
                     }
                     else if (VariableValue->Typ == TypeVoid)
                         ProgramFail(Parser, "a void value isn't much use here");
