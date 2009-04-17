@@ -2,9 +2,11 @@ TODO
 
 Implement:
 * pointer arithmetic
+* NULL pointers and pointer comparison
 * ternary operator
 * casts
 * char access/char array access/char * access
+* an easier way of checking pointers in library code
 
 Improvements:
 * #define with arguments
@@ -15,6 +17,7 @@ Improvements:
 * octal/hex character constants
 * see if we can use ParserCopyPos() in other places rather than copying everything
 * check for no value returned in functions with a return value
+* native pointer access?
 
 Need test/debug:
 * new/delete heap allocation
