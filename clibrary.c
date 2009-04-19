@@ -1,5 +1,8 @@
 #include "picoc.h"
 
+static int TRUEValue = 1;
+static int ZeroValue = 0;
+
 /* initialise a library */
 void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct LibraryFunction (*FuncList)[])
 {
@@ -20,6 +23,15 @@ void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct Libr
         NewValue->Val->FuncDef.Intrinsic = (*FuncList)[Count].Func;
         HeapFree(Tokens);
     }
+}
+
+/* initialise the C library */
+void CLibraryInit()
+{
+    /* define some constants */
+    VariableDefinePlatformVar(NULL, "NULL", &IntType, (union AnyValue *)&ZeroValue, FALSE);
+    VariableDefinePlatformVar(NULL, "TRUE", &IntType, (union AnyValue *)&TRUEValue, FALSE);
+    VariableDefinePlatformVar(NULL, "FALSE", &IntType, (union AnyValue *)&ZeroValue, FALSE);
 }
 
 /* print a string to a stream without using printf/sprintf */

@@ -241,6 +241,7 @@ extern struct ValueType MacroType;
 extern struct ValueType *CharPtrType;
 extern struct ValueType *CharArrayType;
 extern char *StrEmpty;
+extern struct PointerValue NULLPointer;
 extern struct LibraryFunction CLibrary[];
 extern struct LibraryFunction PlatformLibrary[];
 
@@ -322,6 +323,7 @@ void VariableStringLiteralDefine(char *Ident, struct Value *Val);
 
 /* library.c */
 void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct LibraryFunction (*FuncList)[]);
+void CLibraryInit();
 void PrintInt(int Num, CharWriter *PutCh);
 void PrintStr(const char *Str, CharWriter *PutCh);
 void PrintFP(double Num, CharWriter *PutCh);

@@ -16,7 +16,8 @@ TESTS=	00_assignment.test \
 	15_recursion.test \
 	16_nesting.test \
 	17_enum.test \
-	18_include.test
+	18_include.test \
+	19_pointer_arithmetic.test
 
 %.test: %.expect %.c
 	@echo Test: $*...

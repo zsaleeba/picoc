@@ -150,11 +150,13 @@ void ExpressionStackPushValueNode(struct ParseState *Parser, struct ExpressionSt
 }
 
 /* push a blank value on to the expression stack by type */
-void ExpressionStackPushValueByType(struct ParseState *Parser, struct ExpressionStack **StackTop, struct ValueType *PushType)
+struct Value *ExpressionStackPushValueByType(struct ParseState *Parser, struct ExpressionStack **StackTop, struct ValueType *PushType)
 {
     debugf("ExpressionStackPushValueByType()\n");
     struct Value *ValueLoc = VariableAllocValueFromType(Parser, PushType, FALSE, NULL);
     ExpressionStackPushValueNode(Parser, StackTop, ValueLoc);
+    
+    return ValueLoc;
 }
 
 /* push a value on to the expression stack */
@@ -427,32 +429,56 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
             ExpressionPushFP(Parser, StackTop, ResultFP);
     }
 #endif
-#if 0
-XXX - finish this
-    else if ( (TopValue->Typ->Base == TypePointer && IS_INTEGER_COERCIBLE(BottomValue)) ||
-              (IS_INTEGER_COERCIBLE(TopValue) && BottomValue->Typ->Base == TypePointer) )
+    else if (BottomValue->Typ->Base == TypePointer && IS_INTEGER_COERCIBLE(TopValue))
     {
-        /* pointer infix arithmetic */
-        
-        switch (TopOperatorNode->Op)
+        /* pointer/integer infix arithmetic */
+        int TopInt = COERCE_INTEGER(TopValue);
+        struct PointerValue Pointer;
+        struct Value *StackValue;
+
+        if (Op == TokenEqual || Op == TokenNotEqual)
         {
-            case TokenEqual:                ResultInt = BottomInt == TopInt; ResultIsInt = TRUE; break;
-            case TokenNotEqual:             ResultInt = BottomInt != TopInt; ResultIsInt = TRUE; break;
-            case TokenLessThan:             ResultInt = BottomInt < TopInt; ResultIsInt = TRUE; break;
-            case TokenGreaterThan:          ResultInt = BottomInt > TopInt; ResultIsInt = TRUE; break;
-            case TokenLessEqual:            ResultInt = BottomInt <= TopInt; ResultIsInt = TRUE; break;
-            case TokenGreaterEqual:         ResultInt = BottomInt >= TopInt; ResultIsInt = TRUE; break;
-            case TokenPlus:                 Result = BottomInt + TopInt; break;
-            case TokenMinus:                Result = BottomInt - TopInt; break;
-            default:                        ProgramFail(Parser, "invalid operation"); break;
+            /* comparison to a NULL pointer */
+            if (TopInt != 0) 
+                ProgramFail(Parser, "invalid operation");
+            
+            if (Op == TokenEqual)
+                ExpressionPushInt(Parser, StackTop, BottomValue->Val->Pointer.Segment == NULL);
+            else
+                ExpressionPushInt(Parser, StackTop, BottomValue->Val->Pointer.Segment != NULL);
         }
-        
-        if (ResultIsInt)
-            ExpressionPushInt(Parser, StackTop, ResultInt);
+        else if (Op == TokenPlus || Op == TokenMinus)
+        {
+            /* pointer arithmetic */
+            int Size = TypeSize(BottomValue->Typ->FromType, 0);
+            
+            Pointer = BottomValue->Val->Pointer;
+            if (Pointer.Segment == NULL)
+                ProgramFail(Parser, "invalid use of a NULL pointer");
+            
+            if (Op == TokenPlus)
+                Pointer.Offset += TopInt * Size;
+            else
+                Pointer.Offset -= TopInt * Size;
+            
+            /* check pointer bounds */
+            if (Pointer.Offset < 0 || Pointer.Offset > TypeSizeValue(BottomValue->Val->Pointer.Segment) - Size)
+                Pointer.Offset = BottomValue->Val->Pointer.Offset;
+            
+            StackValue = ExpressionStackPushValueByType(Parser, StackTop, BottomValue->Typ);
+            StackValue->Val->Pointer = Pointer;
+        }
+        else if (Op == TokenAssign && TopInt == 0)
+        {
+            /* assign a NULL pointer */
+            if (!BottomValue->IsLValue) 
+                ProgramFail(Parser, "can't assign to this"); 
+            
+            ExpressionStackPushValueByType(Parser, StackTop, BottomValue->Typ);
+        }
         else
-            ExpressionPushPointer(Parser, StackTop, ResultInt);
+            ProgramFail(Parser, "invalid operation");
     }
-#endif
     else if (Op == TokenAssign)
     {
         /* assign a non-numeric type */
