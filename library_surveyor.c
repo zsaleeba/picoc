@@ -331,8 +331,18 @@ void Ccompass(struct ParseState *Parser, struct Value *ReturnValue, struct Value
     delayMS(10);
     i2c_data[0] = 0x41;
     i2cread(0x22, (unsigned char *)i2c_data, 2, SCCB_ON);
-    ix = ((i2c_data[0] << 8) + i2c_data[1]) / 10;
+    ix = ((unsigned int)(i2c_data[0] << 8) + i2c_data[1]) / 10;
     ReturnValue->Val->Integer = ix;
+}
+
+void Ctilt(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // return reading from HMC6352 I2C compass
+{
+    unsigned int ix;
+    
+    ix = (unsigned int)Param[0]->Val->Integer;
+    if ((ix<1) || (ix>3))
+        ProgramFail(NULL, "tilt():  invalid channel");
+    ReturnValue->Val->Integer = tilt(ix);
 }
 
 void Canalog(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // return reading from HMC6352 I2C compass
@@ -698,6 +708,7 @@ struct LibraryFunction PlatformLibrary[] =
     { Cvblob,       "int vblob(int, int)" },
     { Ccompass,     "int compass()" },
     { Canalog,      "int analog(int)" },
+    { Ctilt,        "int tilt(int)" },
     { Cgps,         "void gps()" },
     { Creadi2c,     "int readi2c(int, int)" },
     { Creadi2c2,    "int readi2c2(int, int)" },

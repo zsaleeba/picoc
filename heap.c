@@ -9,7 +9,7 @@
 static unsigned char *HeapMemory = (unsigned char *)C_HEAPSTART;      /* all memory - stack and heap */
 static void *HeapBottom = (void *)C_HEAPSTART + HEAP_SIZE;  /* the bottom of the (downward-growing) heap */
 static void *StackFrame = (void *)C_HEAPSTART;              /* the current stack frame */
-static void *HeapStackTop = (void *)C_HEAPSTART;            /* the top of the stack */
+void *HeapStackTop = (void *)C_HEAPSTART;                   /* the top of the stack */
 #else
 static unsigned char HeapMemory[HEAP_SIZE];         /* all memory - stack and heap */
 static void *HeapBottom = &HeapMemory[HEAP_SIZE];   /* the bottom of the (downward-growing) heap */

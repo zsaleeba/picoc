@@ -180,6 +180,7 @@ void ExpressionPushInt(struct ParseState *Parser, struct ExpressionStack **Stack
     ExpressionStackPushValueNode(Parser, StackTop, ValueLoc);
 }
 
+#ifndef NO_FP
 void ExpressionPushFP(struct ParseState *Parser, struct ExpressionStack **StackTop, double FPValue)
 {
     debugf("ExpressionPushFP()\n");
@@ -187,6 +188,7 @@ void ExpressionPushFP(struct ParseState *Parser, struct ExpressionStack **StackT
     ValueLoc->Val->FP = FPValue;
     ExpressionStackPushValueNode(Parser, StackTop, ValueLoc);
 }
+#endif
 
 /* evaluate a prefix operator */
 void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack **StackTop, enum LexToken Op, struct Value *TopValue)
@@ -240,7 +242,7 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
             if (IS_INTEGER_COERCIBLE(TopValue))
             {
                 /* integer prefix arithmetic */
-                int ResultInt;
+                int ResultInt = 0;
                 int TopInt = COERCE_INTEGER(TopValue);
                 switch (Op)
                 {
@@ -293,7 +295,7 @@ void ExpressionPostfixOperator(struct ParseState *Parser, struct ExpressionStack
     debugf("ExpressionPostfixOperator()\n");
     if (IS_INTEGER_COERCIBLE(TopValue))
     {
-        int ResultInt;
+        int ResultInt = 0;
         int TopInt = COERCE_INTEGER(TopValue);
         switch (Op)
         {
@@ -311,8 +313,7 @@ void ExpressionPostfixOperator(struct ParseState *Parser, struct ExpressionStack
 /* evaluate an infix operator */
 void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack **StackTop, enum LexToken Op, struct Value *BottomValue, struct Value *TopValue)
 {
-    int ResultIsInt = FALSE;
-    int ResultInt;
+    int ResultInt = 0;
 
     if (Parser->Mode != RunModeRun)
     {
@@ -354,7 +355,9 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
             case TokenSubtractAssign:       ASSIGN_INT(BottomValue, BottomInt - TopInt); break;
             case TokenMultiplyAssign:       ASSIGN_INT(BottomValue, BottomInt * TopInt); break;
             case TokenDivideAssign:         ASSIGN_INT(BottomValue, BottomInt / TopInt); break;
+#ifndef NO_MODULUS
             case TokenModulusAssign:        ASSIGN_INT(BottomValue, BottomInt % TopInt); break;
+#endif
             case TokenShiftLeftAssign:      ASSIGN_INT(BottomValue, BottomInt << TopInt); break;
             case TokenShiftRightAssign:     ASSIGN_INT(BottomValue, BottomInt >> TopInt); break;
             case TokenArithmeticAndAssign:  ASSIGN_INT(BottomValue, BottomInt & TopInt); break;
@@ -379,7 +382,9 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
             case TokenMinus:                ResultInt = BottomInt - TopInt; break;
             case TokenAsterisk:             ResultInt = BottomInt * TopInt; break;
             case TokenSlash:                ResultInt = BottomInt / TopInt; break;
+#ifndef NO_MODULUS
             case TokenModulus:              ResultInt = BottomInt % TopInt; break;
+#endif
             default:                        ProgramFail(Parser, "invalid operation"); break;
         }
         
@@ -391,7 +396,8 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
               (IS_INTEGER_COERCIBLE(TopValue) && BottomValue->Typ == &FPType) )
     {
         /* floating point infix arithmetic */
-        double ResultFP;
+        int ResultIsInt = FALSE;
+        double ResultFP = 0.0;
         double TopFP = (TopValue->Typ == &FPType) ? TopValue->Val->FP : (double)COERCE_INTEGER(TopValue);
         double BottomFP = (BottomValue->Typ == &FPType) ? BottomValue->Val->FP : (double)COERCE_INTEGER(BottomValue);
 
@@ -456,7 +462,7 @@ XXX - finish this
         if (BottomValue->Typ != TopValue->Typ)
             ProgramFail(Parser, "can't assign to a different type of variable");
             
-        memcpy(BottomValue->Val, TopValue->Val, TypeSizeValue(TopValue));
+        memcpy((void *)BottomValue->Val, (void *)TopValue->Val, TypeSizeValue(TopValue));  // XXX - need to handle arrays
         ExpressionStackPushValue(Parser, StackTop, TopValue);
     }
     else
@@ -794,7 +800,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
 /* do a function call */
 void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionStack **StackTop, const char *FuncName)
 {
-    struct Value *ReturnValue;
+    struct Value *ReturnValue = NULL;
     struct Value *FuncValue;
     struct Value *Param;
     struct Value **ParamArray = NULL;

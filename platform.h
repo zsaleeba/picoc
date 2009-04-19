@@ -32,7 +32,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <memory.h>
+#include <string.h>
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -53,6 +53,7 @@ extern jmp_buf ExitBuf;
 #   define NO_FP
 #   define NO_CTYPE
 #   define NO_HASH_INCLUDE
+#   define NO_MODULUS
 #   include <cdefBF537.h>
 #   include "../string.h"
 #   include "../print.h"
