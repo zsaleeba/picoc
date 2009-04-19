@@ -2,11 +2,9 @@ TODO
 
 Bugs:
 * assignment in declarators: int *b = &a;
-* #define NORTH  1 ... startnode(NORTH,1,2);
 
 Implement:
 * pointer arithmetic
-* NULL pointers and pointer comparison
 * ternary operator
 * casts
 * char access/char array access/char * access
