@@ -896,13 +896,13 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
                         {
                             /* cast char to int */
                             Param->Val->Integer = Param->Val->Character;
-                            Param->Typ == &IntType;
+                            Param->Typ = &IntType;
                         }
                         else if (FuncValue->Val->FuncDef.ParamType[ArgCount] == &CharType && Param->Typ == &IntType)
                         {
                             /* cast int to char */
                             Param->Val->Integer = Param->Val->Character;
-                            Param->Typ == &CharType;
+                            Param->Typ = &CharType;
                         }
                         else
                             ProgramFail(Parser, "parameter %d to %s() is the wrong type", ArgCount+1, FuncName);
