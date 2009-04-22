@@ -141,7 +141,8 @@ int ExpressionAssignInt(struct ParseState *Parser, struct Value *DestValue, int 
     return Result;
 }
 
-/* assign an integer value */
+#ifndef NO_FP
+/* assign a floating point value */
 int ExpressionAssignFP(struct ParseState *Parser, struct Value *DestValue, double FromFP)
 {
     if (!DestValue->IsLValue) 
@@ -150,6 +151,7 @@ int ExpressionAssignFP(struct ParseState *Parser, struct Value *DestValue, doubl
     DestValue->Val->FP = FromFP;
     return FromFP;
 }
+#endif
 
 /* push a node on to the expression stack */
 void ExpressionStackPushValueNode(struct ParseState *Parser, struct ExpressionStack **StackTop, struct Value *ValueLoc)
