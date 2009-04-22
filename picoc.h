@@ -286,6 +286,7 @@ void TypeCleanup();
 int TypeSize(struct ValueType *Typ, int ArraySize);
 int TypeSizeValue(struct Value *Val);
 int TypeStackSizeValue(struct Value *Val);
+int TypeLastAccessibleOffset(struct Value *Val);
 int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ);
 void TypeParseIdentPart(struct ParseState *Parser, struct ValueType *BasicTyp, struct ValueType **Typ, char **Identifier);
 void TypeParse(struct ParseState *Parser, struct ValueType **Typ, char **Identifier);
@@ -320,6 +321,7 @@ void VariableStackFrameAdd(struct ParseState *Parser, int NumParams);
 void VariableStackFramePop(struct ParseState *Parser);
 struct Value *VariableStringLiteralGet(char *Ident);
 void VariableStringLiteralDefine(char *Ident, struct Value *Val);
+void VariableCheckPointer(struct ParseState *Parser, struct Value *PointerValue);
 
 /* library.c */
 void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct LibraryFunction (*FuncList)[]);

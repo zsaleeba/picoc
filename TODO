@@ -9,6 +9,7 @@ Implement:
 * casts
 * char access/char array access/char * access
 * an easier way of checking pointers in library code
+* evaluate only first argument of && and || if possible
 
 Improvements:
 * #define with arguments

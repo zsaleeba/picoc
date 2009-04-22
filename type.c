@@ -75,6 +75,15 @@ int TypeSizeValue(struct Value *Val)
         return sizeof(struct ArrayValue) + Val->Typ->FromType->Sizeof * Val->Val->Array.Size;
 }
 
+/* the last accessible offset of a value */
+int TypeLastAccessibleOffset(struct Value *Val)
+{
+    if (Val->Typ->Base != TypeArray)
+        return 0;
+    else
+        return Val->Typ->FromType->Sizeof * (Val->Val->Array.Size-1);
+}
+
 /* memory used by a variable given its type and array size */
 int TypeSize(struct ValueType *Typ, int ArraySize)
 {

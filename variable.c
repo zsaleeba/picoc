@@ -260,3 +260,19 @@ void VariableStringLiteralDefine(char *Ident, struct Value *Val)
 {
     TableSet(&StringLiteralTable, Ident, Val);
 }
+
+/* check a pointer for validity */
+void VariableCheckPointer(struct ParseState *Parser, struct Value *PointerValue)
+{
+    struct Value *PointedToValue = PointerValue->Val->Pointer.Segment;
+
+    if (PointerValue->Typ->Base != TypePointer)
+        ProgramFail(Parser, "pointer expected");
+    
+    if (PointedToValue == NULL)
+        ProgramFail(Parser, "can't dereference NULL pointer");
+    
+    if (PointerValue->Val->Pointer.Offset < 0 || PointerValue->Val->Pointer.Offset > TypeLastAccessibleOffset(PointedToValue))
+        ProgramFail(Parser, "attempt to access invalid pointer");
+}
+

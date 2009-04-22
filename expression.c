@@ -167,10 +167,11 @@ void ExpressionStackPushValue(struct ParseState *Parser, struct ExpressionStack 
     ExpressionStackPushValueNode(Parser, StackTop, ValueLoc);
 }
 
-void ExpressionStackPushLValue(struct ParseState *Parser, struct ExpressionStack **StackTop, struct Value *PushValue)
+void ExpressionStackPushLValue(struct ParseState *Parser, struct ExpressionStack **StackTop, struct Value *PushValue, int Offset)
 {
     debugf("ExpressionStackPushLValue()\n");
     struct Value *ValueLoc = VariableAllocValueShared(Parser, PushValue);
+    ValueLoc->Val = (void *)ValueLoc->Val + Offset;
     ExpressionStackPushValueNode(Parser, StackTop, ValueLoc);
 }
 
@@ -215,19 +216,15 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
             TempLValue = TopValue->LValueFrom;
             Result = VariableAllocValueFromType(Parser, TypeGetMatching(Parser, TopValue->Typ, TypePointer, 0, StrEmpty), FALSE, NULL);
             Result->Val->Pointer.Segment = TempLValue;
-            Result->Val->Pointer.Offset = (void *)Result->Val - (void *)Result->LValueFrom;
+            if (Result->LValueFrom != NULL)
+                Result->Val->Pointer.Offset = (void *)Result->Val - (void *)Result->LValueFrom;
+                
             ExpressionStackPushValueNode(Parser, StackTop, Result);
             break;
 
         case TokenAsterisk:
-            if (TopValue->Typ->Base != TypePointer)
-                ProgramFail(Parser, "can't dereference this non-pointer");
-            
-            if (TopValue->Val->Pointer.Segment == NULL)
-                ProgramFail(Parser, "can't dereference NULL pointer");
-                
-            // XXX - should also do offset + checks
-            ExpressionStackPushLValue(Parser, StackTop, TopValue->Val->Pointer.Segment);
+            VariableCheckPointer(Parser, TopValue);
+            ExpressionStackPushLValue(Parser, StackTop, TopValue->Val->Pointer.Segment, TopValue->Val->Pointer.Offset);
             break;
         
         case TokenSizeof:
@@ -611,19 +608,16 @@ void ExpressionGetStructElement(struct ParseState *Parser, struct ExpressionStac
         /* look up the struct element */
         struct Value *ParamVal = (*StackTop)->p.Val;
         struct Value *StructVal = ParamVal;
+        int StructOffset = 0;
         struct Value *MemberValue;
         struct Value *Result;
 
         if (Token == TokenArrow)
         {
             /* dereference the struct pointer first */
-            if (StructVal->Typ->Base != TypePointer)
-                ProgramFail(Parser, "can't dereference this non-pointer");
-            
-            // XXX - should also do offset + checks
+            VariableCheckPointer(Parser, ParamVal);
             StructVal = ParamVal->Val->Pointer.Segment;
-            if (StructVal == NULL)
-                ProgramFail(Parser, "can't dereference NULL pointer");
+            StructOffset = ParamVal->Val->Pointer.Offset;
         }
         
         if (StructVal->Typ->Base != TypeStruct && StructVal->Typ->Base != TypeUnion)
@@ -637,7 +631,7 @@ void ExpressionGetStructElement(struct ParseState *Parser, struct ExpressionStac
         *StackTop = (*StackTop)->Next;
         
         /* make the result value for this member only */
-        Result = VariableAllocValueFromExistingData(Parser, MemberValue->Typ, (void *)StructVal->Val + MemberValue->Val->Integer, TRUE, StructVal->LValueFrom);
+        Result = VariableAllocValueFromExistingData(Parser, MemberValue->Typ, (void *)StructVal->Val + StructOffset + MemberValue->Val->Integer, TRUE, StructVal->LValueFrom);
         ExpressionStackPushValueNode(Parser, StackTop, Result);
     }
 }
@@ -679,7 +673,6 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                 { 
                     /* boost the bracket operator precedence, then push */
                     BracketPrecedence += BRACKET_PRECEDENCE;
-                    // XXX ExpressionStackPushOperator(Parser, &StackTop, OrderPrefix, Token, Precedence);
                 }
                 else
                 { 
@@ -741,7 +734,6 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                     { 
                         /* boost the bracket operator precedence, then push */
                         BracketPrecedence += BRACKET_PRECEDENCE;
-                        // XXX ExpressionStackPushOperator(Parser, &StackTop, OrderPrefix, Token, Precedence);
                     }
                 }
                 else
@@ -774,7 +766,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                     else if (VariableValue->Typ == TypeVoid)
                         ProgramFail(Parser, "a void value isn't much use here");
                     else
-                        ExpressionStackPushLValue(Parser, &StackTop, VariableValue); /* it's a value variable */
+                        ExpressionStackPushLValue(Parser, &StackTop, VariableValue, 0); /* it's a value variable */
                 }
                 else /* push a dummy value */
                     ExpressionPushInt(Parser, &StackTop, 0);
