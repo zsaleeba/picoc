@@ -223,6 +223,9 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
             if (TopValue->Typ->Base != TypePointer)
                 ProgramFail(Parser, "can't dereference this non-pointer");
             
+            if (TopValue->Val->Pointer.Segment == NULL)
+                ProgramFail(Parser, "can't dereference NULL pointer");
+                
             // XXX - should also do offset + checks
             ExpressionStackPushLValue(Parser, StackTop, TopValue->Val->Pointer.Segment);
             break;
@@ -619,6 +622,8 @@ void ExpressionGetStructElement(struct ParseState *Parser, struct ExpressionStac
             
             // XXX - should also do offset + checks
             StructVal = ParamVal->Val->Pointer.Segment;
+            if (StructVal == NULL)
+                ProgramFail(Parser, "can't dereference NULL pointer");
         }
         
         if (StructVal->Typ->Base != TypeStruct && StructVal->Typ->Base != TypeUnion)
