@@ -137,7 +137,7 @@ void LibPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
                 else
                 {
                     NextArg = (struct Value *)((void *)NextArg + sizeof(struct Value) + TypeStackSizeValue(NextArg));
-                    if (NextArg->Typ != FormatType)
+                    if (NextArg->Typ != FormatType && !(FormatType == &IntType && IS_INTEGER_COERCIBLE(NextArg)))
                         PrintStr("XXX", PlatformPutc);   /* bad type for format */
                     else
                     {
@@ -156,8 +156,8 @@ void LibPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
                                 PrintStr(Str, PlatformPutc); 
                                 break;
                             }
-                            case 'd': PrintInt(NextArg->Val->Integer, PlatformPutc); break;
-                            case 'c': PlatformPutc(NextArg->Val->Integer); break;
+                            case 'd': PrintInt(COERCE_INTEGER(NextArg), PlatformPutc); break;
+                            case 'c': PlatformPutc(COERCE_INTEGER(NextArg)); break;
 #ifndef NO_FP
                             case 'f': PrintFP(NextArg->Val->FP, PlatformPutc); break;
 #endif

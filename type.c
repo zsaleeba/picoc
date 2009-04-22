@@ -69,7 +69,9 @@ int TypeStackSizeValue(struct Value *Val)
 /* memory used by a value */
 int TypeSizeValue(struct Value *Val)
 {
-    if (Val->Typ->Base != TypeArray)
+    if (Val->Typ->Base == TypeChar)
+        return sizeof(int);     /* allow some extra room for type extension to int */
+    else if (Val->Typ->Base != TypeArray)
         return Val->Typ->Sizeof;
     else
         return sizeof(struct ArrayValue) + Val->Typ->FromType->Sizeof * Val->Val->Array.Size;
@@ -87,7 +89,9 @@ int TypeLastAccessibleOffset(struct Value *Val)
 /* memory used by a variable given its type and array size */
 int TypeSize(struct ValueType *Typ, int ArraySize)
 {
-    if (Typ->Base != TypeArray)
+    if (Typ->Base == TypeChar)
+        return sizeof(int);     /* allow some extra room for type extension to int */
+    else if (Typ->Base != TypeArray)
         return Typ->Sizeof;
     else
         return sizeof(struct ArrayValue) + Typ->FromType->Sizeof * ArraySize;

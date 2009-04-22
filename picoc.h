@@ -26,6 +26,16 @@
 #define PATH_MAX 1024
 #endif
 
+/* coercion of numeric types to other numeric types */
+#ifndef NO_FP
+#define IS_INTEGER_COERCIBLE(v) ((v)->Typ->Base == TypeInt || (v)->Typ->Base == TypeFP || (v)->Typ->Base == TypeChar)
+#define COERCE_INTEGER(v) (((v)->Typ->Base == TypeInt) ? (int)(v)->Val->Integer : (((v)->Typ->Base == TypeChar) ? (int)(v)->Val->Character : (v)->Val->FP))
+#else
+#define IS_INTEGER_COERCIBLE(v) ((v)->Typ->Base == TypeInt || (v)->Typ->Base == TypeChar)
+#define COERCE_INTEGER(v) (((v)->Typ->Base == TypeChar) ? (int)(v)->Val->Character : (v)->Val->Integer)
+#endif
+
+
 struct Table;
 
 /* lexical tokens */
@@ -95,7 +105,7 @@ enum BaseType
 #ifndef NO_FP
     TypeFP,                     /* floating point */
 #endif
-    TypeChar,                   /* a single character - acts like an integer except in machine memory access */
+    TypeChar,                   /* a single character */
     TypeFunction,               /* a function */
     TypeMacro,                  /* a macro */
     TypePointer,                /* a pointer */

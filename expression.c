@@ -3,19 +3,6 @@
 
 /* whether evaluation is left to right for a given precedence level */
 #define IS_LEFT_TO_RIGHT(p) ((p) != 2 && (p) != 3 && (p) != 14)
-#ifndef NO_FP
-#define IS_INTEGER_COERCIBLE(v) ((v)->Typ->Base == TypeInt || (v)->Typ->Base == TypeFP || (v)->Typ->Base == TypeChar)
-#define COERCE_INTEGER(v) (((v)->Typ->Base == TypeFP) ? (int)(v)->Val->FP : (v)->Val->Integer)
-#else
-#define IS_INTEGER_COERCIBLE(v) ((v)->Typ->Base == TypeInt || (v)->Typ->Base == TypeChar)
-#define COERCE_INTEGER(v) ((v)->Val->Integer)
-#endif
-
-/* helper macros for assignment */
-#define ASSIGN_INT(d,s) { if (!(d)->IsLValue) ProgramFail(Parser, "can't assign to this"); ResultInt = (s); (d)->Val->Integer = ResultInt; }
-#define ASSIGN_INT_AFTER(d,s) { if (!(d)->IsLValue) ProgramFail(Parser, "can't assign to this"); ResultInt = (d)->Val->Integer; (d)->Val->Integer = (s); }
-#define ASSIGN_FP(d,s) { if (!(d)->IsLValue) ProgramFail(Parser, "can't assign to this"); ResultFP = (s); (d)->Val->FP = ResultFP; }
-
 #define BRACKET_PRECEDENCE 20
 
 #ifdef DEBUG_EXPRESSIONS
@@ -137,6 +124,33 @@ void ExpressionStackShow(struct ExpressionStack *StackTop)
 }
 #endif
 
+/* assign an integer value */
+int ExpressionAssignInt(struct ParseState *Parser, struct Value *DestValue, int FromInt, int After)
+{
+    int Result;
+    
+    if (!DestValue->IsLValue) 
+        ProgramFail(Parser, "can't assign to this"); 
+    
+    if (After)
+        Result = DestValue->Val->Integer;
+    else
+        Result = FromInt;
+
+    DestValue->Val->Integer = FromInt;
+    return Result;
+}
+
+/* assign an integer value */
+int ExpressionAssignFP(struct ParseState *Parser, struct Value *DestValue, double FromFP)
+{
+    if (!DestValue->IsLValue) 
+        ProgramFail(Parser, "can't assign to this"); 
+    
+    DestValue->Val->FP = FromFP;
+    return FromFP;
+}
+
 /* push a node on to the expression stack */
 void ExpressionStackPushValueNode(struct ParseState *Parser, struct ExpressionStack **StackTop, struct Value *ValueLoc)
 {
@@ -250,8 +264,8 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
                 {
                     case TokenPlus:         ResultInt = TopInt; break;
                     case TokenMinus:        ResultInt = -TopInt; break;
-                    case TokenIncrement:    ASSIGN_INT(TopValue, TopInt+1); break;
-                    case TokenDecrement:    ASSIGN_INT(TopValue, TopInt-1); break;
+                    case TokenIncrement:    ResultInt = ExpressionAssignInt(Parser, TopValue, TopInt+1, FALSE); break;
+                    case TokenDecrement:    ResultInt = ExpressionAssignInt(Parser, TopValue, TopInt-1, FALSE); break;
                     case TokenUnaryNot:     ResultInt = !TopInt; break;
                     case TokenUnaryExor:    ResultInt = ~TopInt; break;
                     default:                ProgramFail(Parser, "invalid operation"); break;
@@ -301,8 +315,8 @@ void ExpressionPostfixOperator(struct ParseState *Parser, struct ExpressionStack
         int TopInt = COERCE_INTEGER(TopValue);
         switch (Op)
         {
-            case TokenIncrement:            ASSIGN_INT_AFTER(TopValue, TopInt+1); break;
-            case TokenDecrement:            ASSIGN_INT_AFTER(TopValue, TopInt+1); break;
+            case TokenIncrement:            ResultInt = ExpressionAssignInt(Parser, TopValue, TopInt+1, TRUE); break;
+            case TokenDecrement:            ResultInt = ExpressionAssignInt(Parser, TopValue, TopInt-1, TRUE); break;
             case TokenRightSquareBracket:   break;  // XXX
             case TokenCloseBracket:         break;  // XXX
             default:                        ProgramFail(Parser, "invalid operation"); break;
@@ -344,6 +358,7 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
             ProgramFail(Parser, "illegal array index %d [0..%d]", ArrayIndex, BottomValue->Val->Array.Size-1);
         
         /* make the array element result */
+        // XXX - need to handle char array access
         Result = VariableAllocValueFromExistingData(Parser, BottomValue->Typ->FromType, (union AnyValue *)(BottomValue->Val->Array.Data + TypeSize(BottomValue->Typ->FromType, 0) * ArrayIndex), BottomValue->IsLValue, BottomValue->LValueFrom);
         ExpressionStackPushValueNode(Parser, StackTop, Result);
     }
@@ -354,19 +369,19 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
         int BottomInt = COERCE_INTEGER(BottomValue);
         switch (Op)
         {
-            case TokenAssign:               ASSIGN_INT(BottomValue, TopInt); break;
-            case TokenAddAssign:            ASSIGN_INT(BottomValue, BottomInt + TopInt); break;
-            case TokenSubtractAssign:       ASSIGN_INT(BottomValue, BottomInt - TopInt); break;
-            case TokenMultiplyAssign:       ASSIGN_INT(BottomValue, BottomInt * TopInt); break;
-            case TokenDivideAssign:         ASSIGN_INT(BottomValue, BottomInt / TopInt); break;
+            case TokenAssign:               ResultInt = ExpressionAssignInt(Parser, BottomValue, TopInt, FALSE); break;
+            case TokenAddAssign:            ResultInt = ExpressionAssignInt(Parser, BottomValue, BottomInt + TopInt, FALSE); break;
+            case TokenSubtractAssign:       ResultInt = ExpressionAssignInt(Parser, BottomValue, BottomInt - TopInt, FALSE); break;
+            case TokenMultiplyAssign:       ResultInt = ExpressionAssignInt(Parser, BottomValue, BottomInt * TopInt, FALSE); break;
+            case TokenDivideAssign:         ResultInt = ExpressionAssignInt(Parser, BottomValue, BottomInt / TopInt, FALSE); break;
 #ifndef NO_MODULUS
-            case TokenModulusAssign:        ASSIGN_INT(BottomValue, BottomInt % TopInt); break;
+            case TokenModulusAssign:        ResultInt = ExpressionAssignInt(Parser, BottomValue, BottomInt % TopInt, FALSE); break;
 #endif
-            case TokenShiftLeftAssign:      ASSIGN_INT(BottomValue, BottomInt << TopInt); break;
-            case TokenShiftRightAssign:     ASSIGN_INT(BottomValue, BottomInt >> TopInt); break;
-            case TokenArithmeticAndAssign:  ASSIGN_INT(BottomValue, BottomInt & TopInt); break;
-            case TokenArithmeticOrAssign:   ASSIGN_INT(BottomValue, BottomInt | TopInt); break;
-            case TokenArithmeticExorAssign: ASSIGN_INT(BottomValue, BottomInt ^ TopInt); break;
+            case TokenShiftLeftAssign:      ResultInt = ExpressionAssignInt(Parser, BottomValue, BottomInt << TopInt, FALSE); break;
+            case TokenShiftRightAssign:     ResultInt = ExpressionAssignInt(Parser, BottomValue, BottomInt >> TopInt, FALSE); break;
+            case TokenArithmeticAndAssign:  ResultInt = ExpressionAssignInt(Parser, BottomValue, BottomInt & TopInt, FALSE); break;
+            case TokenArithmeticOrAssign:   ResultInt = ExpressionAssignInt(Parser, BottomValue, BottomInt | TopInt, FALSE); break;
+            case TokenArithmeticExorAssign: ResultInt = ExpressionAssignInt(Parser, BottomValue, BottomInt ^ TopInt, FALSE); break;
             case TokenQuestionMark:         break; // XXX
             case TokenColon:                break; // XXX
             case TokenLogicalOr:            ResultInt = BottomInt || TopInt; break;
@@ -407,11 +422,11 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
 
         switch (Op)
         {
-            case TokenAssign:               ASSIGN_FP(BottomValue, TopFP); break;
-            case TokenAddAssign:            ASSIGN_FP(BottomValue, BottomFP + TopFP); break;
-            case TokenSubtractAssign:       ASSIGN_FP(BottomValue, BottomFP - TopFP); break;
-            case TokenMultiplyAssign:       ASSIGN_FP(BottomValue, BottomFP * TopFP); break;
-            case TokenDivideAssign:         ASSIGN_FP(BottomValue, BottomFP / TopFP); break;
+            case TokenAssign:               ResultFP = ExpressionAssignFP(Parser, BottomValue, TopFP); break;
+            case TokenAddAssign:            ResultFP = ExpressionAssignFP(Parser, BottomValue, BottomFP + TopFP); break;
+            case TokenSubtractAssign:       ResultFP = ExpressionAssignFP(Parser, BottomValue, BottomFP - TopFP); break;
+            case TokenMultiplyAssign:       ResultFP = ExpressionAssignFP(Parser, BottomValue, BottomFP * TopFP); break;
+            case TokenDivideAssign:         ResultFP = ExpressionAssignFP(Parser, BottomValue, BottomFP / TopFP); break;
             case TokenEqual:                ResultInt = BottomFP == TopFP; ResultIsInt = TRUE; break;
             case TokenNotEqual:             ResultInt = BottomFP != TopFP; ResultIsInt = TRUE; break;
             case TokenLessThan:             ResultInt = BottomFP < TopFP; ResultIsInt = TRUE; break;
@@ -876,7 +891,22 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
                 else
                 {
                     if (FuncValue->Val->FuncDef.ParamType[ArgCount] != Param->Typ)
-                        ProgramFail(Parser, "parameter %d to %s() is the wrong type", ArgCount+1, FuncName);
+                    {
+                        if (FuncValue->Val->FuncDef.ParamType[ArgCount] == &IntType && Param->Typ == &CharType)
+                        {
+                            /* cast char to int */
+                            Param->Val->Integer = Param->Val->Character;
+                            Param->Typ == &IntType;
+                        }
+                        else if (FuncValue->Val->FuncDef.ParamType[ArgCount] == &CharType && Param->Typ == &IntType)
+                        {
+                            /* cast int to char */
+                            Param->Val->Integer = Param->Val->Character;
+                            Param->Typ == &CharType;
+                        }
+                        else
+                            ProgramFail(Parser, "parameter %d to %s() is the wrong type", ArgCount+1, FuncName);
+                    }
                 }
                 
                 if (ArgCount < FuncValue->Val->FuncDef.NumParams)
@@ -941,10 +971,10 @@ int ExpressionParseInt(struct ParseState *Parser)
     
     if (Parser->Mode == RunModeRun)
     { 
-        if (Val->Typ->Base != TypeInt)
+        if (!IS_INTEGER_COERCIBLE(Val))
             ProgramFail(Parser, "integer value expected");
     
-        Result = Val->Val->Integer;
+        Result = COERCE_INTEGER(Val);
         VariableStackPop(Parser, Val);
     }
     
