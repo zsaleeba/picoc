@@ -17,7 +17,8 @@ TESTS=	00_assignment.test \
 	16_nesting.test \
 	17_enum.test \
 	18_include.test \
-	19_pointer_arithmetic.test
+	19_pointer_arithmetic.test \
+	20_pointer_comparison.test
 
 %.test: %.expect %.c
 	@echo Test: $*...

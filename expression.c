@@ -316,6 +316,8 @@ void ExpressionPostfixOperator(struct ParseState *Parser, struct ExpressionStack
 void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack **StackTop, enum LexToken Op, struct Value *BottomValue, struct Value *TopValue)
 {
     int ResultInt = 0;
+    struct PointerValue Pointer;
+    struct Value *StackValue;
 
     if (Parser->Mode != RunModeRun)
     {
@@ -433,8 +435,6 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
     {
         /* pointer/integer infix arithmetic */
         int TopInt = COERCE_INTEGER(TopValue);
-        struct PointerValue Pointer;
-        struct Value *StackValue;
 
         if (Op == TokenEqual || Op == TokenNotEqual)
         {
@@ -462,7 +462,7 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
                 Pointer.Offset -= TopInt * Size;
             
             /* check pointer bounds */
-            if (Pointer.Offset < 0 || Pointer.Offset > TypeSizeValue(BottomValue->Val->Pointer.Segment) - Size)
+            if (Pointer.Offset < 0 || Pointer.Offset > TypeLastAccessibleOffset(Pointer.Segment))
                 Pointer.Offset = BottomValue->Val->Pointer.Offset;
             
             StackValue = ExpressionStackPushValueByType(Parser, StackTop, BottomValue->Typ);
@@ -478,6 +478,20 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
         }
         else
             ProgramFail(Parser, "invalid operation");
+    }
+    else if (BottomValue->Typ->Base == TypePointer && TopValue->Typ->Base == TypePointer && Op != TokenAssign)
+    {
+        /* pointer/pointer operations */
+        void *TopLoc = (void *)TopValue->Val->Pointer.Segment->Val + TopValue->Val->Pointer.Offset;
+        void *BottomLoc = (void *)BottomValue->Val->Pointer.Segment->Val + BottomValue->Val->Pointer.Offset;
+        
+        switch (Op)
+        {
+            case TokenEqual:                ExpressionPushInt(Parser, StackTop, BottomLoc == TopLoc); break;
+            case TokenNotEqual:             ExpressionPushInt(Parser, StackTop, BottomLoc != TopLoc); break;
+            case TokenMinus:                ExpressionPushInt(Parser, StackTop, BottomLoc - TopLoc); break;
+            default:                        ProgramFail(Parser, "invalid operation"); break;
+        }
     }
     else if (Op == TokenAssign)
     {

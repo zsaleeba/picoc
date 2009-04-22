@@ -2,14 +2,23 @@ TODO
 
 Bugs:
 * assignment in declarators: int *b = &a;
+* struct it
+    {
+        int a;
+        int b;
+    } c;
+    int *x;
+    x = &c.a;
+    printf("%d\n", *x);
+    XXX
 
 Implement:
-* pointer arithmetic
 * ternary operator
 * casts
 * char access/char array access/char * access
 * an easier way of checking pointers in library code
 * evaluate only first argument of && and || if possible
+* array assignment
 
 Improvements:
 * #define with arguments
