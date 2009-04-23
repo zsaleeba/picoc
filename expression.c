@@ -894,18 +894,13 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
                 {
                     if (FuncValue->Val->FuncDef.ParamType[ArgCount] != Param->Typ)
                     {
-                        if (FuncValue->Val->FuncDef.ParamType[ArgCount] == &IntType && Param->Typ == &CharType)
-                        {
-                            /* cast char to int */
-                            Param->Val->Integer = Param->Val->Character;
-                            Param->Typ = &IntType;
-                        }
-                        else if (FuncValue->Val->FuncDef.ParamType[ArgCount] == &CharType && Param->Typ == &IntType)
-                        {
-                            /* cast int to char */
-                            Param->Val->Character = Param->Val->Integer;
-                            Param->Typ = &CharType;
-                        }
+                        /* parameter is the wrong type - can we coerce it to being the type we want? */
+                        if (FuncValue->Val->FuncDef.ParamType[ArgCount] == &IntType && IS_INTEGER_COERCIBLE(Param))
+                            Param->Val->Integer = COERCE_INTEGER(Param);        /* cast to int */
+
+                        else if (FuncValue->Val->FuncDef.ParamType[ArgCount] == &CharType && IS_INTEGER_COERCIBLE(Param))
+                            Param->Val->Character = COERCE_INTEGER(Param);      /* cast to char */
+
                         else
                             ProgramFail(Parser, "parameter %d to %s() is the wrong type", ArgCount+1, FuncName);
                     }
