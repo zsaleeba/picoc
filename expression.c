@@ -903,7 +903,7 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
                         else if (FuncValue->Val->FuncDef.ParamType[ArgCount] == &CharType && Param->Typ == &IntType)
                         {
                             /* cast int to char */
-                            Param->Val->Integer = Param->Val->Character;
+                            Param->Val->Character = Param->Val->Integer;
                             Param->Typ = &CharType;
                         }
                         else
