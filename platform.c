@@ -53,6 +53,7 @@ void PlatformVPrintf(const char *Format, va_list Args)
             case 's': PrintStr(va_arg(Args, char *), PlatformPutc); break;
             case 'd': PrintInt(va_arg(Args, int), PlatformPutc); break;
             case 'c': PlatformPutc(va_arg(Args, int)); break;
+            case 't': PrintType(va_arg(Args, struct ValueType *), PlatformPutc); break;
 #ifndef NO_FP
             case 'f': PrintFP(va_arg(Args, double), PlatformPutc); break;
 #endif

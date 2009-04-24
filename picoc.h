@@ -113,7 +113,6 @@ enum BaseType
     TypeStruct,                 /* aggregate type */
     TypeUnion,                  /* merged type */
     TypeEnum,                   /* enumated integer type */
-    TypeType                    /* a type (eg. typedef) */
 };
 
 /* data type */
@@ -333,14 +332,15 @@ struct Value *VariableStringLiteralGet(char *Ident);
 void VariableStringLiteralDefine(char *Ident, struct Value *Val);
 void VariableCheckPointer(struct ParseState *Parser, struct Value *PointerValue);
 
-/* library.c */
+/* clibrary.c */
 void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct LibraryFunction (*FuncList)[]);
 void CLibraryInit();
 void PrintInt(int Num, CharWriter *PutCh);
 void PrintStr(const char *Str, CharWriter *PutCh);
 void PrintFP(double Num, CharWriter *PutCh);
+void PrintType(struct ValueType *Typ, CharWriter *PutCh);
 
-/* platform_support.c */
+/* platform.c */
 void ProgramFail(struct ParseState *Parser, const char *Message, ...);
 void LexFail(struct LexState *Lexer, const char *Message, ...);
 void PlatformCleanup();

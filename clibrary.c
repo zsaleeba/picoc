@@ -98,6 +98,27 @@ void PrintFP(double Num, CharWriter *PutCh)
 }
 #endif
 
+/* print a type to a stream without using printf/sprintf */
+void PrintType(struct ValueType *Typ, CharWriter *PutCh)
+{
+    switch (Typ->Base)
+    {
+        case TypeVoid:      PrintStr("void", PutCh); break;
+        case TypeInt:       PrintStr("int", PutCh); break;
+#ifndef NO_FP
+        case TypeFP:        PrintStr("double", PutCh); break;
+#endif
+        case TypeChar:      PrintStr("char", PutCh); break;
+        case TypeFunction:  PrintStr("function", PutCh); break;
+        case TypeMacro:     PrintStr("macro", PutCh); break;
+        case TypePointer:   if (Typ->FromType) PrintType(Typ->FromType, PutCh); PutCh('*'); break;
+        case TypeArray:     PrintType(Typ->FromType, PutCh); PutCh('['); if (Typ->ArraySize != 0) PrintInt(Typ->ArraySize, PutCh); PutCh(']'); break;
+        case TypeStruct:    PrintStr("struct ", PutCh); PrintStr(Typ->Identifier, PutCh); break;
+        case TypeUnion:     PrintStr("union ", PutCh); PrintStr(Typ->Identifier, PutCh); break;
+        case TypeEnum:      PrintStr("enum ", PutCh); PrintStr(Typ->Identifier, PutCh); break;
+    }
+}
+
 /* intrinsic functions made available to the language */
 void LibPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {

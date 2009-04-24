@@ -350,7 +350,7 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
         struct Value *Result;
         
         if (BottomValue->Typ->Base != TypeArray)
-            ProgramFail(Parser, "not an array");
+            ProgramFail(Parser, "this %t is not an array", BottomValue->Typ);
         
         if (!IS_INTEGER_COERCIBLE(TopValue))
             ProgramFail(Parser, "array index must be an integer");
@@ -517,7 +517,7 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
             ProgramFail(Parser, "can't assign to this"); 
         
         if (BottomValue->Typ != TopValue->Typ)
-            ProgramFail(Parser, "can't assign to a different type of variable");
+            ProgramFail(Parser, "can't assign from a %t to a %t", TopValue->Typ, BottomValue->Typ);
             
         memcpy((void *)BottomValue->Val, (void *)TopValue->Val, TypeSizeValue(TopValue));  // XXX - need to handle arrays
         ExpressionStackPushValue(Parser, StackTop, TopValue);
@@ -652,7 +652,7 @@ void ExpressionGetStructElement(struct ParseState *Parser, struct ExpressionStac
         }
         
         if (StructVal->Typ->Base != TypeStruct && StructVal->Typ->Base != TypeUnion)
-            ProgramFail(Parser, "can't use '%s' on something that's not a struct or union %s", (Token == TokenDot) ? "." : "->", (Token == TokenArrow) ? "pointer" : "");
+            ProgramFail(Parser, "can't use '%s' on something that's not a struct or union %s : it's a %t", (Token == TokenDot) ? "." : "->", (Token == TokenArrow) ? "pointer" : "", ParamVal->Typ);
             
         if (!TableGet(StructVal->Typ->Members, Ident->Val->Identifier, &MemberValue))
             ProgramFail(Parser, "doesn't have a member called '%s'", Ident->Val->Identifier);
@@ -866,7 +866,7 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
         /* get the function definition */
         VariableGet(Parser, FuncName, &FuncValue);
         if (FuncValue->Typ->Base != TypeFunction)
-            ProgramFail(Parser, "not a function - can't call");
+            ProgramFail(Parser, "%t is not a function - can't call", FuncValue->Typ);
     
         ExpressionStackPushValueByType(Parser, StackTop, FuncValue->Val->FuncDef.ReturnType);
         ReturnValue = (*StackTop)->p.Val;
@@ -902,7 +902,9 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
                             Param->Val->Character = COERCE_INTEGER(Param);      /* cast to char */
 
                         else
-                            ProgramFail(Parser, "parameter %d to %s() is the wrong type", ArgCount+1, FuncName);
+                            ProgramFail(Parser, "parameter %d to %s() is %t instead of %t", ArgCount+1, FuncName, Param->Typ, FuncValue->Val->FuncDef.ParamType[ArgCount]);
+                        
+                        Param->Typ = FuncValue->Val->FuncDef.ParamType[ArgCount];
                     }
                 }
                 
@@ -946,7 +948,7 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
                 ProgramFail(&FuncParser, "function body expected");
         
             if (FuncValue->Val->FuncDef.ReturnType != ReturnValue->Typ)
-                ProgramFail(&FuncParser, "bad type of return value");
+                ProgramFail(&FuncParser, "return value is %t instead of %t", ReturnValue->Typ, FuncValue->Val->FuncDef.ReturnType);
 
             VariableStackFramePop(Parser);
         }
@@ -969,7 +971,7 @@ int ExpressionParseInt(struct ParseState *Parser)
     if (Parser->Mode == RunModeRun)
     { 
         if (!IS_INTEGER_COERCIBLE(Val))
-            ProgramFail(Parser, "integer value expected");
+            ProgramFail(Parser, "integer value expected instead of %t", Val->Typ);
     
         Result = COERCE_INTEGER(Val);
         VariableStackPop(Parser, Val);

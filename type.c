@@ -12,7 +12,6 @@ struct ValueType VoidType;
 struct ValueType FunctionType;
 struct ValueType MacroType;
 struct ValueType EnumType;
-struct ValueType Type_Type;
 struct ValueType *CharPtrType;
 struct ValueType *CharArrayType;
 
@@ -123,7 +122,6 @@ void TypeInit()
     TypeAddBaseType(&VoidType, TypeVoid, 0);
     TypeAddBaseType(&FunctionType, TypeFunction, sizeof(int));
     TypeAddBaseType(&MacroType, TypeMacro, sizeof(int));
-    TypeAddBaseType(&Type_Type, TypeType, sizeof(struct ValueType *));
     TypeAddBaseType(&CharType, TypeChar, sizeof(char));
     CharPtrType = TypeAdd(NULL, &CharType, TypePointer, 0, StrEmpty, sizeof(struct PointerValue));
     CharArrayType = TypeAdd(NULL, &CharType, TypeArray, 0, StrEmpty, sizeof(char));
