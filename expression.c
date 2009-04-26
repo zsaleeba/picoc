@@ -297,14 +297,35 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
                 }
             }
 #endif
-#if 0
-XXX - finish this
-            else
+            else if (TopValue->Typ->Base == TypePointer)
             {
                 /* pointer prefix arithmetic */
-                int TopInt = COERCE_INTEGER(TopValue);
+                int Size = TypeSize(TopValue->Typ->FromType, 0);
+                int OrigOffset = TopValue->Val->Pointer.Offset;
+                struct Value *StackValue;
+                
+                if (TopValue->Val->Pointer.Segment == NULL)
+                    ProgramFail(Parser, "invalid use of a NULL pointer");
+                    
+                if (!TopValue->IsLValue) 
+                    ProgramFail(Parser, "can't assign to this"); 
+                
+                switch (Op)
+                {
+                    case TokenIncrement:    TopValue->Val->Pointer.Offset += Size; break;
+                    case TokenDecrement:    TopValue->Val->Pointer.Offset -= Size; break;
+                    default:                ProgramFail(Parser, "invalid operation"); break;
+                }
+                
+                /* check pointer bounds */
+                if (TopValue->Val->Pointer.Offset < 0 || TopValue->Val->Pointer.Offset > TypeLastAccessibleOffset(TopValue->Val->Pointer.Segment))
+                    TopValue->Val->Pointer.Offset = OrigOffset;
+                
+                StackValue = ExpressionStackPushValueByType(Parser, StackTop, TopValue->Typ);
+                StackValue->Val->Pointer = TopValue->Val->Pointer;
             }
-#endif
+            else
+                ProgramFail(Parser, "invalid operation");
             break;
     }
 }
@@ -335,6 +356,35 @@ void ExpressionPostfixOperator(struct ParseState *Parser, struct ExpressionStack
     
         ExpressionPushInt(Parser, StackTop, ResultInt);
     }
+    else if (TopValue->Typ->Base == TypePointer)
+    {
+        /* pointer postfix arithmetic */
+        int Size = TypeSize(TopValue->Typ->FromType, 0);
+        int OrigOffset = TopValue->Val->Pointer.Offset;
+        struct Value *StackValue;
+        
+        if (TopValue->Val->Pointer.Segment == NULL)
+            ProgramFail(Parser, "invalid use of a NULL pointer");
+            
+        if (!TopValue->IsLValue) 
+            ProgramFail(Parser, "can't assign to this"); 
+        
+        StackValue = ExpressionStackPushValueByType(Parser, StackTop, TopValue->Typ);
+        StackValue->Val->Pointer = TopValue->Val->Pointer;
+
+        switch (Op)
+        {
+            case TokenIncrement:    TopValue->Val->Pointer.Offset += Size; break;
+            case TokenDecrement:    TopValue->Val->Pointer.Offset -= Size; break;
+            default:                ProgramFail(Parser, "invalid operation"); break;
+        }
+        
+        /* check pointer bounds */
+        if (TopValue->Val->Pointer.Offset < 0 || TopValue->Val->Pointer.Offset > TypeLastAccessibleOffset(TopValue->Val->Pointer.Segment))
+            TopValue->Val->Pointer.Offset = OrigOffset;
+    }
+    else
+        ProgramFail(Parser, "invalid operation");
 }
 
 /* evaluate an infix operator */
