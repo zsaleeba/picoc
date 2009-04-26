@@ -191,6 +191,16 @@ void ExpressionStackPushLValue(struct ParseState *Parser, struct ExpressionStack
     ExpressionStackPushValueNode(Parser, StackTop, ValueLoc);
 }
 
+void ExpressionStackPushDereference(struct ParseState *Parser, struct ExpressionStack **StackTop, struct Value *DereferenceValue)
+{
+    struct Value *DerefVal;
+    int Offset;
+    struct ValueType *DerefType;
+    void *DerefDataLoc = VariableDereferencePointer(Parser, DereferenceValue, &DerefVal, &Offset, &DerefType);
+    struct Value *ValueLoc = VariableAllocValueFromExistingData(Parser, DerefType, (union AnyValue *)DerefDataLoc, DerefVal->IsLValue, DerefVal);
+    ExpressionStackPushValueNode(Parser, StackTop, ValueLoc);
+}
+
 void ExpressionPushInt(struct ParseState *Parser, struct ExpressionStack **StackTop, int IntValue)
 {
     debugf("ExpressionPushInt()\n");
@@ -239,8 +249,7 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
             break;
 
         case TokenAsterisk:
-            VariableCheckPointer(Parser, TopValue);
-            ExpressionStackPushLValue(Parser, StackTop, TopValue->Val->Pointer.Segment, TopValue->Val->Pointer.Offset);
+            ExpressionStackPushDereference(Parser, StackTop, TopValue);
             break;
         
         case TokenSizeof:
@@ -640,21 +649,19 @@ void ExpressionGetStructElement(struct ParseState *Parser, struct ExpressionStac
         struct Value *ParamVal = (*StackTop)->p.Val;
         struct Value *StructVal = ParamVal;
         int StructOffset = 0;
+        struct ValueType *StructType = ParamVal->Typ;
+        void *DerefDataLoc = (void *)ParamVal->Val;
         struct Value *MemberValue;
         struct Value *Result;
 
+        /* if we're doing '->' dereference the struct pointer first */
         if (Token == TokenArrow)
-        {
-            /* dereference the struct pointer first */
-            VariableCheckPointer(Parser, ParamVal);
-            StructVal = ParamVal->Val->Pointer.Segment;
-            StructOffset = ParamVal->Val->Pointer.Offset;
-        }
+            DerefDataLoc = VariableDereferencePointer(Parser, ParamVal, &StructVal, &StructOffset, &StructType);
         
-        if (StructVal->Typ->Base != TypeStruct && StructVal->Typ->Base != TypeUnion)
+        if (StructType->Base != TypeStruct && StructType->Base != TypeUnion)
             ProgramFail(Parser, "can't use '%s' on something that's not a struct or union %s : it's a %t", (Token == TokenDot) ? "." : "->", (Token == TokenArrow) ? "pointer" : "", ParamVal->Typ);
             
-        if (!TableGet(StructVal->Typ->Members, Ident->Val->Identifier, &MemberValue))
+        if (!TableGet(StructType->Members, Ident->Val->Identifier, &MemberValue))
             ProgramFail(Parser, "doesn't have a member called '%s'", Ident->Val->Identifier);
         
         /* pop the value - assume it'll still be there until we're done */
@@ -662,7 +669,7 @@ void ExpressionGetStructElement(struct ParseState *Parser, struct ExpressionStac
         *StackTop = (*StackTop)->Next;
         
         /* make the result value for this member only */
-        Result = VariableAllocValueFromExistingData(Parser, MemberValue->Typ, (void *)StructVal->Val + StructOffset + MemberValue->Val->Integer, TRUE, StructVal->LValueFrom);
+        Result = VariableAllocValueFromExistingData(Parser, MemberValue->Typ, DerefDataLoc + MemberValue->Val->Integer, TRUE, StructVal->LValueFrom);
         ExpressionStackPushValueNode(Parser, StackTop, Result);
     }
 }

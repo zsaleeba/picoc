@@ -1,3 +1,6 @@
+int x = 'a';
+char y = x;
+
 char *a = "hello";
 
 printf("%s\n", a);

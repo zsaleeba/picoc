@@ -261,8 +261,8 @@ void VariableStringLiteralDefine(char *Ident, struct Value *Val)
     TableSet(&StringLiteralTable, Ident, Val);
 }
 
-/* check a pointer for validity */
-void VariableCheckPointer(struct ParseState *Parser, struct Value *PointerValue)
+/* check a pointer for validity and dereference it for use */
+void *VariableDereferencePointer(struct ParseState *Parser, struct Value *PointerValue, struct Value **DerefVal, int *DerefOffset, struct ValueType **DerefType)
 {
     struct Value *PointedToValue = PointerValue->Val->Pointer.Segment;
 
@@ -274,5 +274,18 @@ void VariableCheckPointer(struct ParseState *Parser, struct Value *PointerValue)
     
     if (PointerValue->Val->Pointer.Offset < 0 || PointerValue->Val->Pointer.Offset > TypeLastAccessibleOffset(PointedToValue))
         ProgramFail(Parser, "attempt to access invalid pointer");
+    
+    /* pass back the optional dereferenced pointer, offset and type */
+    if (DerefVal != NULL)
+    {
+        *DerefVal = PointedToValue;
+        *DerefOffset = PointerValue->Val->Pointer.Offset;
+        *DerefType = PointerValue->Typ->FromType;
+    }
+    
+    /* return a pointer to the data */
+    if (PointedToValue->Typ->Base == TypeArray)
+        return PointedToValue->Val->Array.Data + PointerValue->Val->Pointer.Offset;
+    else
+        return (void *)PointedToValue->Val + PointerValue->Val->Pointer.Offset;
 }
-
