@@ -1,6 +1,5 @@
 #include "picoc.h"
 
-
 /* exit with a message */
 void ProgramFail(struct ParseState *Parser, const char *Message, ...)
 {
@@ -50,18 +49,18 @@ void PlatformVPrintf(const char *Format, va_list Args)
             FPos++;
             switch (*FPos)
             {
-            case 's': PrintStr(va_arg(Args, char *), PlatformPutc); break;
-            case 'd': PrintInt(va_arg(Args, int), PlatformPutc); break;
-            case 'c': PlatformPutc(va_arg(Args, int)); break;
-            case 't': PrintType(va_arg(Args, struct ValueType *), PlatformPutc); break;
+            case 's': PrintStr(va_arg(Args, char *), &CStdOut); break;
+            case 'd': PrintInt(va_arg(Args, int), &CStdOut); break;
+            case 'c': PrintCh(va_arg(Args, int), &CStdOut); break;
+            case 't': PrintType(va_arg(Args, struct ValueType *), &CStdOut); break;
 #ifndef NO_FP
-            case 'f': PrintFP(va_arg(Args, double), PlatformPutc); break;
+            case 'f': PrintFP(va_arg(Args, double), &CStdOut); break;
 #endif
-            case '%': PlatformPutc('%'); break;
+            case '%': PrintCh('%', &CStdOut); break;
             case '\0': FPos--; break;
             }
         }
         else
-            PlatformPutc(*FPos);
+            PrintCh(*FPos, &CStdOut);
     }
 }

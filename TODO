@@ -27,6 +27,7 @@ Improvements:
 * expression and auto-cast support for all types
 * periodic heap cleanup
 * octal/hex character constants
+* comma expressions
 * see if we can use ParserCopyPos() in other places rather than copying everything
 * check for no value returned in functions with a return value
 * native pointer access?

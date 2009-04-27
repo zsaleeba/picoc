@@ -231,8 +231,26 @@ struct LibraryFunction
     const char *Prototype;
 };
 
-/* platform-specific method for writing characters to the console */
-typedef void CharWriter(unsigned char);
+/* output stream-type specific state information */
+union OutputStreamInfo
+{
+    struct StringOutputStream
+    {
+        struct ParseState *Parser;
+        char *WritePos;
+        char *MaxPos;
+    } Str;
+};
+
+/* stream-specific method for writing characters to the console */
+typedef void CharWriter(unsigned char, union OutputStreamInfo *);
+
+/* used when writing output to a string - eg. sprintf() */
+struct OutputStream
+{
+    CharWriter *Putch;
+    union OutputStreamInfo i;
+};
 
 /* globals */
 extern void *HeapStackTop;
@@ -253,6 +271,7 @@ extern char *StrEmpty;
 extern struct PointerValue NULLPointer;
 extern struct LibraryFunction CLibrary[];
 extern struct LibraryFunction PlatformLibrary[];
+extern struct OutputStream CStdOut;
 
 /* table.c */
 void TableInit();
@@ -335,10 +354,11 @@ void *VariableDereferencePointer(struct ParseState *Parser, struct Value *Pointe
 /* clibrary.c */
 void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct LibraryFunction (*FuncList)[]);
 void CLibraryInit();
-void PrintInt(int Num, CharWriter *PutCh);
-void PrintStr(const char *Str, CharWriter *PutCh);
-void PrintFP(double Num, CharWriter *PutCh);
-void PrintType(struct ValueType *Typ, CharWriter *PutCh);
+void PrintCh(char OutCh, struct OutputStream *Stream);
+void PrintInt(int Num, struct OutputStream *Stream);
+void PrintStr(const char *Str, struct OutputStream *Stream);
+void PrintFP(double Num, struct OutputStream *Stream);
+void PrintType(struct ValueType *Typ, struct OutputStream *Stream);
 
 /* platform.c */
 void ProgramFail(struct ParseState *Parser, const char *Message, ...);
@@ -347,7 +367,7 @@ void PlatformCleanup();
 void PlatformScanFile(const char *FileName);
 char *PlatformGetLine(char *Buf, int MaxLen);
 int PlatformGetCharacter();
-void PlatformPutc(unsigned char OutCh);
+void PlatformPutc(unsigned char OutCh, union OutputStreamInfo *);
 void PlatformPrintf(const char *Format, ...);
 void PlatformVPrintf(const char *Format, va_list Args);
 void PlatformExit();

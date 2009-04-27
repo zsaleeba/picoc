@@ -1,5 +1,7 @@
 #include "picoc.h"
 
+struct OutputStream CStdOut;
+
 static int TRUEValue = 1;
 static int ZeroValue = 0;
 
@@ -13,6 +15,8 @@ void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct Libr
     struct Value *NewValue;
     void *Tokens;
     const char *IntrinsicName = TableStrRegister("c library");
+    
+    CStdOut.Putch = &PlatformPutc;
     
     for (Count = 0; (*FuncList)[Count].Prototype != NULL; Count++)
     {
@@ -34,15 +38,30 @@ void CLibraryInit()
     VariableDefinePlatformVar(NULL, "FALSE", &IntType, (union AnyValue *)&ZeroValue, FALSE);
 }
 
+/* stream for writing into strings */
+void SPutc(unsigned char Ch, union OutputStreamInfo *Stream)
+{
+    struct StringOutputStream *Out = &Stream->Str;
+    *Out->WritePos++ = Ch;
+    if (Out->WritePos == Out->MaxPos)
+        Out->WritePos--;
+}
+
+/* print a character to a stream without using printf/sprintf */
+void PrintCh(char OutCh, struct OutputStream *Stream)
+{
+    (*Stream->Putch)(OutCh, &Stream->i);
+}
+
 /* print a string to a stream without using printf/sprintf */
-void PrintStr(const char *Str, CharWriter *PutCh)
+void PrintStr(const char *Str, struct OutputStream *Stream)
 {
     while (*Str != 0)
-        PutCh(*Str++);
+        PrintCh(*Str++, Stream);
 }
 
 /* print an integer to a stream without using printf/sprintf */
-void PrintInt(int Num, CharWriter *PutCh)
+void PrintInt(int Num, struct OutputStream *Stream)
 {
     int Div;
     int Remainder = 0;
@@ -50,12 +69,12 @@ void PrintInt(int Num, CharWriter *PutCh)
     
     if (Num < 0)
     {
-        PutCh('-');
+        PrintCh('-', Stream);
         Num = -Num;    
     }
     
     if (Num == 0)
-        PutCh('0');
+        PrintCh('0', Stream);
     else
     {
         Div = LARGE_INT_POWER_OF_TEN;
@@ -64,7 +83,7 @@ void PrintInt(int Num, CharWriter *PutCh)
             Remainder = Num / Div;
             if (Printing || Remainder > 0)
             {
-                PutCh('0' + Remainder);
+                PrintCh('0' + Remainder, Stream);
                 Printing = TRUE;
             }
             Num -= Remainder * Div;
@@ -75,7 +94,7 @@ void PrintInt(int Num, CharWriter *PutCh)
 
 #ifndef NO_FP
 /* print a double to a stream without using printf/sprintf */
-void PrintFP(double Num, CharWriter *PutCh)
+void PrintFP(double Num, struct OutputStream *Stream)
 {
     int Exponent = 0;
     
@@ -85,42 +104,42 @@ void PrintFP(double Num, CharWriter *PutCh)
         Exponent = log(Num) / LOG10E - 0.999999999;
     
     Num /= pow(10.0, Exponent);
-    PrintInt((int)Num, PutCh);
-    PutCh('.');
+    PrintInt((int)Num, Stream);
+    PrintCh('.', Stream);
     for (Num -= (int)Num; Num != 0.0; Num *= 10.0)
-        PutCh('0' + (int)Num);
+        PrintCh('0' + (int)Num, Stream);
     
     if (Exponent)
     {
-        PutCh('e');
-        PrintInt(Exponent, PutCh);
+        PrintCh('e', Stream);
+        PrintInt(Exponent, Stream);
     }
 }
 #endif
 
 /* print a type to a stream without using printf/sprintf */
-void PrintType(struct ValueType *Typ, CharWriter *PutCh)
+void PrintType(struct ValueType *Typ, struct OutputStream *Stream)
 {
     switch (Typ->Base)
     {
-        case TypeVoid:      PrintStr("void", PutCh); break;
-        case TypeInt:       PrintStr("int", PutCh); break;
+        case TypeVoid:      PrintStr("void", Stream); break;
+        case TypeInt:       PrintStr("int", Stream); break;
 #ifndef NO_FP
-        case TypeFP:        PrintStr("double", PutCh); break;
+        case TypeFP:        PrintStr("double", Stream); break;
 #endif
-        case TypeChar:      PrintStr("char", PutCh); break;
-        case TypeFunction:  PrintStr("function", PutCh); break;
-        case TypeMacro:     PrintStr("macro", PutCh); break;
-        case TypePointer:   if (Typ->FromType) PrintType(Typ->FromType, PutCh); PutCh('*'); break;
-        case TypeArray:     PrintType(Typ->FromType, PutCh); PutCh('['); if (Typ->ArraySize != 0) PrintInt(Typ->ArraySize, PutCh); PutCh(']'); break;
-        case TypeStruct:    PrintStr("struct ", PutCh); PrintStr(Typ->Identifier, PutCh); break;
-        case TypeUnion:     PrintStr("union ", PutCh); PrintStr(Typ->Identifier, PutCh); break;
-        case TypeEnum:      PrintStr("enum ", PutCh); PrintStr(Typ->Identifier, PutCh); break;
+        case TypeChar:      PrintStr("char", Stream); break;
+        case TypeFunction:  PrintStr("function", Stream); break;
+        case TypeMacro:     PrintStr("macro", Stream); break;
+        case TypePointer:   if (Typ->FromType) PrintType(Typ->FromType, Stream); PrintCh('*', Stream); break;
+        case TypeArray:     PrintType(Typ->FromType, Stream); PrintCh('[', Stream); if (Typ->ArraySize != 0) PrintInt(Typ->ArraySize, Stream); PrintCh(']', Stream); break;
+        case TypeStruct:    PrintStr("struct ", Stream); PrintStr(Typ->Identifier, Stream); break;
+        case TypeUnion:     PrintStr("union ", Stream); PrintStr(Typ->Identifier, Stream); break;
+        case TypeEnum:      PrintStr("enum ", Stream); PrintStr(Typ->Identifier, Stream); break;
     }
 }
 
 /* intrinsic functions made available to the language */
-void LibPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs, struct OutputStream *Stream)
 {
     struct Value *CharArray = Param[0]->Val->Pointer.Segment;
     char *Format;
@@ -146,20 +165,20 @@ void LibPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
 #ifndef NO_FP
                 case 'f': FormatType = &FPType; break;
 #endif
-                case '%': PlatformPutc('%'); FormatType = NULL; break;
+                case '%': PrintCh('%', Stream); FormatType = NULL; break;
                 case '\0': FPos--; FormatType = NULL; break;
-                default:  PlatformPutc(*FPos); FormatType = NULL; break;
+                default:  PrintCh(*FPos, Stream); FormatType = NULL; break;
             }
             
             if (FormatType != NULL)
             { /* we have to format something */
                 if (ArgCount >= NumArgs)
-                    PrintStr("XXX", PlatformPutc);   /* not enough parameters for format */
+                    PrintStr("XXX", Stream);   /* not enough parameters for format */
                 else
                 {
                     NextArg = (struct Value *)((void *)NextArg + sizeof(struct Value) + TypeStackSizeValue(NextArg));
                     if (NextArg->Typ != FormatType && !(FormatType == &IntType && IS_INTEGER_COERCIBLE(NextArg)))
-                        PrintStr("XXX", PlatformPutc);   /* bad type for format */
+                        PrintStr("XXX", Stream);   /* bad type for format */
                     else
                     {
                         switch (*FPos)
@@ -174,13 +193,13 @@ void LibPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
                                 else
                                     Str = CharArray->Val->Array.Data + NextArg->Val->Pointer.Offset;
                                     
-                                PrintStr(Str, PlatformPutc); 
+                                PrintStr(Str, Stream); 
                                 break;
                             }
-                            case 'd': PrintInt(COERCE_INTEGER(NextArg), PlatformPutc); break;
-                            case 'c': PlatformPutc(COERCE_INTEGER(NextArg)); break;
+                            case 'd': PrintInt(COERCE_INTEGER(NextArg), Stream); break;
+                            case 'c': PrintCh(COERCE_INTEGER(NextArg), Stream); break;
 #ifndef NO_FP
-                            case 'f': PrintFP(NextArg->Val->FP, PlatformPutc); break;
+                            case 'f': PrintFP(NextArg->Val->FP, Stream); break;
 #endif
                         }
                     }
@@ -190,8 +209,38 @@ void LibPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
             }
         }
         else
-            PlatformPutc(*FPos);
+            PrintCh(*FPos, Stream);
     }
+}
+
+/* printf(): print to console output */
+void LibPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    struct OutputStream ConsoleStream;
+    
+    ConsoleStream.Putch = &PlatformPutc;
+    GenericPrintf(Parser, ReturnValue, Param, NumArgs, &ConsoleStream);
+}
+
+/* sprintf(): print to a string */
+void LibSPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    struct OutputStream StrStream;
+    struct Value *DerefVal;
+    int DerefOffset;
+    struct ValueType *DerefType;
+    StrStream.i.Str.WritePos = VariableDereferencePointer(StrStream.i.Str.Parser, Param[0], &DerefVal, &DerefOffset, &DerefType);
+
+    if (DerefVal->Typ->Base != TypeArray)
+        ProgramFail(Parser, "can only print to arrays of char");
+        
+    StrStream.Putch = &SPutc;
+    StrStream.i.Str.Parser = Parser;
+    StrStream.i.Str.MaxPos = StrStream.i.Str.WritePos- DerefOffset + DerefVal->Val->Array.Size;
+    GenericPrintf(Parser, ReturnValue, Param+1, NumArgs-1, &StrStream);
+    PrintCh(0, &StrStream);
+    ReturnValue->Val->Pointer.Segment = *Param;
+    ReturnValue->Val->Pointer.Offset = 0;
 }
 
 /* get a line of input. protected from buffer overrun */
@@ -202,7 +251,7 @@ void LibGets(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
     int MaxLength = CharArray->Val->Array.Size - Param[0]->Val->Pointer.Offset;
     char *Result;
 
-    ReturnValue->Val->Pointer.Segment = 0;
+    ReturnValue->Val->Pointer.Segment = NULL;
     ReturnValue->Val->Pointer.Offset = 0;
     
     if (Param[0]->Val->Pointer.Offset < 0 || MaxLength < 0)
@@ -224,6 +273,7 @@ void LibGetc(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
 struct LibraryFunction CLibrary[] =
 {
     { LibPrintf,        "void printf(char *, ...)" },
+    { LibSPrintf,       "char *sprintf(char *, char *, ...)" },
     { LibGets,          "void gets(char *, int)" },
     { LibGetc,          "int getchar()" },
     { NULL,             NULL }
