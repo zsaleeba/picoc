@@ -219,6 +219,46 @@ void ExpressionPushFP(struct ParseState *Parser, struct ExpressionStack **StackT
 }
 #endif
 
+/* assign to a pointer, leaving a value on the expression stack */
+struct Value *ExpressionAssignToPointer(struct ParseState *Parser, struct Value *ToValue, struct Value *FromValue, int MakeValue)
+{
+    struct ValueType *PointedToType = ToValue->Typ->FromType;
+    struct Value *ValueLoc = NULL;
+    struct Value *DerefVal = NULL;
+    int DerefOffset;
+    
+    if (FromValue->Typ == ToValue->Typ)
+        ToValue->Val->Pointer = FromValue->Val->Pointer;      /* plain old pointer assignment */
+        
+    else if (FromValue->Typ->Base == TypeArray && PointedToType == FromValue->Typ->FromType)
+    {
+        /* the form is: blah *x = array of blah */
+        ToValue->Val->Pointer.Segment = FromValue;
+        ToValue->Val->Pointer.Offset = 0;
+        DerefVal = FromValue;
+    }
+    else if (FromValue->Typ->Base == TypePointer && FromValue->Typ->FromType->Base == TypeArray && PointedToType == FromValue->Typ->FromType->FromType)
+    {
+        /* the form is: blah *x = pointer to array of blah */
+        struct ValueType *DerefType;
+        
+        VariableDereferencePointer(Parser, FromValue, &DerefVal, &DerefOffset, &DerefType);
+        ToValue->Val->Pointer.Segment = DerefVal;
+        ToValue->Val->Pointer.Offset = DerefOffset;
+    }
+    else
+        ProgramFail(Parser, "can't assign from a %t to a %t", FromValue->Typ, ToValue->Typ);
+    
+    if (MakeValue)
+    {
+        /* put a copy of the pointer on the stack */
+        ValueLoc = VariableAllocValueFromType(Parser, ToValue->Typ, TRUE, NULL);
+        ValueLoc->Val->Pointer = ToValue->Val->Pointer;
+    }
+    
+    return ValueLoc;
+}
+
 /* evaluate a prefix operator */
 void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack **StackTop, enum LexToken Op, struct Value *TopValue)
 {
@@ -240,6 +280,7 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
                 ProgramFail(Parser, "can't get the address of this");
 
             TempLValue = TopValue->LValueFrom;
+            assert(TempLValue != NULL);
             Result = VariableAllocValueFromType(Parser, TypeGetMatching(Parser, TopValue->Typ, TypePointer, 0, StrEmpty), FALSE, NULL);
             Result->Val->Pointer.Segment = TempLValue;
             if (Result->LValueFrom != NULL)
@@ -575,11 +616,17 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
         if (!BottomValue->IsLValue) 
             ProgramFail(Parser, "can't assign to this"); 
         
-        if (BottomValue->Typ != TopValue->Typ)
-            ProgramFail(Parser, "can't assign from a %t to a %t", TopValue->Typ, BottomValue->Typ);
+        if (BottomValue->Typ->Base == TypePointer)
+            ExpressionStackPushValueNode(Parser, StackTop, ExpressionAssignToPointer(Parser, BottomValue, TopValue, TRUE)); /* pointer assignment */
+        else 
+        {
+            /* assign anything else */
+            if (BottomValue->Typ != TopValue->Typ)
+                ProgramFail(Parser, "can't assign from a %t to a %t", TopValue->Typ, BottomValue->Typ);
             
-        memcpy((void *)BottomValue->Val, (void *)TopValue->Val, TypeSizeValue(TopValue));  // XXX - need to handle arrays
-        ExpressionStackPushValue(Parser, StackTop, TopValue);
+            memcpy((void *)BottomValue->Val, (void *)TopValue->Val, TypeSizeValue(TopValue));  // XXX - need to handle arrays
+            ExpressionStackPushValue(Parser, StackTop, TopValue);
+        }
     }
     else
         ProgramFail(Parser, "invalid operation");
