@@ -101,7 +101,7 @@ struct Value *VariableAllocValueAndData(struct ParseState *Parser, int DataSize,
 /* allocate a value given its type */
 struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct ValueType *Typ, int IsLValue, struct Value *LValueFrom)
 {
-    int Size = TypeSize(Typ, Typ->ArraySize);
+    int Size = TypeSize(Typ, Typ->ArraySize, FALSE);
     struct Value *NewValue = VariableAllocValueAndData(Parser, Size, IsLValue, LValueFrom, FALSE);
     assert(Size > 0 || Typ == &VoidType);
     NewValue->Typ = Typ;

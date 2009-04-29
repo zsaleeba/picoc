@@ -86,9 +86,9 @@ int TypeLastAccessibleOffset(struct Value *Val)
 }
 
 /* memory used by a variable given its type and array size */
-int TypeSize(struct ValueType *Typ, int ArraySize)
+int TypeSize(struct ValueType *Typ, int ArraySize, int Compact)
 {
-    if (Typ->Base == TypeChar)
+    if (Typ->Base == TypeChar && !Compact)
         return sizeof(int);     /* allow some extra room for type extension to int */
     else if (Typ->Base != TypeArray)
         return Typ->Sizeof;

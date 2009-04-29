@@ -341,7 +341,7 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
             else if (TopValue->Typ->Base == TypePointer)
             {
                 /* pointer prefix arithmetic */
-                int Size = TypeSize(TopValue->Typ->FromType, 0);
+                int Size = TypeSize(TopValue->Typ->FromType, 0, TRUE);
                 int OrigOffset = TopValue->Val->Pointer.Offset;
                 struct Value *StackValue;
                 
@@ -400,8 +400,8 @@ void ExpressionPostfixOperator(struct ParseState *Parser, struct ExpressionStack
     else if (TopValue->Typ->Base == TypePointer)
     {
         /* pointer postfix arithmetic */
-        int Size = TypeSize(TopValue->Typ->FromType, 0);
-        int OrigOffset = TopValue->Val->Pointer.Offset;
+        int Size = TypeSize(TopValue->Typ->FromType, 0, TRUE);
+        struct PointerValue OrigPointer = TopValue->Val->Pointer;
         struct Value *StackValue;
         
         if (TopValue->Val->Pointer.Segment == NULL)
@@ -410,9 +410,6 @@ void ExpressionPostfixOperator(struct ParseState *Parser, struct ExpressionStack
         if (!TopValue->IsLValue) 
             ProgramFail(Parser, "can't assign to this"); 
         
-        StackValue = ExpressionStackPushValueByType(Parser, StackTop, TopValue->Typ);
-        StackValue->Val->Pointer = TopValue->Val->Pointer;
-
         switch (Op)
         {
             case TokenIncrement:    TopValue->Val->Pointer.Offset += Size; break;
@@ -421,8 +418,13 @@ void ExpressionPostfixOperator(struct ParseState *Parser, struct ExpressionStack
         }
         
         /* check pointer bounds */
-        if (TopValue->Val->Pointer.Offset < 0 || TopValue->Val->Pointer.Offset > TypeLastAccessibleOffset(TopValue->Val->Pointer.Segment))
-            TopValue->Val->Pointer.Offset = OrigOffset;
+        if (TopValue->Val->Pointer.Offset < 0)
+            TopValue->Val->Pointer.Offset = 0;
+        else if (TopValue->Val->Pointer.Offset > TypeLastAccessibleOffset(TopValue->Val->Pointer.Segment))
+            TopValue->Val->Pointer.Offset = TypeLastAccessibleOffset(TopValue->Val->Pointer.Segment);
+
+        StackValue = ExpressionStackPushValueByType(Parser, StackTop, TopValue->Typ);
+        StackValue->Val->Pointer = OrigPointer;
     }
     else
         ProgramFail(Parser, "invalid operation");
@@ -461,7 +463,7 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
         
         /* make the array element result */
         // XXX - need to handle char array access
-        Result = VariableAllocValueFromExistingData(Parser, BottomValue->Typ->FromType, (union AnyValue *)(BottomValue->Val->Array.Data + TypeSize(BottomValue->Typ->FromType, 0) * ArrayIndex), BottomValue->IsLValue, BottomValue->LValueFrom);
+        Result = VariableAllocValueFromExistingData(Parser, BottomValue->Typ->FromType, (union AnyValue *)(BottomValue->Val->Array.Data + TypeSize(BottomValue->Typ->FromType, 0, FALSE) * ArrayIndex), BottomValue->IsLValue, BottomValue->LValueFrom);
         ExpressionStackPushValueNode(Parser, StackTop, Result);
     }
     else if (IS_INTEGER_COERCIBLE(TopValue) && IS_INTEGER_COERCIBLE(BottomValue))
@@ -567,7 +569,7 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
         else if (Op == TokenPlus || Op == TokenMinus)
         {
             /* pointer arithmetic */
-            int Size = TypeSize(BottomValue->Typ->FromType, 0);
+            int Size = TypeSize(BottomValue->Typ->FromType, 0, TRUE);
             
             Pointer = BottomValue->Val->Pointer;
             if (Pointer.Segment == NULL)

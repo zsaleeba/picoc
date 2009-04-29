@@ -311,7 +311,7 @@ int ExpressionParseInt(struct ParseState *Parser);
 /* type.c */
 void TypeInit();
 void TypeCleanup();
-int TypeSize(struct ValueType *Typ, int ArraySize);
+int TypeSize(struct ValueType *Typ, int ArraySize, int Compact);
 int TypeSizeValue(struct Value *Val);
 int TypeStackSizeValue(struct Value *Val);
 int TypeLastAccessibleOffset(struct Value *Val);
