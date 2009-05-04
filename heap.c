@@ -69,8 +69,6 @@ int HeapPopStack(void *Addr, int Size)
         return FALSE;
     
     HeapStackTop -= ToLose;
-    if (HeapStackTop != Addr) 
-        printf("fail\n");
     assert(HeapStackTop == Addr);
     
     return TRUE;

@@ -3,9 +3,11 @@
 #define PLATFORM_H
 
 /* configurable options */
-#define UNIX_HOST                           /* select your host type */
-#undef  FLYINGFOX_HOST
-#undef  SURVEYOR_HOST
+/* select your host type (or do it in the Makefile):
+ * #define  UNIX_HOST
+ * #define  FLYINGFOX_HOST
+ * #define  SURVEYOR_HOST
+ */
 
 #ifndef SURVEYOR_HOST
 #define HEAP_SIZE 16384                     /* space for the heap and the stack */
@@ -47,6 +49,15 @@ extern jmp_buf ExitBuf;
 
 #else
 # ifdef FLYINGFOX_HOST
+#  define NO_HASH_INCLUDE
+#  include <stdlib.h>
+#  include <ctype.h>
+#  include <string.h>
+#  include <sys/types.h>
+#  include <stdarg.h>
+#  include <setjmp.h>
+#  include <math.h>
+#  define assert(x)
 
 # else
 #  ifdef SURVEYOR_HOST

@@ -501,7 +501,7 @@ void LexInitParser(struct ParseState *Parser, void *TokenSource, const char *Fil
 /* get the next token given a parser state */
 enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int IncPos)
 {
-    enum LexToken Token;
+    enum LexToken Token = TokenNone;
     int ValueSize;
     
     do

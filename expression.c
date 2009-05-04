@@ -794,9 +794,6 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                (Token == TokenCloseBracket && BracketPrecedence != 0)) &&
              (Token != TokenColon || TernaryDepth != 0) )
         { 
-            if (Token == TokenColon)
-                printf("It's a colon\n");
-                
             /* it's an operator with precedence */
             if (PrefixState)
             { 
