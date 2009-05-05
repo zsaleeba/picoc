@@ -372,5 +372,7 @@ void PlatformPrintf(const char *Format, ...);
 void PlatformVPrintf(const char *Format, va_list Args);
 void PlatformExit();
 void PlatformLibraryInit();
+void Initialise();
+void Cleanup();
 
 #endif /* PICOC_H */

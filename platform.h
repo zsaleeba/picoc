@@ -7,6 +7,7 @@
  * #define  UNIX_HOST
  * #define  FLYINGFOX_HOST
  * #define  SURVEYOR_HOST
+ * #define  UMON_HOST
  */
 
 #ifndef SURVEYOR_HOST
@@ -80,6 +81,20 @@ extern jmp_buf ExitBuf;
 #   undef INTERACTIVE_PROMPT_LINE
 #   define INTERACTIVE_PROMPT_STATEMENT "> "
 #   define INTERACTIVE_PROMPT_LINE "- "
+#  else
+#   ifdef UMON_HOST
+#    define NO_FP
+#    include <stdlib.h>
+#    include <string.h>
+#    include <ctype.h>
+#    include <sys/types.h>
+#    include <stdarg.h>
+#    include <math.h>
+#    include "monlib.h"
+#    define assert(x)
+#    undef PlatformSetExitPoint
+#    define PlatformSetExitPoint()
+#   endif
 #  endif
 # endif
 
