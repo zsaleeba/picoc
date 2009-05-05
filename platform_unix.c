@@ -80,7 +80,6 @@ jmp_buf ExitBuf;
 /* exit the program */
 void PlatformExit()
 {
-    *(char *)0 = 'a';
     longjmp(ExitBuf, 1);
 }
 
