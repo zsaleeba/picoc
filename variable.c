@@ -264,8 +264,10 @@ void VariableStringLiteralDefine(char *Ident, struct Value *Val)
 /* check a pointer for validity and dereference it for use */
 void *VariableDereferencePointer(struct ParseState *Parser, struct Value *PointerValue, struct Value **DerefVal, int *DerefOffset, struct ValueType **DerefType)
 {
+#ifndef NATIVE_POINTERS
     struct Value *PointedToValue = PointerValue->Val->Pointer.Segment;
 
+    /* this is a pointer to picoc memory */
     if (PointerValue->Typ->Base != TypePointer)
         ProgramFail(Parser, "pointer expected");
     
@@ -288,4 +290,18 @@ void *VariableDereferencePointer(struct ParseState *Parser, struct Value *Pointe
         return PointedToValue->Val->Array.Data + PointerValue->Val->Pointer.Offset;
     else
         return (void *)PointedToValue->Val + PointerValue->Val->Pointer.Offset;
+#else
+    struct Value *PointedToValue = PointerValue->Val->NativePointer;
+    
+    /* check if the pointed to item is within picoc's memory range */
+    if (PointerValue->Val->NativePointer - HeapMemStart >= HEAP_SIZE)
+        *DerefVal = NULL;
+    else
+        *DerefVal = PointedToValue;
+
+    *DerefType = PointerValue->Typ->FromType;
+    *DerefOffset = 0;
+
+    return PointerValue->Val->NativePointer;
+#endif
 }

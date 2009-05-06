@@ -148,26 +148,34 @@ struct ArrayValue
     void *Data;                     /* pointer to the array data */
 };
 
+#ifndef NATIVE_POINTERS
 struct PointerValue
 {
     struct Value *Segment;          /* array or basic value which this points to, NULL for machine memory access */
     unsigned int Offset;            /* index into an array */
 };
+#endif
 
 union AnyValue
 {
     unsigned char Character;
     short ShortInteger;
     int Integer;
-#ifndef NO_FP
-    double FP;
-#endif
     char *Identifier;
     struct ArrayValue Array;
-    struct PointerValue Pointer;
     struct ParseState Parser;
     struct ValueType *Typ;
     struct FuncDef FuncDef;
+
+#ifndef NO_FP
+    double FP;
+#endif
+
+#ifndef NATIVE_POINTERS
+    struct PointerValue Pointer;    /* safe pointers */
+#else
+    void *NativePointer;            /* unsafe native pointers */
+#endif
 };
 
 struct Value
@@ -254,6 +262,7 @@ struct OutputStream
 
 /* globals */
 extern void *HeapStackTop;
+extern void *HeapMemStart;
 extern struct Table GlobalTable;
 extern struct StackFrame *TopStackFrame;
 extern struct ValueType UberType;

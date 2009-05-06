@@ -141,17 +141,22 @@ void PrintType(struct ValueType *Typ, struct OutputStream *Stream)
 /* intrinsic functions made available to the language */
 void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs, struct OutputStream *Stream)
 {
-    struct Value *CharArray = Param[0]->Val->Pointer.Segment;
-    char *Format;
     char *FPos;
     struct Value *NextArg = Param[0];
     struct ValueType *FormatType;
     int ArgCount = 1;
-    
+#ifndef NATIVE_POINTERS
+    char *Format;
+    struct Value *CharArray = Param[0]->Val->Pointer.Segment;
+
     if (Param[0]->Val->Pointer.Offset < 0 || Param[0]->Val->Pointer.Offset >= CharArray->Val->Array.Size)
         Format = StrEmpty;
     else
         Format = CharArray->Val->Array.Data + Param[0]->Val->Pointer.Offset;
+#else
+    char *Format = Param[0]->Val->NativePointer;
+    // XXX - dereference this properly
+#endif
     
     for (FPos = Format; *FPos != '\0'; FPos++)
     {
@@ -185,6 +190,7 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
                         {
                             case 's':
                             {
+#ifndef NATIVE_POINTERS
                                 struct Value *CharArray = NextArg->Val->Pointer.Segment;
                                 char *Str;
                                 
@@ -192,6 +198,10 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
                                     Str = StrEmpty;
                                 else
                                     Str = CharArray->Val->Array.Data + NextArg->Val->Pointer.Offset;
+#else
+                                char *Str = NextArg->Val->NativePointer;
+                                // XXX - dereference this properly
+#endif
                                     
                                 PrintStr(Str, Stream); 
                                 break;
@@ -239,13 +249,18 @@ void LibSPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Val
     StrStream.i.Str.MaxPos = StrStream.i.Str.WritePos- DerefOffset + DerefVal->Val->Array.Size;
     GenericPrintf(Parser, ReturnValue, Param+1, NumArgs-1, &StrStream);
     PrintCh(0, &StrStream);
+#ifndef NATIVE_POINTERS
     ReturnValue->Val->Pointer.Segment = *Param;
     ReturnValue->Val->Pointer.Offset = 0;
+#else
+    ReturnValue->Val->NativePointer = *Param;
+#endif
 }
 
 /* get a line of input. protected from buffer overrun */
 void LibGets(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
+#ifndef NATIVE_POINTERS
     struct Value *CharArray = Param[0]->Val->Pointer.Segment;
     char *ReadBuffer = CharArray->Val->Array.Data + Param[0]->Val->Pointer.Offset;
     int MaxLength = CharArray->Val->Array.Size - Param[0]->Val->Pointer.Offset;
@@ -262,6 +277,23 @@ void LibGets(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
         return;
     
     ReturnValue->Val->Pointer = Param[0]->Val->Pointer;
+#else
+    struct Value *CharArray = (struct Value *)(Param[0]->Val->NativePointer);
+    char *ReadBuffer = CharArray->Val->Array.Data;
+    int MaxLength = CharArray->Val->Array.Size;
+    char *Result;
+
+    ReturnValue->Val->NativePointer = NULL;
+    
+    if (MaxLength < 0)
+        return; /* no room for data */
+    
+    Result = PlatformGetLine(ReadBuffer, MaxLength);
+    if (Result == NULL)
+        return;
+    
+    ReturnValue->Val->NativePointer = Param[0]->Val->NativePointer;
+#endif
 }
 
 void LibGetc(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)

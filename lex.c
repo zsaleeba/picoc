@@ -296,9 +296,12 @@ enum LexToken LexGetStringConstant(struct LexState *Lexer, struct Value *Value)
 
     /* create the the pointer for this char* */
     Value->Typ = CharPtrType;
+#ifndef NATIVE_POINTERS
     Value->Val->Pointer.Segment = ArrayValue;
     Value->Val->Pointer.Offset = 0;
-    
+#else
+    Value->Val->NativePointer = ArrayValue;
+#endif    
     if (*Lexer->Pos == '"')
         Lexer->Pos++;
     

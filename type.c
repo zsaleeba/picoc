@@ -47,7 +47,11 @@ struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *P
         
     switch (Base)
     {
+#ifndef NATIVE_POINTERS
         case TypePointer:   Sizeof = sizeof(struct PointerValue); break;
+#else
+        case TypePointer:   Sizeof = sizeof(void *); break;
+#endif
         case TypeArray:     Sizeof = sizeof(struct ArrayValue) + ArraySize * ParentType->Sizeof; break;
         case TypeEnum:      Sizeof = sizeof(int); break;
         default:            Sizeof = 0; break;      /* structs and unions will get bigger when we add members to them */
@@ -123,8 +127,12 @@ void TypeInit()
     TypeAddBaseType(&FunctionType, TypeFunction, sizeof(int));
     TypeAddBaseType(&MacroType, TypeMacro, sizeof(int));
     TypeAddBaseType(&CharType, TypeChar, sizeof(char));
-    CharPtrType = TypeAdd(NULL, &CharType, TypePointer, 0, StrEmpty, sizeof(struct PointerValue));
     CharArrayType = TypeAdd(NULL, &CharType, TypeArray, 0, StrEmpty, sizeof(char));
+#ifndef NATIVE_POINTERS
+    CharPtrType = TypeAdd(NULL, &CharType, TypePointer, 0, StrEmpty, sizeof(struct PointerValue));
+#else
+    CharPtrType = TypeAdd(NULL, &CharType, TypePointer, 0, StrEmpty, sizeof(void *));
+#endif
 }
 
 /* deallocate heap-allocated types */
