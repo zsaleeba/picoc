@@ -36,7 +36,7 @@ void Csignal(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
 
 void Cinput(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // return 0-9 from console input
 {
-    ReturnValue->Val->Integer = getch() & 0x0F;
+    ReturnValue->Val->Integer = getch();
 }
 
 void Cdelay(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -260,6 +260,32 @@ void Cvcolor(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
     umax[ix] = Param[4]->Val->Integer;
     vmin[ix] = Param[5]->Val->Integer;
     vmax[ix] = Param[6]->Val->Integer;
+}
+
+void Cvcam(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) // set camera functions - 
+     //    enable/disable AGC(4) / AWB(2) / AEC(1) camera controls
+     //    vcam(7) = AGC+AWB+AEC on   vcam(0) = AGC+AWB+AEC off
+{
+    unsigned char cx, i2c_data[2];
+
+    cx = (unsigned char)Param[0]->Val->Integer & 0x07;
+    i2c_data[0] = 0x13;
+    i2c_data[1] = 0xC0 + cx;
+    i2cwrite(0x30, (unsigned char *)i2c_data, 1, SCCB_ON);  // OV9655
+    i2cwrite(0x21, (unsigned char *)i2c_data, 1, SCCB_ON);  // OV7725
+}
+
+void Cvfind(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) // set color bin - 
+                //    vfind (color, x1, x2, y1, y2);                  
+{
+    int ix, x1, x2, y1, y2;
+    
+    ix = Param[0]->Val->Integer;
+    x1 = Param[1]->Val->Integer;
+    x2 = Param[2]->Val->Integer;
+    y1 = Param[3]->Val->Integer;
+    y2 = Param[4]->Val->Integer;
+    ReturnValue->Val->Integer = vfind((unsigned char *)FRAME_BUF, ix, x1, x2, y1, y2);
 }
 
 void Cvcap(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -700,6 +726,8 @@ struct LibraryFunction PlatformLibrary[] =
     { Crange,       "int range()" },
     { Cbattery,     "int battery()" },
     { Cvcolor,      "void vcolor(int, int, int, int, int, int, int)" },
+    { Cvfind,       "int vfind(int, int, int, int, int)" },
+    { Cvcam,        "void vcam(int)" },
     { Cvcap,        "void vcap()" },
     { Cvrcap,       "void vrcap()" },
     { Cvdiff,       "void vdiff(int)" },
