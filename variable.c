@@ -145,9 +145,14 @@ struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *
 }
 
 /* define a variable. Ident must be registered */
-void VariableDefine(struct ParseState *Parser, char *Ident, struct Value *InitValue)
+void VariableDefine(struct ParseState *Parser, char *Ident, struct Value *InitValue, int MakeWritable)
 {
-    if (!TableSet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, Ident, VariableAllocValueAndCopy(Parser, InitValue, TopStackFrame == NULL)))
+    struct Value *AssignValue = VariableAllocValueAndCopy(Parser, InitValue, TopStackFrame == NULL);
+    
+    if (MakeWritable)
+        AssignValue->IsLValue = TRUE;
+        
+    if (!TableSet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, Ident, AssignValue))
         ProgramFail(Parser, "'%s' is already defined", Ident);
 }
 

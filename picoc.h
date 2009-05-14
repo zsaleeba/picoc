@@ -350,7 +350,7 @@ struct Value *VariableAllocValueAndCopy(struct ParseState *Parser, struct Value 
 struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct ValueType *Typ, int IsLValue, struct Value *LValueFrom);
 struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, struct ValueType *Typ, union AnyValue *FromValue, int IsLValue, struct Value *LValueFrom);
 struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *FromValue);
-void VariableDefine(struct ParseState *Parser, char *Ident, struct Value *InitValue);
+void VariableDefine(struct ParseState *Parser, char *Ident, struct Value *InitValue, int MakeWritable);
 int VariableDefined(const char *Ident);
 void VariableGet(struct ParseState *Parser, const char *Ident, struct Value **LVal);
 void VariableDefinePlatformVar(struct ParseState *Parser, char *Ident, struct ValueType *Typ, union AnyValue *FromValue, int IsWritable);

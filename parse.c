@@ -127,14 +127,14 @@ int ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
                     ProgramFail(Parser, "can't define a void variable");
                     
                 if (LexGetToken(Parser, NULL, FALSE) != TokenAssign)
-                    VariableDefine(Parser, Identifier, VariableAllocValueFromType(Parser, Typ, TRUE, NULL));
+                    VariableDefine(Parser, Identifier, VariableAllocValueFromType(Parser, Typ, TRUE, NULL), TRUE);
                 else
                 { /* we're assigning an initial value */
                     LexGetToken(Parser, NULL, TRUE);
                     if (!ExpressionParse(Parser, &CValue))
                         ProgramFail(Parser, "expression expected");
                         
-                    VariableDefine(Parser, Identifier, CValue);
+                    VariableDefine(Parser, Identifier, CValue, TRUE);
                     if (Parser->Mode == RunModeRun)
                         VariableStackPop(Parser, CValue);
                 }
