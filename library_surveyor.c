@@ -2,8 +2,14 @@
 
 static int Blobcnt, Blobx1, Blobx2, Bloby1, Bloby2, Iy1, Iy2, Iu1, Iu2, Iv1, Iv2;
 static int GPSlatdeg, GPSlatmin, GPSlondeg, GPSlonmin, GPSalt, GPSfix, GPSsat, GPSutc;
+static int ScanVect[16];
+
 void PlatformLibraryInit()
 {
+    struct ValueType *IntArrayType;
+    
+    IntArrayType = TypeGetMatching(NULL, &IntType, TypeArray, 16, NULL);
+    VariableDefinePlatformVar(NULL, "scanvect", IntArrayType, (union AnyValue *)&ScanVect, FALSE);
     VariableDefinePlatformVar(NULL, "blobcnt", &IntType, (union AnyValue *)&Blobcnt, FALSE);
     VariableDefinePlatformVar(NULL, "blobx1", &IntType, (union AnyValue *)&Blobx1, FALSE);
     VariableDefinePlatformVar(NULL, "blobx2", &IntType, (union AnyValue *)&Blobx2, FALSE);
@@ -312,6 +318,19 @@ void Cvpix(struct ParseState *Parser, struct Value *ReturnValue, struct Value **
     Iy1 = ((ix>>16) & 0x000000FF);  // Y1
     Iu1 = ((ix>>24) & 0x000000FF);  // U
     Iv1 = ((ix>>8)  & 0x000000FF);  // V
+}
+
+void Cvscan(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    int col, thresh, ix;
+    col = Param[0]->Val->Integer;
+    if ((col < 1) || (col > 9))
+        ProgramFail(NULL, "vscan():  number of columns must be between 1 and 9");
+    thresh = Param[1]->Val->Integer;
+    if ((thresh < 0) || (thresh > 9999)) 
+        ProgramFail(NULL, "vscan():  threshold must be between 0 and 9999");
+    ix = vscan((unsigned char *)SPI_BUFFER1, (unsigned char *)FRAME_BUF, thresh, (unsigned int)col, (unsigned int *)&ScanVect[0]);
+    ReturnValue->Val->Integer = ix;
 }
 
 void Cvmean(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) 
@@ -704,6 +723,11 @@ void Cnnlearnblob (struct ParseState *Parser, struct Value *ReturnValue, struct 
     nndisplay(ix);
 }
 
+void Cexit (struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) {
+    ExitBuf[40] = 1;
+    longjmp(ExitBuf, 1);
+}
+
 /* list of all library functions and their prototypes */
 struct LibraryFunction PlatformLibrary[] =
 {
@@ -732,6 +756,7 @@ struct LibraryFunction PlatformLibrary[] =
     { Cvrcap,       "void vrcap()" },
     { Cvdiff,       "void vdiff(int)" },
     { Cvpix,        "void vpix(int, int)" },
+    { Cvscan,       "int vscan(int, int)" },
     { Cvmean,       "void vmean()" },
     { Cvblob,       "int vblob(int, int)" },
     { Ccompass,     "int compass()" },
@@ -754,6 +779,7 @@ struct LibraryFunction PlatformLibrary[] =
     { Cnntest,      "void nntest(int, int, int, int, int, int, int, int)" },
     { Cnnmatchblob, "void nnmatchblob(int)" },
     { Cnnlearnblob, "void nnlearnblob(int)" },
+    { Cexit,        "void exit()" },
     { NULL,         NULL }
 };
 
