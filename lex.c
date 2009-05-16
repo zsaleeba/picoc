@@ -185,7 +185,7 @@ enum LexToken LexGetNumber(struct LexState *Lexer, struct Value *Value)
     
     return TokenFPConstant;
 #else
-    return TokenIntegerConstant;
+    return ResultToken;
 #endif
 }
 
