@@ -33,8 +33,7 @@ void PlatformLibraryInit()
 
 void Csignal(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // check for kbhit, return t or nil
 {
-    unsigned char ch;
-    if (getchar(&ch))
+    if (getsignal())
         ReturnValue->Val->Integer = 1;
     else
         ReturnValue->Val->Integer = 0;
