@@ -1,7 +1,7 @@
 #include "picoc.h"
 
 static int Blobcnt, Blobx1, Blobx2, Bloby1, Bloby2, Iy1, Iy2, Iu1, Iu2, Iv1, Iv2;
-static int GPSlatdeg, GPSlatmin, GPSlondeg, GPSlonmin, GPSalt, GPSfix, GPSsat, GPSutc;
+static int GPSlat, GPSlon, GPSalt, GPSfix, GPSsat, GPSutc, Elcount, Ercount;
 static int ScanVect[16];
 
 void PlatformLibraryInit()
@@ -15,16 +15,16 @@ void PlatformLibraryInit()
     VariableDefinePlatformVar(NULL, "blobx2", &IntType, (union AnyValue *)&Blobx2, FALSE);
     VariableDefinePlatformVar(NULL, "bloby1", &IntType, (union AnyValue *)&Bloby1, FALSE);
     VariableDefinePlatformVar(NULL, "bloby2", &IntType, (union AnyValue *)&Bloby2, FALSE);
+    VariableDefinePlatformVar(NULL, "lcount", &IntType, (union AnyValue *)&Elcount, FALSE);
+    VariableDefinePlatformVar(NULL, "rcount", &IntType, (union AnyValue *)&Ercount, FALSE);
     VariableDefinePlatformVar(NULL, "y1", &IntType, (union AnyValue *)&Iy1, FALSE);
     VariableDefinePlatformVar(NULL, "y2", &IntType, (union AnyValue *)&Iy2, FALSE);
     VariableDefinePlatformVar(NULL, "u1", &IntType, (union AnyValue *)&Iu1, FALSE);
     VariableDefinePlatformVar(NULL, "u2", &IntType, (union AnyValue *)&Iu2, FALSE);
     VariableDefinePlatformVar(NULL, "v1", &IntType, (union AnyValue *)&Iv1, FALSE);
     VariableDefinePlatformVar(NULL, "v2", &IntType, (union AnyValue *)&Iv2, FALSE);
-    VariableDefinePlatformVar(NULL, "gpslatdeg", &IntType, (union AnyValue *)&GPSlatdeg, FALSE);
-    VariableDefinePlatformVar(NULL, "gpslatmin", &IntType, (union AnyValue *)&GPSlatmin, FALSE);
-    VariableDefinePlatformVar(NULL, "gpslondeg", &IntType, (union AnyValue *)&GPSlondeg, FALSE);
-    VariableDefinePlatformVar(NULL, "gpslonmin", &IntType, (union AnyValue *)&GPSlonmin, FALSE);
+    VariableDefinePlatformVar(NULL, "gpslat", &IntType, (union AnyValue *)&GPSlat, FALSE);
+    VariableDefinePlatformVar(NULL, "gpslon", &IntType, (union AnyValue *)&GPSlon, FALSE);
     VariableDefinePlatformVar(NULL, "gpsalt", &IntType, (union AnyValue *)&GPSalt, FALSE);
     VariableDefinePlatformVar(NULL, "gpsfix", &IntType, (union AnyValue *)&GPSfix, FALSE);
     VariableDefinePlatformVar(NULL, "gpssat", &IntType, (union AnyValue *)&GPSsat, FALSE);
@@ -141,6 +141,15 @@ void Cpoke(struct ParseState *Parser, struct Value *ReturnValue, struct Value **
         default: // don't bother with bad value
             break;
     }
+}
+
+void Cencoders(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+   unsigned int ix;
+   
+   ix = encoders();  // read left and right encoders;  save data to C globals lcount, rcount 
+   Elcount = (ix >> 16) & 0x0000FFFF; 
+   Ercount = ix & 0x0000FFFF; 
 }
 
 void Cmotors(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -440,10 +449,8 @@ void Canalog(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
 void Cgps(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     gps_parse();
-    GPSlatdeg = gps_gga.latdeg;
-    GPSlatmin = gps_gga.latmin;
-    GPSlondeg = gps_gga.londeg;
-    GPSlonmin = gps_gga.lonmin;
+    GPSlat = gps_gga.lat;
+    GPSlon = gps_gga.lon;
     GPSalt = gps_gga.alt;
     GPSfix = gps_gga.fix;
     GPSsat = gps_gga.sat;
@@ -483,32 +490,12 @@ void Cwritei2c(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
     i2cwrite(i2c_device, (unsigned char *)i2c_data, 1, SCCB_OFF);
 }
 
-static int cosine[] = {
-10000, 9998, 9994, 9986, 9976, 9962, 9945, 9925, 9903, 9877, 
- 9848, 9816, 9781, 9744, 9703, 9659, 9613, 9563, 9511, 9455, 
- 9397, 9336, 9272, 9205, 9135, 9063, 8988, 8910, 8829, 8746, 
- 8660, 8572, 8480, 8387, 8290, 8192, 8090, 7986, 7880, 7771, 
- 7660, 7547, 7431, 7314, 7193, 7071, 6947, 6820, 6691, 6561, 
- 6428, 6293, 6157, 6018, 5878, 5736, 5592, 5446, 5299, 5150, 
- 5000, 4848, 4695, 4540, 4384, 4226, 4067, 3907, 3746, 3584, 
- 3420, 3256, 3090, 2924, 2756, 2588, 2419, 2250, 2079, 1908, 
- 1736, 1564, 1392, 1219, 1045,  872,  698,  523,  349,  175, 
-    0 
-};
-
 void Csin(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // sin(angle)
 {
     int ix;
     
     ix = Param[0]->Val->Integer;  // input to function is angle in degrees
-    while (ix < 0)
-        ix = ix + 360;
-    while (ix >= 360)
-        ix = ix - 360;
-    if (ix < 90)  { ReturnValue->Val->Integer = cosine[90-ix] / 100;  return; }
-    if (ix < 180) { ReturnValue->Val->Integer = cosine[ix-90] / 100;  return; }
-    if (ix < 270) { ReturnValue->Val->Integer = -cosine[270-ix] / 100;  return; }
-    if (ix < 360) { ReturnValue->Val->Integer = -cosine[ix-270] / 100;  return; }
+    ReturnValue->Val->Integer = sin(ix);
 }
 
 void Ccos(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // cos(angle)
@@ -516,14 +503,7 @@ void Ccos(struct ParseState *Parser, struct Value *ReturnValue, struct Value **P
     int ix;
     
     ix = Param[0]->Val->Integer;  // input to function is angle in degrees
-    while (ix < 0)
-        ix = ix + 360;
-    while (ix >= 360)
-        ix = ix - 360;
-    if (ix < 90)  { ReturnValue->Val->Integer = cosine[ix] / 100;  return; }
-    if (ix < 180) { ReturnValue->Val->Integer = -cosine[180-ix] / 100;  return; }
-    if (ix < 270) { ReturnValue->Val->Integer = -cosine[ix-180] / 100;  return; }
-    if (ix < 360) { ReturnValue->Val->Integer = cosine[360-ix] / 100;  return; }
+    ReturnValue->Val->Integer = cos(ix);
 }
 
 void Ctan(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // tan(angle)
@@ -531,105 +511,62 @@ void Ctan(struct ParseState *Parser, struct Value *ReturnValue, struct Value **P
     int ix;
     
     ix = Param[0]->Val->Integer;  // input to function is angle in degrees
-    while (ix < 0)
-        ix = ix + 360;
-    while (ix >= 360)
-        ix = ix - 360;
-    if (ix == 90)  { ReturnValue->Val->Integer = 9999;  return; }
-    if (ix == 270) { ReturnValue->Val->Integer = -9999;  return; }
-    if (ix < 90)   { ReturnValue->Val->Integer = (100 * cosine[90-ix]) / cosine[ix];  return; }
-    if (ix < 180)  { ReturnValue->Val->Integer = -(100 * cosine[ix-90]) / cosine[180-ix];  return; }
-    if (ix < 270)  { ReturnValue->Val->Integer = (100 * cosine[270-ix]) / cosine[ix-180];  return; }
-    if (ix < 360)  { ReturnValue->Val->Integer = -(100 * cosine[ix-270]) / cosine[360-ix];  return; }
+    ReturnValue->Val->Integer = tan(ix);
 }
 
 void Casin(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // asin(y,hyp)
 {
-    int y, hyp, quot, sgn, ix;
+    int y, hyp;
     y = Param[0]->Val->Integer;
     hyp = Param[1]->Val->Integer;
     if (y > hyp)
         ProgramFail(NULL, "asin():  opposite greater than hypotenuse");
-    if (y == 0) {
-        ReturnValue->Val->Integer = 0;
-        return;
-    }
-    sgn = hyp * y;
-    if (hyp < 0) 
-        hyp = -hyp;
-    if (y < 0)
-        y = -y;
-    quot = (y * 10000) / hyp;
-    if (quot > 9999)
-        quot = 9999;
-    for (ix=0; ix<90; ix++)
-        if ((quot < cosine[ix]) && (quot >= cosine[ix+1]))
-            break;
-    if (sgn < 0)
-        ReturnValue->Val->Integer = -(90-ix);
-    else
-        ReturnValue->Val->Integer = 90-ix;
+    ReturnValue->Val->Integer = asin(y, hyp);
 }
 
 void Cacos(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // acos(x,hyp)
 {
-    int x, hyp, quot, sgn, ix;
+    int x, hyp;
     x = Param[0]->Val->Integer;
     hyp = Param[1]->Val->Integer;
     if (x > hyp)
         ProgramFail(NULL, "acos():  adjacent greater than hypotenuse");
-    if (x == 0) {
-        if (hyp < 0)
-            ReturnValue->Val->Integer = -90;
-        else
-            ReturnValue->Val->Integer = 90;
-        return;
-    }
-    sgn = hyp * x;
-    if (hyp < 0) 
-        hyp = -hyp;
-    if (x < 0)
-        x = -x;
-    quot = (x * 10000) / hyp;
-    if (quot > 9999)
-        quot = 9999;
-    for (ix=0; ix<90; ix++)
-        if ((quot < cosine[ix]) && (quot >= cosine[ix+1]))
-            break;
-    if (sgn < 0)
-        ReturnValue->Val->Integer = -ix;
-    else
-        ReturnValue->Val->Integer = ix;
+    ReturnValue->Val->Integer = acos(x, hyp);
 }
 
 void Catan(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // atan(y,x)
 {
-    int x,y, angle, coeff_1, coeff_2, r;
+    int x ,y;
     y = Param[0]->Val->Integer;
     x = Param[1]->Val->Integer;
-    if (x == 0) {
-        if (y >= 0)
-            ReturnValue->Val->Integer = 90;
-        else
-            ReturnValue->Val->Integer = -90;
-        return;
-    }
-    coeff_1 = 3141/4;
-    coeff_2 = coeff_1*3;
-    if (y < 0)
-        y = -y;
-    if (x >= 0) {
-        r = (x - y)*1000 / (x + y);
-        angle = (coeff_1*1000 - coeff_1 * r);
-    } else {
-        r = (x + y)*1000 / (y - x);
-        angle = (coeff_2*1000 - coeff_1 * r);
-    }
-    angle = angle*57/1000000;
-    if (y < 0)
-        ReturnValue->Val->Integer = -angle;
-    else
-        ReturnValue->Val->Integer = angle;
+    ReturnValue->Val->Integer = atan(y, x);
+} 
+
+void Cgps_head(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // gps_head(lat1, lon1, lat2, lon2)
+{
+    int lat1, lon1, lat2, lon2;
+    lat1 = Param[0]->Val->Integer;
+    lon1 = Param[1]->Val->Integer;
+    lat2 = Param[2]->Val->Integer;
+    lon2 = Param[3]->Val->Integer;
+    ReturnValue->Val->Integer = gps_head(lat1, lon1, lat2, lon2);
+} 
+
+void Cgps_dist(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // gps_dist(lat1, lon1, lat2, lon2)
+{
+    int lat1, lon1, lat2, lon2;
+    lat1 = Param[0]->Val->Integer;
+    lon1 = Param[1]->Val->Integer;
+    lat2 = Param[2]->Val->Integer;
+    lon2 = Param[3]->Val->Integer;
+    ReturnValue->Val->Integer = gps_dist(lat1, lon1, lat2, lon2);
+} 
+
+void Csqrt(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // sqrt(x)
+{
+    int x;
+    x = Param[0]->Val->Integer;
+    ReturnValue->Val->Integer = isqrt(x);
 } 
 
 void Cnnset(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) {
@@ -744,6 +681,7 @@ struct LibraryFunction PlatformLibrary[] =
     { Cmotors2,     "void motors2(int, int)" },
     { Cservos,      "void servos(int, int)" },
     { Cservos2,     "void servos2(int, int)" },
+    { Cencoders,    "void encoders()" },
     { Claser,       "void laser(int)" },
     { Csonar,       "int sonar(int)" },
     { Crange,       "int range()" },
@@ -771,6 +709,9 @@ struct LibraryFunction PlatformLibrary[] =
     { Casin,        "int asin(int, int)" },
     { Cacos,        "int acos(int, int)" },
     { Catan,        "int atan(int, int)" },
+    { Cgps_head,    "int gps_head(int, int, int, int)" },
+    { Cgps_dist,    "int gps_dist(int, int, int, int)" },
+    { Csqrt,        "int sqrt(int)" },
     { Cnnshow,      "void nnshow(int)" },
     { Cnnset,       "void nnset(int, int, int, int, int, int, int, int, int)" },
     { Cnninit,      "void nninit()" },
