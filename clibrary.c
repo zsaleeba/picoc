@@ -106,10 +106,10 @@ void PrintFP(double Num, struct OutputStream *Stream)
     Num /= pow(10.0, Exponent);
     PrintInt((int)Num, Stream);
     PrintCh('.', Stream);
-    for (Num -= (int)Num; Num != 0.0; Num *= 10.0)
-        PrintCh('0' + (int)Num, Stream);
+    for (Num = (Num - (int)Num) * 10; abs(Num) >= 1e-7; Num = (Num - (int)Num + 1e-7) * 10)
+        PrintCh('0' + (int)(Num + 1e-7), Stream);
     
-    if (Exponent)
+    if (Exponent != 0)
     {
         PrintCh('e', Stream);
         PrintInt(Exponent, Stream);
