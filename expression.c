@@ -339,6 +339,8 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
                     case TokenMinus:        ResultFP = -TopValue->Val->FP; break;
                     default:                ProgramFail(Parser, "invalid operation"); break;
                 }
+                
+                ExpressionPushFP(Parser, StackTop, ResultFP);
             }
             else 
 #endif
