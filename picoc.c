@@ -31,7 +31,7 @@ int main(int argc, char **argv)
 {
     if (argc < 2)
     {
-        PlatformPrintf("Format: picoc <program.c> - run a program\n        picoc -i          - interactive mode\n");
+        printf("Format: picoc <program.c> - run a program\n        picoc -i          - interactive mode\n");
         exit(1);
     }
     

@@ -328,6 +328,20 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
 
         default:
             /* an arithmetic operator */
+#ifndef NO_FP
+            if (TopValue->Typ == &FPType)
+            {
+                /* floating point prefix arithmetic */
+                double ResultFP;
+                switch (Op)
+                {
+                    case TokenPlus:         ResultFP = TopValue->Val->FP; break;
+                    case TokenMinus:        ResultFP = -TopValue->Val->FP; break;
+                    default:                ProgramFail(Parser, "invalid operation"); break;
+                }
+            }
+            else 
+#endif
             if (IS_INTEGER_COERCIBLE(TopValue))
             {
                 /* integer prefix arithmetic */
@@ -346,19 +360,6 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
 
                 ExpressionPushInt(Parser, StackTop, ResultInt);
             }
-#ifndef NO_FP
-            else if (TopValue->Typ == &FPType)
-            {
-                /* floating point prefix arithmetic */
-                double ResultFP;
-                switch (Op)
-                {
-                    case TokenPlus:         ResultFP = TopValue->Val->FP; break;
-                    case TokenMinus:        ResultFP = -TopValue->Val->FP; break;
-                    default:                ProgramFail(Parser, "invalid operation"); break;
-                }
-            }
-#endif
             else if (TopValue->Typ->Base == TypePointer)
             {
                 /* pointer prefix arithmetic */
@@ -1063,7 +1064,7 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
         ExpressionStackPushValueByType(Parser, StackTop, FuncValue->Val->FuncDef.ReturnType);
         ReturnValue = (*StackTop)->p.Val;
         HeapPushStackFrame();
-        ParamArray = HeapAllocStack(sizeof(struct Value *) * FuncValue->Val->FuncDef.NumParams);
+        ParamArray = HeapAllocStack(sizeof(struct Value *) * FuncValue->Val->FuncDef.NumParams);    
         if (ParamArray == NULL)
             ProgramFail(Parser, "out of memory");
     }
@@ -1098,10 +1099,9 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
                         
                         Param->Typ = FuncValue->Val->FuncDef.ParamType[ArgCount];
                     }
-                }
-                
-                if (ArgCount < FuncValue->Val->FuncDef.NumParams)
+                    
                     ParamArray[ArgCount] = Param;
+                }
             }
             
             ArgCount++;
