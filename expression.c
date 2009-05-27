@@ -143,7 +143,7 @@ int ExpressionAssignInt(struct ParseState *Parser, struct Value *DestValue, int 
 
 #ifndef NO_FP
 /* assign a floating point value */
-int ExpressionAssignFP(struct ParseState *Parser, struct Value *DestValue, double FromFP)
+double ExpressionAssignFP(struct ParseState *Parser, struct Value *DestValue, double FromFP)
 {
     if (!DestValue->IsLValue) 
         ProgramFail(Parser, "can't assign to this"); 
@@ -529,6 +529,43 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
         Result = VariableAllocValueFromExistingData(Parser, BottomValue->Typ->FromType, (union AnyValue *)(BottomValue->Val->Array.Data + TypeSize(BottomValue->Typ->FromType, 0, FALSE) * ArrayIndex), BottomValue->IsLValue, BottomValue->LValueFrom);
         ExpressionStackPushValueNode(Parser, StackTop, Result);
     }
+#ifndef NO_FP
+    else if ( (TopValue->Typ == &FPType && BottomValue->Typ == &FPType) ||
+              (TopValue->Typ == &FPType && IS_INTEGER_COERCIBLE(BottomValue)) ||
+              (IS_INTEGER_COERCIBLE(TopValue) && BottomValue->Typ == &FPType) )
+    {
+        /* floating point infix arithmetic */
+        int ResultIsInt = FALSE;
+        double ResultFP = 0.0;
+        double TopFP = (TopValue->Typ == &FPType) ? TopValue->Val->FP : (double)COERCE_INTEGER(TopValue);
+        double BottomFP = (BottomValue->Typ == &FPType) ? BottomValue->Val->FP : (double)COERCE_INTEGER(BottomValue);
+
+        switch (Op)
+        {
+            case TokenAssign:               ResultFP = ExpressionAssignFP(Parser, BottomValue, TopFP); break;
+            case TokenAddAssign:            ResultFP = ExpressionAssignFP(Parser, BottomValue, BottomFP + TopFP); break;
+            case TokenSubtractAssign:       ResultFP = ExpressionAssignFP(Parser, BottomValue, BottomFP - TopFP); break;
+            case TokenMultiplyAssign:       ResultFP = ExpressionAssignFP(Parser, BottomValue, BottomFP * TopFP); break;
+            case TokenDivideAssign:         ResultFP = ExpressionAssignFP(Parser, BottomValue, BottomFP / TopFP); break;
+            case TokenEqual:                ResultInt = BottomFP == TopFP; ResultIsInt = TRUE; break;
+            case TokenNotEqual:             ResultInt = BottomFP != TopFP; ResultIsInt = TRUE; break;
+            case TokenLessThan:             ResultInt = BottomFP < TopFP; ResultIsInt = TRUE; break;
+            case TokenGreaterThan:          ResultInt = BottomFP > TopFP; ResultIsInt = TRUE; break;
+            case TokenLessEqual:            ResultInt = BottomFP <= TopFP; ResultIsInt = TRUE; break;
+            case TokenGreaterEqual:         ResultInt = BottomFP >= TopFP; ResultIsInt = TRUE; break;
+            case TokenPlus:                 ResultFP = BottomFP + TopFP; break;
+            case TokenMinus:                ResultFP = BottomFP - TopFP; break;
+            case TokenAsterisk:             ResultFP = BottomFP * TopFP; break;
+            case TokenSlash:                ResultFP = BottomFP / TopFP; break;
+            default:                        ProgramFail(Parser, "invalid operation"); break;
+        }
+
+        if (ResultIsInt)
+            ExpressionPushInt(Parser, StackTop, ResultInt);
+        else
+            ExpressionPushFP(Parser, StackTop, ResultFP);
+    }
+#endif
     else if (IS_INTEGER_COERCIBLE(TopValue) && IS_INTEGER_COERCIBLE(BottomValue))
     { 
         /* integer operation */
@@ -576,43 +613,6 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
         
         ExpressionPushInt(Parser, StackTop, ResultInt);
     }
-#ifndef NO_FP
-    else if ( (TopValue->Typ == &FPType && BottomValue->Typ == &FPType) ||
-              (TopValue->Typ == &FPType && IS_INTEGER_COERCIBLE(BottomValue)) ||
-              (IS_INTEGER_COERCIBLE(TopValue) && BottomValue->Typ == &FPType) )
-    {
-        /* floating point infix arithmetic */
-        int ResultIsInt = FALSE;
-        double ResultFP = 0.0;
-        double TopFP = (TopValue->Typ == &FPType) ? TopValue->Val->FP : (double)COERCE_INTEGER(TopValue);
-        double BottomFP = (BottomValue->Typ == &FPType) ? BottomValue->Val->FP : (double)COERCE_INTEGER(BottomValue);
-
-        switch (Op)
-        {
-            case TokenAssign:               ResultFP = ExpressionAssignFP(Parser, BottomValue, TopFP); break;
-            case TokenAddAssign:            ResultFP = ExpressionAssignFP(Parser, BottomValue, BottomFP + TopFP); break;
-            case TokenSubtractAssign:       ResultFP = ExpressionAssignFP(Parser, BottomValue, BottomFP - TopFP); break;
-            case TokenMultiplyAssign:       ResultFP = ExpressionAssignFP(Parser, BottomValue, BottomFP * TopFP); break;
-            case TokenDivideAssign:         ResultFP = ExpressionAssignFP(Parser, BottomValue, BottomFP / TopFP); break;
-            case TokenEqual:                ResultInt = BottomFP == TopFP; ResultIsInt = TRUE; break;
-            case TokenNotEqual:             ResultInt = BottomFP != TopFP; ResultIsInt = TRUE; break;
-            case TokenLessThan:             ResultInt = BottomFP < TopFP; ResultIsInt = TRUE; break;
-            case TokenGreaterThan:          ResultInt = BottomFP > TopFP; ResultIsInt = TRUE; break;
-            case TokenLessEqual:            ResultInt = BottomFP <= TopFP; ResultIsInt = TRUE; break;
-            case TokenGreaterEqual:         ResultInt = BottomFP >= TopFP; ResultIsInt = TRUE; break;
-            case TokenPlus:                 ResultFP = BottomFP + TopFP; break;
-            case TokenMinus:                ResultFP = BottomFP - TopFP; break;
-            case TokenAsterisk:             ResultFP = BottomFP * TopFP; break;
-            case TokenSlash:                ResultFP = BottomFP / TopFP; break;
-            default:                        ProgramFail(Parser, "invalid operation"); break;
-        }
-
-        if (ResultIsInt)
-            ExpressionPushInt(Parser, StackTop, ResultInt);
-        else
-            ExpressionPushFP(Parser, StackTop, ResultFP);
-    }
-#endif
     else if (BottomValue->Typ->Base == TypePointer && IS_INTEGER_COERCIBLE(TopValue))
     {
         /* pointer/integer infix arithmetic */
