@@ -106,10 +106,10 @@ void PrintFP(double Num, struct OutputStream *Stream)
     
     if (Num >= 1e7)
         Exponent = log(Num) / LOG10E;
-    else if (Num <= 1e-7)
+    else if (Num <= 1e-7 && Num != 0.0)
         Exponent = log(Num) / LOG10E - 0.999999999;
     
-    Num /= pow(10.0, Exponent);
+    Num /= pow(10.0, Exponent);    
     PrintInt((int)Num, Stream);
     PrintCh('.', Stream);
     Num = (Num - (int)Num) * 10;
@@ -313,6 +313,83 @@ void LibGetc(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
     ReturnValue->Val->Integer = PlatformGetCharacter();
 }
 
+#ifdef MATH_LIBRARY
+void LibSin(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = sin(Param[0]->Val->FP);
+}
+
+void LibCos(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = cos(Param[0]->Val->FP);
+}
+
+void LibTan(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = tan(Param[0]->Val->FP);
+}
+
+void LibAsin(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = asin(Param[0]->Val->FP);
+}
+
+void LibAcos(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = acos(Param[0]->Val->FP);
+}
+
+void LibAtan(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = atan(Param[0]->Val->FP);
+}
+
+void LibSinh(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = sinh(Param[0]->Val->FP);
+}
+
+void LibCosh(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = cosh(Param[0]->Val->FP);
+}
+
+void LibTanh(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = tanh(Param[0]->Val->FP);
+}
+
+void LibExp(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = exp(Param[0]->Val->FP);
+}
+
+void LibAbs(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = abs(Param[0]->Val->FP);
+}
+
+void LibLog(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = log(Param[0]->Val->FP);
+}
+
+void LibLog10(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = log10(Param[0]->Val->FP);
+}
+
+void LibPow(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = pow(Param[0]->Val->FP, Param[1]->Val->FP);
+}
+
+void LibSqrt(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = sqrt(Param[0]->Val->FP);
+}
+#endif
+
 /* list of all library functions and their prototypes */
 struct LibraryFunction CLibrary[] =
 {
@@ -320,5 +397,22 @@ struct LibraryFunction CLibrary[] =
     { LibSPrintf,       "char *sprintf(char *, char *, ...)" },
     { LibGets,          "void gets(char *, int)" },
     { LibGetc,          "int getchar()" },
+#ifdef MATH_LIBRARY
+    { LibSin,           "float sin(float)" },
+    { LibCos,           "float cos(float)" },
+    { LibTan,           "float tan(float)" },
+    { LibAsin,          "float asin(float)" },
+    { LibAcos,          "float acos(float)" },
+    { LibAtan,          "float atan(float)" },
+    { LibSinh,          "float sinh(float)" },
+    { LibCosh,          "float cosh(float)" },
+    { LibTanh,          "float tanh(float)" },
+    { LibExp,           "float exp(float)" },
+    { LibAbs,           "float fabs(float)" },
+    { LibLog,           "float log(float)" },
+    { LibLog10,         "float log10(float)" },
+    { LibPow,           "float pow(float,float)" },
+    { LibSqrt,          "float sqrt(float)" },
+#endif
     { NULL,             NULL }
 };

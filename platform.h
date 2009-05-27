@@ -11,7 +11,7 @@
  */
 
 #ifndef SURVEYOR_HOST
-#define HEAP_SIZE 16384                     /* space for the heap and the stack */
+#define HEAP_SIZE 16384                     /* default space for the heap and the stack */
 #endif
 #define LARGE_INT_POWER_OF_TEN 1000000000   /* the largest power of ten which fits in an int on this architecture */
 #define ARCH_ALIGN_WORDSIZE sizeof(int)     /* memory alignment boundary on this architecture */
@@ -32,18 +32,19 @@
 
 /* host platform includes */
 #ifdef UNIX_HOST
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
-#include <assert.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <stdarg.h>
-#include <setjmp.h>
-#ifndef NO_FP
-#include <math.h>
+# include <stdio.h>
+# include <stdlib.h>
+# include <ctype.h>
+# include <string.h>
+# include <assert.h>
+# include <sys/types.h>
+# include <sys/stat.h>
+# include <unistd.h>
+# include <stdarg.h>
+# include <setjmp.h>
+# ifndef NO_FP
+# include <math.h>
+# define MATH_LIBRARY
 #endif
 
 extern jmp_buf ExitBuf;

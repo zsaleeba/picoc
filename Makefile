@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -g -DUNIX_HOST
+CFLAGS=-Wall -g -DUNIX_HOST #-DDEBUG_LEXER
 LIBS=-lm
 
 TARGET	= picoc
@@ -18,7 +18,7 @@ clean:
 	rm -f $(TARGET) $(OBJS) *~
 
 count:
-	cat picoc.h picoc.c table.c lex.c parse.c expression.c heap.c type.c variable.c clibrary.c | grep -v '^[ 	]*/\*' | grep -v '^[ 	]*$$' | wc
+	cat picoc.h picoc.c table.c lex.c parse.c expression.c heap.c type.c variable.c | grep -v '^[ 	]*/\*' | grep -v '^[ 	]*$$' | wc
 
 depend:
 	$(CC) -MM $(SRCS) >.depend
