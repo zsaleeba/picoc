@@ -183,6 +183,8 @@ enum LexToken LexGetNumber(struct LexState *Lexer, struct Value *Value)
         FPResult *= pow((double)Base, (double)Result);
     }
     
+    Value->Val->FP = FPResult;
+    
     return TokenFPConstant;
 #else
     return ResultToken;
