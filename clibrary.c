@@ -194,7 +194,7 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
                 else
                 {
                     NextArg = (struct Value *)((void *)NextArg + sizeof(struct Value) + TypeStackSizeValue(NextArg));
-                    if (NextArg->Typ != FormatType && !(FormatType == &IntType && IS_NUMERIC_COERCIBLE(NextArg)))
+                    if (NextArg->Typ != FormatType && !((FormatType == &IntType || *FPos == 'f') && IS_NUMERIC_COERCIBLE(NextArg)))
                         PrintStr("XXX", Stream);   /* bad type for format */
                     else
                     {
@@ -221,7 +221,7 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
                             case 'd': PrintInt(COERCE_INTEGER(NextArg), Stream); break;
                             case 'c': PrintCh(COERCE_INTEGER(NextArg), Stream); break;
 #ifndef NO_FP
-                            case 'f': PrintFP(NextArg->Val->FP, Stream); break;
+                            case 'f': PrintFP(COERCE_FP(NextArg), Stream); break;
 #endif
                         }
                     }

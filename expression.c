@@ -1095,19 +1095,27 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
                     if (FuncValue->Val->FuncDef.ParamType[ArgCount] != Param->Typ)
                     {
                         /* parameter is the wrong type - can we coerce it to being the type we want? */
-                        if (FuncValue->Val->FuncDef.ParamType[ArgCount] == &IntType && IS_NUMERIC_COERCIBLE(Param))
-                            Param->Val->Integer = COERCE_INTEGER(Param);        /* cast to int */
-
-                        else if (FuncValue->Val->FuncDef.ParamType[ArgCount] == &CharType && IS_NUMERIC_COERCIBLE(Param))
-                            Param->Val->Character = COERCE_INTEGER(Param);      /* cast to char */
+                        if (IS_NUMERIC_COERCIBLE(Param))
+                        {
+                            int IntVal = COERCE_INTEGER(Param);     /* cast to int */
 #ifndef NO_FP
-                        else if (FuncValue->Val->FuncDef.ParamType[ArgCount] == &FPType && IS_NUMERIC_COERCIBLE(Param))
-                            Param->Val->FP = COERCE_FP(Param);                  /* cast to floating point */
+                            double FloatVal = COERCE_FP(Param);     /* cast to float */
 #endif
+                            VariableStackPop(Parser, Param);
+                            Param = VariableAllocValueFromType(Parser, FuncValue->Val->FuncDef.ParamType[ArgCount], FALSE, NULL);
+
+                            if (FuncValue->Val->FuncDef.ParamType[ArgCount] == &IntType)
+                                Param->Val->Integer = IntVal;       
+    
+                            else if (FuncValue->Val->FuncDef.ParamType[ArgCount] == &CharType)
+                                Param->Val->Character = IntVal;       
+#ifndef NO_FP
+                            else
+                                Param->Val->FP = FloatVal;
+#endif
+                        }
                         else
                             ProgramFail(Parser, "parameter %d to %s() is %t instead of %t", ArgCount+1, FuncName, Param->Typ, FuncValue->Val->FuncDef.ParamType[ArgCount]);
-                        
-                        Param->Typ = FuncValue->Val->FuncDef.ParamType[ArgCount];
                     }
                     
                     ParamArray[ArgCount] = Param;
