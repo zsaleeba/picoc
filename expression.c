@@ -344,7 +344,7 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
             }
             else 
 #endif
-            if (IS_INTEGER_COERCIBLE(TopValue))
+            if (IS_NUMERIC_COERCIBLE(TopValue))
             {
                 /* integer prefix arithmetic */
                 int ResultInt = 0;
@@ -424,7 +424,7 @@ void ExpressionPostfixOperator(struct ParseState *Parser, struct ExpressionStack
     }
     
     debugf("ExpressionPostfixOperator()\n");
-    if (IS_INTEGER_COERCIBLE(TopValue))
+    if (IS_NUMERIC_COERCIBLE(TopValue))
     {
         int ResultInt = 0;
         int TopInt = COERCE_INTEGER(TopValue);
@@ -520,7 +520,7 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
         if (BottomValue->Typ->Base != TypeArray)
             ProgramFail(Parser, "this %t is not an array", BottomValue->Typ);
         
-        if (!IS_INTEGER_COERCIBLE(TopValue))
+        if (!IS_NUMERIC_COERCIBLE(TopValue))
             ProgramFail(Parser, "array index must be an integer");
         
         ArrayIndex = COERCE_INTEGER(TopValue);
@@ -534,8 +534,8 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
     }
 #ifndef NO_FP
     else if ( (TopValue->Typ == &FPType && BottomValue->Typ == &FPType) ||
-              (TopValue->Typ == &FPType && IS_INTEGER_COERCIBLE(BottomValue)) ||
-              (IS_INTEGER_COERCIBLE(TopValue) && BottomValue->Typ == &FPType) )
+              (TopValue->Typ == &FPType && IS_NUMERIC_COERCIBLE(BottomValue)) ||
+              (IS_NUMERIC_COERCIBLE(TopValue) && BottomValue->Typ == &FPType) )
     {
         /* floating point infix arithmetic */
         int ResultIsInt = FALSE;
@@ -569,7 +569,7 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
             ExpressionPushFP(Parser, StackTop, ResultFP);
     }
 #endif
-    else if (IS_INTEGER_COERCIBLE(TopValue) && IS_INTEGER_COERCIBLE(BottomValue))
+    else if (IS_NUMERIC_COERCIBLE(TopValue) && IS_NUMERIC_COERCIBLE(BottomValue))
     { 
         /* integer operation */
         int TopInt = COERCE_INTEGER(TopValue);
@@ -616,7 +616,7 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
         
         ExpressionPushInt(Parser, StackTop, ResultInt);
     }
-    else if (BottomValue->Typ->Base == TypePointer && IS_INTEGER_COERCIBLE(TopValue))
+    else if (BottomValue->Typ->Base == TypePointer && IS_NUMERIC_COERCIBLE(TopValue))
     {
         /* pointer/integer infix arithmetic */
         int TopInt = COERCE_INTEGER(TopValue);
@@ -1090,12 +1090,15 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
                     if (FuncValue->Val->FuncDef.ParamType[ArgCount] != Param->Typ)
                     {
                         /* parameter is the wrong type - can we coerce it to being the type we want? */
-                        if (FuncValue->Val->FuncDef.ParamType[ArgCount] == &IntType && IS_INTEGER_COERCIBLE(Param))
+                        if (FuncValue->Val->FuncDef.ParamType[ArgCount] == &IntType && IS_NUMERIC_COERCIBLE(Param))
                             Param->Val->Integer = COERCE_INTEGER(Param);        /* cast to int */
 
-                        else if (FuncValue->Val->FuncDef.ParamType[ArgCount] == &CharType && IS_INTEGER_COERCIBLE(Param))
+                        else if (FuncValue->Val->FuncDef.ParamType[ArgCount] == &CharType && IS_NUMERIC_COERCIBLE(Param))
                             Param->Val->Character = COERCE_INTEGER(Param);      /* cast to char */
-
+#ifndef NO_FP
+                        else if (FuncValue->Val->FuncDef.ParamType[ArgCount] == &FPType && IS_NUMERIC_COERCIBLE(Param))
+                            Param->Val->FP = COERCE_FP(Param);                  /* cast to floating point */
+#endif
                         else
                             ProgramFail(Parser, "parameter %d to %s() is %t instead of %t", ArgCount+1, FuncName, Param->Typ, FuncValue->Val->FuncDef.ParamType[ArgCount]);
                         
@@ -1164,7 +1167,7 @@ int ExpressionParseInt(struct ParseState *Parser)
     
     if (Parser->Mode == RunModeRun)
     { 
-        if (!IS_INTEGER_COERCIBLE(Val))
+        if (!IS_NUMERIC_COERCIBLE(Val))
             ProgramFail(Parser, "integer value expected instead of %t", Val->Typ);
     
         Result = COERCE_INTEGER(Val);

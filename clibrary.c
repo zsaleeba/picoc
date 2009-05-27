@@ -194,7 +194,7 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
                 else
                 {
                     NextArg = (struct Value *)((void *)NextArg + sizeof(struct Value) + TypeStackSizeValue(NextArg));
-                    if (NextArg->Typ != FormatType && !(FormatType == &IntType && IS_INTEGER_COERCIBLE(NextArg)))
+                    if (NextArg->Typ != FormatType && !(FormatType == &IntType && IS_NUMERIC_COERCIBLE(NextArg)))
                         PrintStr("XXX", Stream);   /* bad type for format */
                     else
                     {
