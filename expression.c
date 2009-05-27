@@ -796,6 +796,8 @@ void ExpressionStackCollapse(struct ParseState *Parser, struct ExpressionStack *
                     break;
 
                 case OrderNone:
+                    /* this should never happen */
+                    assert(TopOperatorNode->Order != OrderNone);
                     break;
             }
         }
@@ -969,6 +971,9 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
         else if (Token == TokenIdentifier)
         { 
             /* it's a variable, function or a macro */
+            if (!PrefixState)
+                ProgramFail(Parser, "identifier not expected here");
+                
             if (LexGetToken(Parser, NULL, FALSE) == TokenOpenBracket)
                 ExpressionParseFunctionCall(Parser, &StackTop, LexValue->Val->Identifier);
             else
