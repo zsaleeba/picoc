@@ -33,3 +33,8 @@ printf("%f\n", a);
 // prefix operators
 printf("%f\n", +12.34);
 printf("%f\n", -12.34);
+
+// type coercion
+a = 2;
+printf("%f\n", a);
+printf("%f\n", sin(2));
