@@ -98,9 +98,15 @@ void PrintFP(double Num, struct OutputStream *Stream)
 {
     int Exponent = 0;
     
-    if (abs(Num) >= 1e7)
+    if (Num < 0)
+    {
+        PrintCh('-', Stream);
+        Num = -Num;    
+    }
+    
+    if (Num >= 1e7)
         Exponent = log(Num) / LOG10E;
-    else if (abs(Num) <= 1e-7)
+    else if (Num <= 1e-7)
         Exponent = log(Num) / LOG10E - 0.999999999;
     
     Num /= pow(10.0, Exponent);
