@@ -359,6 +359,21 @@ void LibTanh(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
     ReturnValue->Val->FP = tanh(Param[0]->Val->FP);
 }
 
+void LibAsinh(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = asinh(Param[0]->Val->FP);
+}
+
+void LibAcosh(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = acosh(Param[0]->Val->FP);
+}
+
+void LibAtanh(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = atanh(Param[0]->Val->FP);
+}
+
 void LibExp(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     ReturnValue->Val->FP = exp(Param[0]->Val->FP);
@@ -388,6 +403,21 @@ void LibSqrt(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
 {
     ReturnValue->Val->FP = sqrt(Param[0]->Val->FP);
 }
+
+void LibRound(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = floor(Param[0]->Val->FP + 0.5);   // XXX - fix for soft float
+}
+
+void LibCeil(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = ceil(Param[0]->Val->FP);
+}
+
+void LibFloor(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->FP = floor(Param[0]->Val->FP);
+}
 #endif
 
 /* list of all library functions and their prototypes */
@@ -407,12 +437,18 @@ struct LibraryFunction CLibrary[] =
     { LibSinh,          "float sinh(float)" },
     { LibCosh,          "float cosh(float)" },
     { LibTanh,          "float tanh(float)" },
+    { LibAsinh,         "float asinh(float)" },
+    { LibAcosh,         "float acosh(float)" },
+    { LibAtanh,         "float atanh(float)" },
     { LibExp,           "float exp(float)" },
     { LibAbs,           "float fabs(float)" },
     { LibLog,           "float log(float)" },
     { LibLog10,         "float log10(float)" },
     { LibPow,           "float pow(float,float)" },
     { LibSqrt,          "float sqrt(float)" },
+    { LibRound,         "float round(float)" },
+    { LibCeil,          "float ceil(float)" },
+    { LibFloor,         "float floor(float)" },
 #endif
     { NULL,             NULL }
 };
