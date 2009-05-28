@@ -10,7 +10,7 @@ void intfunc(int a)
 
 void floatfunc(float a)
 {
-    printf("float: %d\n", a);
+    printf("float: %f\n", a);
 }
 
 charfunc('a');
