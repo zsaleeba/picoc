@@ -106,11 +106,11 @@ void PrintFP(double Num, struct OutputStream *Stream)
     }
     
     if (Num >= 1e7)
-        Exponent = log(Num) / LOG10E;
+        Exponent = math_log(Num) / LOG10E;
     else if (Num <= 1e-7 && Num != 0.0)
-        Exponent = log(Num) / LOG10E - 0.999999999;
+        Exponent = math_log(Num) / LOG10E - 0.999999999;
     
-    Num /= pow(10.0, Exponent);    
+    Num /= math_pow(10.0, Exponent);    
     PrintInt((int)Num, Stream);
     PrintCh('.', Stream);
     Num = (Num - (int)Num) * 10;

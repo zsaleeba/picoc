@@ -319,7 +319,7 @@ recompute:
 
     /* compute n */
 	z  = scalbn(z,q0);		/* actual value of z */
-	z -= 8.0*floor(z*0.125);		/* trim off integer >= 8 */
+	z -= 8.0*math_floor(z*0.125);		/* trim off integer >= 8 */
 	n  = (int) z;
 	z -= (double)n;
 	ih = 0;
@@ -1233,7 +1233,7 @@ double __ieee754_asin(double x)
 	t = w*0.5;
 	p = t*(pS0+t*(pS1+t*(pS2+t*(pS3+t*(pS4+t*pS5)))));
 	q = one+t*(qS1+t*(qS2+t*(qS3+t*qS4)));
-	s = sqrt(t);
+	s = math_sqrt(t);
 	if(ix>=0x3FEF3333) { 	/* if |x| > 0.975 */
 	    w = p/q;
 	    t = pio2_hi-(2.0*(s+s*w)-pio2_lo);
@@ -1276,9 +1276,9 @@ double math_asin(double x)		/* wrapper asin */
  * For |x|<=0.5
  *	acos(x) = pi/2 - (x + x*x^2*R(x^2))	(see asin.c)
  * For x>0.5
- * 	acos(x) = pi/2 - (pi/2 - 2asin(sqrt((1-x)/2)))
- *		= 2asin(sqrt((1-x)/2))  
- *		= 2s + 2s*z*R(z) 	...z=(1-x)/2, s=sqrt(z)
+ * 	acos(x) = pi/2 - (pi/2 - 2asin(math_sqrt((1-x)/2)))
+ *		= 2asin(math_sqrt((1-x)/2))  
+ *		= 2s + 2s*z*R(z) 	...z=(1-x)/2, s=math_sqrt(z)
  *		= 2f + (2c + 2s*z*R(z))
  *     where f=hi part of s, and c = (z-f*f)/(s+f) is the correction term
  *     for f so that f+c ~ sqrt(z).
@@ -1317,13 +1317,13 @@ double __ieee754_acos(double x)
 	    z = (one+x)*0.5;
 	    p = z*(pS0+z*(pS1+z*(pS2+z*(pS3+z*(pS4+z*pS5)))));
 	    q = one+z*(qS1+z*(qS2+z*(qS3+z*qS4)));
-	    s = sqrt(z);
+	    s = math_sqrt(z);
 	    r = p/q;
 	    w = r*s-pio2_lo;
 	    return pi - 2.0*(s+w);
 	} else {			/* x > 0.5 */
 	    z = (one-x)*0.5;
-	    s = sqrt(z);
+	    s = math_sqrt(z);
 	    df = s;
 	    __LO(df) = 0;
 	    c  = (z-df*df)/(s+df);
@@ -1488,7 +1488,7 @@ double __ieee754_sinh(double x)
 	if (ix < 0x40360000) {		/* |x|<22 */
 	    if (ix<0x3e300000) 		/* |x|<2**-28 */
 		if(shuge+x>one) return x;/* sinh(tiny) = tiny with inexact */
-	    t = expm1(fabs(x));
+	    t = math_expm1(fabs(x));
 	    if(ix<0x3ff00000) return h*(2.0*t-t*t/(t+one));
 	    return h*(t+t/(t+one));
 	}
@@ -1565,7 +1565,7 @@ double __ieee754_cosh(double x)
 
     /* |x| in [0,0.5*ln2], return 1+expm1(|x|)^2/(2*exp(|x|)) */
 	if(ix<0x3fd62e43) {
-	    t = expm1(fabs(x));
+	    t = math_expm1(fabs(x));
 	    w = one+t;
 	    if (ix<0x3c800000) return w;	/* cosh(tiny) = 1 */
 	    return one+(t*t)/(w+w);
@@ -1658,10 +1658,10 @@ double math_tanh(double x)
 	    if (ix<0x3c800000) 		/* |x|<2**-55 */
 		return x*(one+x);    	/* tanh(small) = small */
 	    if (ix>=0x3ff00000) {	/* |x|>=1  */
-		t = expm1(two*fabs(x));
+		t = math_expm1(two*fabs(x));
 		z = one - two/(t+two);
 	    } else {
-	        t = expm1(-two*fabs(x));
+	        t = math_expm1(-two*fabs(x));
 	        z= -t/(t+two);
 	    }
     /* |x| > 22, return +-1 */
@@ -1697,10 +1697,10 @@ double math_asinh(double x)
 	    w = __ieee754_log(fabs(x))+ln2;
 	} else if (ix>0x40000000) {	/* 2**28 > |x| > 2.0 */
 	    t = fabs(x);
-	    w = __ieee754_log(2.0*t+one/(sqrt(x*x+one)+t));
+	    w = __ieee754_log(2.0*t+one/(math_sqrt(x*x+one)+t));
 	} else {		/* 2.0 > |x| > 2**-28 */
 	    t = x*x;
-	    w =log1p(fabs(x)+t/(one+sqrt(one+t)));
+	    w =math_log1p(fabs(x)+t/(one+math_sqrt(one+t)));
 	}
 	if(hx>0) return w; else return -w;
 }
@@ -1736,10 +1736,10 @@ double __ieee754_acosh(double x)
 	    return 0.0;			/* acosh(1) = 0 */
 	} else if (hx > 0x40000000) {	/* 2**28 > x > 2 */
 	    t=x*x;
-	    return __ieee754_log(2.0*x-one/(x+sqrt(t-one)));
+	    return __ieee754_log(2.0*x-one/(x+math_sqrt(t-one)));
 	} else {			/* 1<x<2 */
 	    t = x-one;
-	    return log1p(t+sqrt(2.0*t+t*t));
+	    return math_log1p(t+math_sqrt(2.0*t+t*t));
 	}
 }
 
@@ -1798,9 +1798,9 @@ double __ieee754_atanh(double x)
 	__HI(x) = ix;		/* x <- |x| */
 	if(ix<0x3fe00000) {		/* x < 0.5 */
 	    t = x+x;
-	    t = 0.5*log1p(t+t*x/(one-x));
+	    t = 0.5*math_log1p(t+t*x/(one-x));
 	} else 
-	    t = 0.5*log1p((x+x)/(one-x));
+	    t = 0.5*math_log1p((x+x)/(one-x));
 	if(hx>=0) return t; else return -t;
 }
 
@@ -2069,7 +2069,7 @@ double __ieee754_pow(double x, double y)
 	    if(hy==0x40000000) return x*x; /* y is  2 */
 	    if(hy==0x3fe00000) {	/* y is  0.5 */
 		if(hx>=0)	/* x >= +0 */
-		return sqrt(x);	
+		return math_sqrt(x);	
 	    }
 	}
 
