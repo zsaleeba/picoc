@@ -144,7 +144,7 @@ enum LexToken LexGetNumber(struct LexState *Lexer, struct Value *Value)
                 { Base = 16; Lexer->Pos++; }
             else if (*Lexer->Pos == 'b' || *Lexer->Pos == 'B')
                 { Base = 2; Lexer->Pos++; }
-            else
+            else if (*Lexer->Pos != '.')
                 Base = 8;
         }
     }
