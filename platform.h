@@ -48,7 +48,7 @@
 # ifndef NO_FP
 # include <math.h>
 # define PICOC_MATH_LIBRARY
-# undef NEED_MATH_LIBRARY
+# define NEED_MATH_LIBRARY
 # undef BIG_ENDIAN
 #endif
 
