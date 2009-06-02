@@ -27,14 +27,14 @@ void VariableFree(struct Value *Val)
     {
         /* free function bodies */
         if (Val->Typ == &FunctionType && Val->Val->FuncDef.Intrinsic == NULL)
-            HeapFree((void *)Val->Val->FuncDef.Body.Pos);
+            HeapFreeMem((void *)Val->Val->FuncDef.Body.Pos);
 
         /* free macro bodies */
         if (Val->Typ == &MacroType)
-            HeapFree((void *)Val->Val->Parser.Pos);
+            HeapFreeMem((void *)Val->Val->Parser.Pos);
 
         /* free the value */
-        HeapFree(Val);
+        HeapFreeMem(Val);
     }
 }
 
@@ -53,7 +53,7 @@ void VariableTableCleanup(struct Table *HashTable)
             VariableFree(Entry->p.v.Val);
                 
             /* free the hash table entry */
-            HeapFree(Entry);
+            HeapFreeMem(Entry);
         }
     }
 }
@@ -70,7 +70,7 @@ void *VariableAlloc(struct ParseState *Parser, int Size, int OnHeap)
     void *NewValue;
     
     if (OnHeap)
-        NewValue = HeapAlloc(Size);
+        NewValue = HeapAllocMem(Size);
     else
         NewValue = HeapAllocStack(Size);
     
@@ -217,7 +217,7 @@ void VariableStackPop(struct ParseState *Parser, struct Value *Var)
     if (Var->ValOnHeap)
     { 
         if (Var->Val != NULL)
-            HeapFree(Var->Val);
+            HeapFreeMem(Var->Val);
             
         Success = HeapPopStack(Var, sizeof(struct Value));                       /* free from heap */
     }

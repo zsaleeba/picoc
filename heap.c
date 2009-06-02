@@ -119,7 +119,7 @@ int HeapPopStackFrame()
 }
 
 /* allocate some dynamically allocated memory. memory is cleared. can return NULL if out of memory */
-void *HeapAlloc(int Size)
+void *HeapAllocMem(int Size)
 {
 #ifdef USE_MALLOC_HEAP
     return calloc(Size, 1);
@@ -203,7 +203,7 @@ void *HeapAlloc(int Size)
 }
 
 /* free some dynamically allocated memory */
-void HeapFree(void *Mem)
+void HeapFreeMem(void *Mem)
 {
 #ifdef USE_MALLOC_HEAP
     return free(Mem);

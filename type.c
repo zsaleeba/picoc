@@ -152,11 +152,11 @@ void TypeCleanupNode(struct ValueType *Typ)
             if (SubType->Members != NULL)
             {
                 VariableTableCleanup(SubType->Members);
-                HeapFree(SubType->Members);
+                HeapFreeMem(SubType->Members);
             }
 
             /* free this node */
-            HeapFree(SubType);
+            HeapFreeMem(SubType);
         }
     }
 }

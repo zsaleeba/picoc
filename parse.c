@@ -7,7 +7,7 @@ static void *CleanupTokens = NULL;
 void ParseCleanup()
 {
     if (CleanupTokens != NULL)
-        HeapFree(CleanupTokens);
+        HeapFreeMem(CleanupTokens);
 }
 
 /* parse a statement, but only run it if Condition is TRUE */
@@ -554,7 +554,7 @@ void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt)
     if (LexGetToken(&Parser, NULL, FALSE) != TokenEOF)
         ProgramFail(&Parser, "parse error");
     
-    HeapFree(Tokens);
+    HeapFreeMem(Tokens);
     if (OldCleanupTokens == NULL)
         CleanupTokens = NULL;
 }

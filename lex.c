@@ -461,7 +461,7 @@ void *LexTokenise(struct LexState *Lexer, int *TokenLen)
             
     } while (Token != TokenEOF);
     
-    HeapMem = HeapAlloc(MemUsed);
+    HeapMem = HeapAllocMem(MemUsed);
     if (HeapMem == NULL)
         LexFail(Lexer, "out of memory");
         
@@ -702,8 +702,8 @@ void LexInteractiveClear(struct ParseState *Parser)
     {
         struct TokenLine *NextLine = InteractiveHead->Next;
         
-        HeapFree(InteractiveHead->Tokens);
-        HeapFree(InteractiveHead);
+        HeapFreeMem(InteractiveHead->Tokens);
+        HeapFreeMem(InteractiveHead);
         InteractiveHead = NextLine;
     }
 
@@ -720,8 +720,8 @@ void LexInteractiveCompleted(struct ParseState *Parser)
         /* this token line is no longer needed - free it */
         struct TokenLine *NextLine = InteractiveHead->Next;
         
-        HeapFree(InteractiveHead->Tokens);
-        HeapFree(InteractiveHead);
+        HeapFreeMem(InteractiveHead->Tokens);
+        HeapFreeMem(InteractiveHead);
         InteractiveHead = NextLine;
         
         if (InteractiveHead == NULL)

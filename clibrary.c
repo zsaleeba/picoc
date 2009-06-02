@@ -25,7 +25,7 @@ void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct Libr
         TypeParse(&Parser, &ReturnType, &Identifier);
         NewValue = ParseFunctionDefinition(&Parser, ReturnType, Identifier, TRUE);
         NewValue->Val->FuncDef.Intrinsic = (*FuncList)[Count].Func;
-        HeapFree(Tokens);
+        HeapFreeMem(Tokens);
     }
 }
 

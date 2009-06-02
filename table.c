@@ -132,7 +132,7 @@ char *TableSetIdentifier(struct Table *Tbl, const char *Ident, int IdentLen)
         return &FoundEntry->p.Key[0];
     else
     {   /* add it to the table - we economise by not allocating the whole structure here */
-        struct TableEntry *NewEntry = HeapAlloc(sizeof(struct TableEntry *) + IdentLen + 1);
+        struct TableEntry *NewEntry = HeapAllocMem(sizeof(struct TableEntry *) + IdentLen + 1);
         if (NewEntry == NULL)
             ProgramFail(NULL, "out of memory");
             
@@ -167,7 +167,7 @@ void TableStrFree()
         for (Entry = StringTable.HashTable[Count]; Entry != NULL; Entry = NextEntry)
         {
             NextEntry = Entry->Next;
-            HeapFree(Entry);
+            HeapFreeMem(Entry);
         }
     }
 }

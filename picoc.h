@@ -338,8 +338,8 @@ int HeapPopStack(void *Addr, int Size);
 void HeapUnpopStack(int Size);
 void HeapPushStackFrame();
 int HeapPopStackFrame();
-void *HeapAlloc(int Size);
-void HeapFree(void *Mem);
+void *HeapAllocMem(int Size);
+void HeapFreeMem(void *Mem);
 
 /* variable.c */
 void VariableInit();
