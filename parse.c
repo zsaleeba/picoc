@@ -288,6 +288,7 @@ int ParseStatement(struct ParseState *Parser)
             return FALSE;
             
         case TokenIdentifier: 
+        case TokenAsterisk: 
             *Parser = PreState;
             ExpressionParse(Parser, &CValue);
             if (Parser->Mode == RunModeRun) 
