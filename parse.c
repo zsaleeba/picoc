@@ -86,6 +86,9 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
             ProgramFail(&ParamParser, "comma expected");
     }
     
+    if (FuncValue->Val->FuncDef.NumParams != 0 && Token != TokenCloseBracket && Token != TokenComma && Token != TokenEllipsis)
+        ProgramFail(&ParamParser, "bad parameter");
+    
     if (!IsPrototype)
     {
         if (LexGetToken(Parser, NULL, FALSE) != TokenLeftBrace)
