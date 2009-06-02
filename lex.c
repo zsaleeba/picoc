@@ -365,7 +365,7 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
             Lexer->Pos++;
         }
         
-        if (Lexer->Pos == Lexer->End)
+        if (Lexer->Pos == Lexer->End || *Lexer->Pos == '\0')
             return TokenEOF;
         
         ThisChar = *Lexer->Pos;
