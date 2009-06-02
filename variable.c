@@ -216,7 +216,9 @@ void VariableStackPop(struct ParseState *Parser, struct Value *Var)
         
     if (Var->ValOnHeap)
     { 
-        HeapFree(Var->Val);
+        if (Var->Val != NULL)
+            HeapFree(Var->Val);
+            
         Success = HeapPopStack(Var, sizeof(struct Value));                       /* free from heap */
     }
     else if (Var->ValOnStack)

@@ -270,34 +270,34 @@ void ExpressionAssignToPointer(struct ParseState *Parser, struct Value *ToValue,
 #endif
     }
     else
-        ProgramFail(Parser, "can't assign from a %t to a %t", FromValue->Typ, ToValue->Typ);
+        ProgramFail(Parser, "can't set a %t from a %t", ToValue->Typ, FromValue->Typ); 
 }
 
 /* assign any kind of value */
 void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct Value *SourceValue, int Force)
 {
     if (!DestValue->IsLValue && !Force) 
-        ProgramFail(Parser, "can't assign to this"); 
+        ProgramFail(Parser, "can't set this"); 
 
     switch (DestValue->Typ->Base)
     {
         case TypeInt:
             if (!IS_NUMERIC_COERCIBLE(SourceValue)) 
-                ProgramFail(Parser, "can't assign to this"); 
+                ProgramFail(Parser, "can't set a %t from a %t", DestValue->Typ, SourceValue->Typ); 
             
             DestValue->Val->Integer = COERCE_INTEGER(SourceValue);
             break;
 
         case TypeChar:
             if (!IS_NUMERIC_COERCIBLE(SourceValue)) 
-                ProgramFail(Parser, "can't assign to this"); 
+                ProgramFail(Parser, "can't set a %t from a %t", DestValue->Typ, SourceValue->Typ); 
             
             DestValue->Val->Character = COERCE_INTEGER(SourceValue);
             break;
 #ifndef NO_FP
         case TypeFP:
             if (!IS_NUMERIC_COERCIBLE(SourceValue)) 
-                ProgramFail(Parser, "can't assign to this"); 
+                ProgramFail(Parser, "can't set a %t from a %t", DestValue->Typ, SourceValue->Typ); 
             
             DestValue->Val->FP = COERCE_FP(SourceValue);
             break;
@@ -308,7 +308,7 @@ void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct
         
         case TypeArray:
             if (DestValue->Typ != SourceValue->Typ)
-                ProgramFail(Parser, "can't assign from a %t to a %t", SourceValue->Typ, DestValue->Typ);
+                ProgramFail(Parser, "can't set a %t from a %t", DestValue->Typ, SourceValue->Typ); 
             
             if (DestValue->Val->Array.Size != SourceValue->Val->Array.Size)
                 ProgramFail(Parser, "can't assign from an array of size %d to one of size %d", SourceValue->Val->Array.Size, DestValue->Val->Array.Size);
@@ -319,13 +319,13 @@ void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct
         case TypeStruct:
         case TypeUnion:
             if (DestValue->Typ != SourceValue->Typ)
-                ProgramFail(Parser, "can't assign from a %t to a %t", SourceValue->Typ, DestValue->Typ);
+                ProgramFail(Parser, "can't set a %t from a %t", DestValue->Typ, SourceValue->Typ); 
             
             memcpy((void *)DestValue->Val, (void *)SourceValue->Val, TypeSizeValue(SourceValue));
             break;
         
         default:
-            ProgramFail(Parser, "can't assign to a %t", DestValue->Typ);
+            ProgramFail(Parser, "can't set a %t", DestValue->Typ);
             break;
     }
 }

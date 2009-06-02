@@ -39,7 +39,7 @@ int partition(int left, int right)
     {
         if(array[i] < pivotValue)
         {
-            swap(array, i, index);
+            swap(i, index);
             index += 1;
         }
     }
@@ -66,7 +66,7 @@ for (i = 0; i < 16; i++)
 
 printf("\n");
 
-//quicksort(0, 15);
+quicksort(0, 15);
 
 for (i = 0; i < 16; i++)
     printf("%d ", array[i]);

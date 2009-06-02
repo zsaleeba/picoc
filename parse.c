@@ -474,7 +474,9 @@ int ParseStatement(struct ParseState *Parser)
                 if (!ExpressionParse(Parser, &CValue) && TopStackFrame->ReturnValue->Typ->Base != TypeVoid)
                     ProgramFail(Parser, "value required in return");
                     
-                ExpressionAssign(Parser, TopStackFrame->ReturnValue, CValue, TRUE);
+                if (TopStackFrame->ReturnValue->Typ->Base != TypeVoid)
+                    ExpressionAssign(Parser, TopStackFrame->ReturnValue, CValue, TRUE);
+                    
                 VariableStackPop(Parser, CValue);
                 Parser->Mode = RunModeReturn;
             }
