@@ -36,6 +36,9 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
     struct ParseState FuncBody;
     int ParamCount = 0;
 
+    if (TopStackFrame != NULL)
+        ProgramFail(Parser, "nested function definitions are not allowed");
+        
     LexGetToken(Parser, NULL, TRUE);  /* open bracket */
     ParamParser = *Parser;
     Token = LexGetToken(Parser, NULL, TRUE);
@@ -60,15 +63,18 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
     FuncValue->Val->FuncDef.ParamName = (void *)FuncValue->Val->FuncDef.ParamType + sizeof(struct ValueType *) * ParamCount;
    
     for (ParamCount = 0; ParamCount < FuncValue->Val->FuncDef.NumParams; ParamCount++)
-    { /* harvest the parameters into the function definition */
+    { 
+        /* harvest the parameters into the function definition */
         if (ParamCount == FuncValue->Val->FuncDef.NumParams-1 && LexGetToken(&ParamParser, NULL, FALSE) == TokenEllipsis)
-        { /* ellipsis at end */
+        { 
+            /* ellipsis at end */
             FuncValue->Val->FuncDef.NumParams--;
             FuncValue->Val->FuncDef.VarArgs = TRUE;
             break;
         }
         else
-        { /* add a parameter */
+        { 
+            /* add a parameter */
             TypeParse(&ParamParser, &ParamType, &ParamIdentifier);
             FuncValue->Val->FuncDef.ParamType[ParamCount] = ParamType;
             FuncValue->Val->FuncDef.ParamName[ParamCount] = ParamIdentifier;
@@ -127,7 +133,8 @@ int ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
                 if (Token == TokenVoidType && Identifier != StrEmpty)
                     ProgramFail(Parser, "can't define a void variable");
                     
-                NewVariable = VariableDefine(Parser, Identifier, NULL, Typ, TRUE);
+                if (Parser->Mode == RunModeRun)
+                    NewVariable = VariableDefine(Parser, Identifier, NULL, Typ, TRUE);
                 
                 if (LexGetToken(Parser, NULL, FALSE) == TokenAssign)
                 {
