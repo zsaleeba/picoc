@@ -89,7 +89,7 @@ void *VariableAlloc(struct ParseState *Parser, int Size, int OnHeap)
 struct Value *VariableAllocValueAndData(struct ParseState *Parser, int DataSize, int IsLValue, struct Value *LValueFrom, int OnHeap)
 {
     struct Value *NewValue = VariableAlloc(Parser, sizeof(struct Value) + DataSize, OnHeap);
-    NewValue->Val = (union AnyValue *)((void *)NewValue + sizeof(struct Value));
+    NewValue->Val = (union AnyValue *)((char *)NewValue + sizeof(struct Value));
     NewValue->ValOnHeap = OnHeap;
     NewValue->ValOnStack = !OnHeap;
     NewValue->IsLValue = IsLValue;
@@ -108,7 +108,7 @@ struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct Value
     if (Typ->Base == TypeArray)
     {
         NewValue->Val->Array.Size = Typ->ArraySize;
-        NewValue->Val->Array.Data = (void *)NewValue->Val + sizeof(struct ArrayValue);
+        NewValue->Val->Array.Data = (void *)((char *)NewValue->Val + sizeof(struct ArrayValue));
     }
     
     return NewValue;
@@ -210,8 +210,8 @@ void VariableStackPop(struct ParseState *Parser, struct Value *Var)
     int Success;
     
 #ifdef DEBUG_HEAP
-//    if (Var->ValOnStack)
-//        printf("popping %d at 0x%lx\n", sizeof(struct Value) + VariableSizeValue(Var), (unsigned long)Var);
+    if (Var->ValOnStack)
+        printf("popping %d at 0x%lx\n", sizeof(struct Value) + VariableSizeValue(Var), (unsigned long)Var);
 #endif
         
     if (Var->ValOnHeap)
@@ -241,7 +241,7 @@ void VariableStackFrameAdd(struct ParseState *Parser, int NumParams)
         ProgramFail(Parser, "out of memory");
         
     NewFrame->ReturnParser = *Parser;
-    NewFrame->Parameter = (NumParams > 0) ? ((void *)NewFrame + sizeof(struct StackFrame)) : NULL;
+    NewFrame->Parameter = (NumParams > 0) ? ((void *)((char *)NewFrame + sizeof(struct StackFrame))) : NULL;
     TableInitTable(&NewFrame->LocalTable, &NewFrame->LocalHashTable[0], LOCAL_TABLE_SIZE, FALSE);
     NewFrame->PreviousStackFrame = TopStackFrame;
     TopStackFrame = NewFrame;
@@ -301,9 +301,9 @@ void *VariableDereferencePointer(struct ParseState *Parser, struct Value *Pointe
     
     /* return a pointer to the data */
     if (PointedToValue->Typ->Base == TypeArray)
-        return PointedToValue->Val->Array.Data + PointerValue->Val->Pointer.Offset;
+        return (void *)((char *)PointedToValue->Val->Array.Data + PointerValue->Val->Pointer.Offset);
     else
-        return (void *)PointedToValue->Val + PointerValue->Val->Pointer.Offset;
+        return (void *)((char *)PointedToValue->Val + PointerValue->Val->Pointer.Offset);
 #else
     struct Value *PointedToValue = PointerValue->Val->NativePointer;
     

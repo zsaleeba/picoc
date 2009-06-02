@@ -435,7 +435,7 @@ void *LexTokenise(struct LexState *Lexer, int *TokenLen)
     int ValueSize;
     int ReserveSpace = (Lexer->End - Lexer->Pos) * 3 + 1; 
     void *TokenSpace = HeapAllocStack(ReserveSpace);
-    void *TokenPos = TokenSpace;
+    char *TokenPos = (char *)TokenSpace;
     if (TokenSpace == NULL)
         LexFail(Lexer, "out of memory");
     
@@ -601,7 +601,7 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
                 default: break;
             }
             
-            memcpy((void *)LexValue.Val, (void *)Parser->Pos+1, ValueSize);
+            memcpy((void *)LexValue.Val, (void *)((char *)Parser->Pos+1), ValueSize);
             LexValue.ValOnHeap = FALSE;
             LexValue.ValOnStack = FALSE;
             LexValue.IsLValue = FALSE;
@@ -660,7 +660,7 @@ void *LexCopyTokens(struct ParseState *StartParser, struct ParseState *EndParser
         for (InteractiveCurrentLine = InteractiveHead; InteractiveCurrentLine != NULL && (Pos < &InteractiveCurrentLine->Tokens[0] || Pos >= &InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes]); InteractiveCurrentLine = InteractiveCurrentLine->Next)
         {} /* find the line we just counted */
         
-        if (EndParser->Pos >= StartParser->Pos && EndParser->Pos < (void *)&InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes])
+        if (EndParser->Pos >= StartParser->Pos && EndParser->Pos < &InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes])
         { 
             /* all on a single line */
             MemSize = EndParser->Pos - StartParser->Pos;
@@ -671,23 +671,23 @@ void *LexCopyTokens(struct ParseState *StartParser, struct ParseState *EndParser
         { 
             /* it's spread across multiple lines */
             MemSize = &InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes-1] - Pos;
-            for (ILine = InteractiveCurrentLine->Next; ILine != NULL && (EndParser->Pos < (void *)&ILine->Tokens[0] || EndParser->Pos >= (void *)&ILine->Tokens[ILine->NumBytes]); ILine = ILine->Next)
+            for (ILine = InteractiveCurrentLine->Next; ILine != NULL && (EndParser->Pos < &ILine->Tokens[0] || EndParser->Pos >= &ILine->Tokens[ILine->NumBytes]); ILine = ILine->Next)
                 MemSize += ILine->NumBytes - 1;
             
             assert(ILine != NULL);
-            MemSize += EndParser->Pos - (void *)&ILine->Tokens[0];
+            MemSize += EndParser->Pos - &ILine->Tokens[0];
             NewTokens = VariableAlloc(StartParser, MemSize + 1, TRUE);
             
             CopySize = &InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes-1] - Pos;
             memcpy(NewTokens, Pos, CopySize);
             NewTokenPos = NewTokens + CopySize;
-            for (ILine = InteractiveCurrentLine->Next; ILine != NULL && (EndParser->Pos < (void *)&ILine->Tokens[0] || EndParser->Pos >= (void *)&ILine->Tokens[ILine->NumBytes]); ILine = ILine->Next)
+            for (ILine = InteractiveCurrentLine->Next; ILine != NULL && (EndParser->Pos < &ILine->Tokens[0] || EndParser->Pos >= &ILine->Tokens[ILine->NumBytes]); ILine = ILine->Next)
             {
                 memcpy(NewTokenPos, &ILine->Tokens[0], ILine->NumBytes-1);
                 NewTokenPos += ILine->NumBytes-1;
             }
             assert(ILine != NULL);
-            memcpy(NewTokenPos, &ILine->Tokens[0], EndParser->Pos - (void *)&ILine->Tokens[0]);
+            memcpy(NewTokenPos, &ILine->Tokens[0], EndParser->Pos - &ILine->Tokens[0]);
         }
     }
     
@@ -715,7 +715,7 @@ void LexInteractiveClear(struct ParseState *Parser)
 /* indicate that we've completed up to this point in the interactive input and free expired tokens */
 void LexInteractiveCompleted(struct ParseState *Parser)
 {
-    while (InteractiveHead != NULL && !(Parser->Pos >= (void *)&InteractiveHead->Tokens[0] && Parser->Pos < (void *)&InteractiveHead->Tokens[InteractiveHead->NumBytes]))
+    while (InteractiveHead != NULL && !(Parser->Pos >= &InteractiveHead->Tokens[0] && Parser->Pos < &InteractiveHead->Tokens[InteractiveHead->NumBytes]))
     { 
         /* this token line is no longer needed - free it */
         struct TokenLine *NextLine = InteractiveHead->Next;

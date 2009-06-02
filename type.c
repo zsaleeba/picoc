@@ -64,7 +64,7 @@ struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *P
 int TypeStackSizeValue(struct Value *Val)
 {
     if (Val->ValOnStack)
-        return TypeSizeValue(Val); // XXX - doesn't handle passing system-memory arrays by value correctly
+        return TypeSizeValue(Val); /* XXX - doesn't handle passing system-memory arrays by value correctly */
     else
         return 0;
 }
@@ -194,8 +194,8 @@ void TypeParseStruct(struct ParseState *Parser, struct ValueType **Typ, int IsSt
     
     LexGetToken(Parser, NULL, TRUE);    
     (*Typ)->Members = VariableAlloc(Parser, sizeof(struct Table) + STRUCT_TABLE_SIZE * sizeof(struct TableEntry), TRUE);
-    (*Typ)->Members->HashTable = (void *)(*Typ)->Members + sizeof(struct Table);
-    TableInitTable((*Typ)->Members, (void *)(*Typ)->Members + sizeof(struct Table), STRUCT_TABLE_SIZE, TRUE);
+    (*Typ)->Members->HashTable = (struct TableEntry **)((char *)(*Typ)->Members + sizeof(struct Table));
+    TableInitTable((*Typ)->Members, (struct TableEntry **)((char *)(*Typ)->Members + sizeof(struct Table)), STRUCT_TABLE_SIZE, TRUE);
     
     do {
         TypeParse(Parser, &MemberType, &MemberIdentifier);
@@ -375,8 +375,9 @@ void TypeParseIdentPart(struct ParseState *Parser, struct ValueType *BasicTyp, s
                 case TokenLeftSquareBracket:
                     {
                         enum RunMode OldMode = Parser->Mode;
+                        int ArraySize;
                         Parser->Mode = RunModeRun;
-                        int ArraySize = ExpressionParseInt(Parser);
+                        ArraySize = ExpressionParseInt(Parser);
                         Parser->Mode = OldMode;
                         
                         if (LexGetToken(Parser, NULL, TRUE) != TokenRightSquareBracket)
@@ -386,8 +387,10 @@ void TypeParseIdentPart(struct ParseState *Parser, struct ValueType *BasicTyp, s
                     }
                     break;
                     
-//                case TokenOpenBracket:
-//                    break;  // XXX - finish this
+#if 0
+                case TokenOpenBracket:
+                    break;  /* XXX - finish this */
+#endif
                 
                 default: *Parser = Before; Done = TRUE; break;
             }

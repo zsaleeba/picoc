@@ -16,8 +16,9 @@ int ParseStatementMaybeRun(struct ParseState *Parser, int Condition)
     if (Parser->Mode != RunModeSkip && !Condition)
     {
         enum RunMode OldMode = Parser->Mode;
+        int Result;
         Parser->Mode = RunModeSkip;
-        int Result = ParseStatement(Parser);
+        Result = ParseStatement(Parser);
         Parser->Mode = OldMode;
         return Result;
     }
@@ -59,8 +60,8 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
     FuncValue->Val->FuncDef.ReturnType = ReturnType;
     FuncValue->Val->FuncDef.NumParams = ParamCount;
     FuncValue->Val->FuncDef.VarArgs = FALSE;
-    FuncValue->Val->FuncDef.ParamType = (void *)FuncValue->Val + sizeof(struct FuncDef);
-    FuncValue->Val->FuncDef.ParamName = (void *)FuncValue->Val->FuncDef.ParamType + sizeof(struct ValueType *) * ParamCount;
+    FuncValue->Val->FuncDef.ParamType = (struct ValueType **)((char *)FuncValue->Val + sizeof(struct FuncDef));
+    FuncValue->Val->FuncDef.ParamName = (char **)((char *)FuncValue->Val->FuncDef.ParamType + sizeof(struct ValueType *) * ParamCount);
    
     for (ParamCount = 0; ParamCount < FuncValue->Val->FuncDef.NumParams; ParamCount++)
     { 
@@ -497,7 +498,7 @@ int ParseStatement(struct ParseState *Parser)
                 {
                     if (TopStackFrame->ReturnValue->Typ->Base == TypePointer)
                     { /* this was a pointer to something - delete the object we're pointing to */
-                        // XXX - now I'm having second thoughts about this
+                        /* XXX - now I'm having second thoughts about this */
                         WasPointer = TRUE;
                     }
                     

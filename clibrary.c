@@ -165,10 +165,10 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
     if (Param[0]->Val->Pointer.Offset < 0 || Param[0]->Val->Pointer.Offset >= CharArray->Val->Array.Size)
         Format = StrEmpty;
     else
-        Format = CharArray->Val->Array.Data + Param[0]->Val->Pointer.Offset;
+        Format = (char *)CharArray->Val->Array.Data + Param[0]->Val->Pointer.Offset;
 #else
     char *Format = Param[0]->Val->NativePointer;
-    // XXX - dereference this properly
+    /* XXX - dereference this properly */
 #endif
     
     for (FPos = Format; *FPos != '\0'; FPos++)
@@ -194,7 +194,7 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
                     PrintStr("XXX", Stream);   /* not enough parameters for format */
                 else
                 {
-                    NextArg = (struct Value *)((void *)NextArg + sizeof(struct Value) + TypeStackSizeValue(NextArg));
+                    NextArg = (struct Value *)((char *)NextArg + sizeof(struct Value) + TypeStackSizeValue(NextArg));
                     if (NextArg->Typ != FormatType && !((FormatType == &IntType || *FPos == 'f') && IS_NUMERIC_COERCIBLE(NextArg)))
                         PrintStr("XXX", Stream);   /* bad type for format */
                     else
@@ -210,10 +210,10 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
                                 if (NextArg->Val->Pointer.Offset < 0 || NextArg->Val->Pointer.Offset >= CharArray->Val->Array.Size)
                                     Str = StrEmpty;
                                 else
-                                    Str = CharArray->Val->Array.Data + NextArg->Val->Pointer.Offset;
+                                    Str = (char *)CharArray->Val->Array.Data + NextArg->Val->Pointer.Offset;
 #else
                                 char *Str = NextArg->Val->NativePointer;
-                                // XXX - dereference this properly
+                                /* XXX - dereference this properly */
 #endif
                                     
                                 PrintStr(Str, Stream); 
@@ -275,7 +275,7 @@ void LibGets(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
 {
 #ifndef NATIVE_POINTERS
     struct Value *CharArray = Param[0]->Val->Pointer.Segment;
-    char *ReadBuffer = CharArray->Val->Array.Data + Param[0]->Val->Pointer.Offset;
+    char *ReadBuffer = (char *)CharArray->Val->Array.Data + Param[0]->Val->Pointer.Offset;
     int MaxLength = CharArray->Val->Array.Size - Param[0]->Val->Pointer.Offset;
     char *Result;
 
@@ -407,7 +407,7 @@ void LibSqrt(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
 
 void LibRound(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = math_floor(Param[0]->Val->FP + 0.5);   // XXX - fix for soft float
+    ReturnValue->Val->FP = math_floor(Param[0]->Val->FP + 0.5);   /* XXX - fix for soft float */
 }
 
 void LibCeil(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)

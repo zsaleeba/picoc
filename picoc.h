@@ -91,7 +91,7 @@ enum RunMode
 /* parser state - has all this detail so we can parse nested files */
 struct ParseState
 {
-    const void *Pos;
+    const unsigned char *Pos;
     int Line;
     const char *FileName;
     enum RunMode Mode;          /* whether to skip or run code */
@@ -113,7 +113,7 @@ enum BaseType
     TypeArray,                  /* an array of a sub-type */
     TypeStruct,                 /* aggregate type */
     TypeUnion,                  /* merged type */
-    TypeEnum,                   /* enumated integer type */
+    TypeEnum                    /* enumated integer type */
 };
 
 /* data type */
