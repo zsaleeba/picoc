@@ -1076,6 +1076,9 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
         /* all that should be left is a single value on the stack */
         if (Parser->Mode == RunModeRun)
         {
+            if (StackTop->Order != OrderNone || StackTop->Next != NULL)
+                ProgramFail(Parser, "invalid expression");
+                
             *Result = StackTop->p.Val;
             HeapPopStack(StackTop, sizeof(struct ExpressionStack));
         }
