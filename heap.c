@@ -55,12 +55,24 @@ void *HeapAllocStack(int Size)
 {
     void *NewMem = HeapStackTop;
     void *NewTop = HeapStackTop + MEM_ALIGN(Size);
+#ifdef DEBUG_HEAP
+    printf("HeapAllocStack(%d) at 0x%lx\n", MEM_ALIGN(Size), (unsigned long)HeapStackTop);
+#endif
     if (NewTop > HeapBottom)
         return NULL;
         
     HeapStackTop = NewTop;
     memset(NewMem, '\0', Size);
     return NewMem;
+}
+
+/* allocate some space on the stack, in the current stack frame */
+void HeapUnpopStack(int Size)
+{
+#ifdef DEBUG_HEAP
+    printf("HeapUnpopStack(%d) at 0x%lx\n", MEM_ALIGN(Size), (unsigned long)HeapStackTop);
+#endif
+    HeapStackTop = HeapStackTop + MEM_ALIGN(Size);
 }
 
 /* free some space at the top of the stack */
@@ -70,6 +82,9 @@ int HeapPopStack(void *Addr, int Size)
     if (ToLose > (HeapStackTop - (void *)&HeapMemory[0]))
         return FALSE;
     
+#ifdef DEBUG_HEAP
+    printf("HeapPopStack(0x%lx, %d) back to 0x%lx\n", (unsigned long)Addr, MEM_ALIGN(Size), (unsigned long)HeapStackTop - ToLose);
+#endif
     HeapStackTop -= ToLose;
     assert(HeapStackTop == Addr);
     

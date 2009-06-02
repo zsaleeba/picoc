@@ -270,7 +270,7 @@ void TypeParseEnum(struct ParseState *Parser, struct ValueType **Typ)
             EnumValue = ExpressionParseInt(Parser);
         }
         
-        VariableDefine(Parser, EnumIdentifier, &InitValue, FALSE);
+        VariableDefine(Parser, EnumIdentifier, &InitValue, NULL, FALSE);
             
         Token = LexGetToken(Parser, NULL, TRUE);
         if (Token != TokenComma && Token != TokenRightBrace)

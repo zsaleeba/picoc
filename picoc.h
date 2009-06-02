@@ -317,6 +317,7 @@ void ParserCopyPos(struct ParseState *To, struct ParseState *From);
 /* expression.c */
 int ExpressionParse(struct ParseState *Parser, struct Value **Result);
 int ExpressionParseInt(struct ParseState *Parser);
+void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct Value *SourceValue, int Force);
 
 /* type.c */
 void TypeInit();
@@ -334,6 +335,7 @@ struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *P
 void HeapInit();
 void *HeapAllocStack(int Size);
 int HeapPopStack(void *Addr, int Size);
+void HeapUnpopStack(int Size);
 void HeapPushStackFrame();
 int HeapPopStackFrame();
 void *HeapAlloc(int Size);
@@ -348,10 +350,10 @@ void *VariableAlloc(struct ParseState *Parser, int Size, int OnHeap);
 void VariableStackPop(struct ParseState *Parser, struct Value *Var);
 struct Value *VariableAllocValueAndData(struct ParseState *Parser, int DataSize, int IsLValue, struct Value *LValueFrom, int OnHeap);
 struct Value *VariableAllocValueAndCopy(struct ParseState *Parser, struct Value *FromValue, int OnHeap);
-struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct ValueType *Typ, int IsLValue, struct Value *LValueFrom);
+struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct ValueType *Typ, int IsLValue, struct Value *LValueFrom, int OnHeap);
 struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, struct ValueType *Typ, union AnyValue *FromValue, int IsLValue, struct Value *LValueFrom);
 struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *FromValue);
-void VariableDefine(struct ParseState *Parser, char *Ident, struct Value *InitValue, int MakeWritable);
+struct Value *VariableDefine(struct ParseState *Parser, char *Ident, struct Value *InitValue, struct ValueType *Typ, int MakeWritable);
 int VariableDefined(const char *Ident);
 void VariableGet(struct ParseState *Parser, const char *Ident, struct Value **LVal);
 void VariableDefinePlatformVar(struct ParseState *Parser, char *Ident, struct ValueType *Typ, union AnyValue *FromValue, int IsWritable);

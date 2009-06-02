@@ -105,6 +105,7 @@ int ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
     struct ValueType *BasicType;
     struct ValueType *Typ;
     struct Value *CValue;
+    struct Value *NewVariable;
 
     TypeParseFront(Parser, &BasicType);
     do
@@ -126,17 +127,20 @@ int ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
                 if (Token == TokenVoidType && Identifier != StrEmpty)
                     ProgramFail(Parser, "can't define a void variable");
                     
-                if (LexGetToken(Parser, NULL, FALSE) != TokenAssign)
-                    VariableDefine(Parser, Identifier, VariableAllocValueFromType(Parser, Typ, TRUE, NULL), TRUE);
-                else
-                { /* we're assigning an initial value */
+                NewVariable = VariableDefine(Parser, Identifier, NULL, Typ, TRUE);
+                
+                if (LexGetToken(Parser, NULL, FALSE) == TokenAssign)
+                {
+                    /* we're assigning an initial value */
                     LexGetToken(Parser, NULL, TRUE);
                     if (!ExpressionParse(Parser, &CValue))
                         ProgramFail(Parser, "expression expected");
                         
-                    VariableDefine(Parser, Identifier, CValue, TRUE);
                     if (Parser->Mode == RunModeRun)
+                    {
+                        ExpressionAssign(Parser, NewVariable, CValue, FALSE);
                         VariableStackPop(Parser, CValue);
+                    }
                 }
             }
         }
@@ -463,12 +467,7 @@ int ParseStatement(struct ParseState *Parser)
                 if (!ExpressionParse(Parser, &CValue) && TopStackFrame->ReturnValue->Typ->Base != TypeVoid)
                     ProgramFail(Parser, "value required in return");
                     
-                if (CValue->Typ != TopStackFrame->ReturnValue->Typ)
-                    ProgramFail(Parser, "wrong return type");
-                    
-                // XXX - make assignment a separate function
-                // XXX - also arrays need cleverer assignment
-                memcpy((void *)TopStackFrame->ReturnValue->Val, (void *)CValue->Val, TypeSizeValue(CValue));
+                ExpressionAssign(Parser, TopStackFrame->ReturnValue, CValue, TRUE);
                 VariableStackPop(Parser, CValue);
                 Parser->Mode = RunModeReturn;
             }
