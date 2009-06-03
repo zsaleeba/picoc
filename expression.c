@@ -214,8 +214,24 @@ void ExpressionPushFP(struct ParseState *Parser, struct ExpressionStack **StackT
 }
 #endif
 
+/* like ProgramFail() but gives descriptive error messages for assignment */
+void AssignFail(struct ParseState *Parser, const char *Format, struct ValueType *Type1, struct ValueType *Type2, int Num1, int Num2, const char *FuncName, int ParamNo)
+{
+    PlatformPrintf("%s:%d: can't %s ", Parser->FileName, Parser->Line, (FuncName == NULL) ? "assign" : "set");   
+        
+    if (Type1 != NULL)
+        PlatformPrintf(Format, Type1, Type2);
+    else
+        PlatformPrintf(Format, Num1, Num2);
+    
+    if (FuncName != NULL)
+        PlatformPrintf(" in argument %d of call to %s()", ParamNo, FuncName);
+        
+    ProgramFail(NULL, "");
+}
+
 /* assign to a pointer, leaving a value on the expression stack */
-void ExpressionAssignToPointer(struct ParseState *Parser, struct Value *ToValue, struct Value *FromValue)
+void ExpressionAssignToPointer(struct ParseState *Parser, struct Value *ToValue, struct Value *FromValue, const char *FuncName, int ParamNo)
 {
     struct ValueType *PointedToType = ToValue->Typ->FromType;
     struct Value *DerefVal = NULL;
@@ -265,48 +281,48 @@ void ExpressionAssignToPointer(struct ParseState *Parser, struct Value *ToValue,
 #endif
     }
     else
-        ProgramFail(Parser, "can't set a %t from a %t", ToValue->Typ, FromValue->Typ); 
+        AssignFail(Parser, "%t from %t", ToValue->Typ, FromValue->Typ, 0, 0, FuncName, ParamNo); 
 }
 
 /* assign any kind of value */
-void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct Value *SourceValue, int Force)
+void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct Value *SourceValue, int Force, const char *FuncName, int ParamNo)
 {
     if (!DestValue->IsLValue && !Force) 
-        ProgramFail(Parser, "can't set this"); 
+        AssignFail(Parser, "not an lvalue", NULL, NULL, 0, 0, FuncName, ParamNo); 
 
     switch (DestValue->Typ->Base)
     {
         case TypeInt:
             if (!IS_NUMERIC_COERCIBLE(SourceValue)) 
-                ProgramFail(Parser, "can't set a %t from a %t", DestValue->Typ, SourceValue->Typ); 
+                AssignFail(Parser, "%t from %t", DestValue->Typ, SourceValue->Typ, 0, 0, FuncName, ParamNo); 
             
             DestValue->Val->Integer = COERCE_INTEGER(SourceValue);
             break;
 
         case TypeChar:
             if (!IS_NUMERIC_COERCIBLE(SourceValue)) 
-                ProgramFail(Parser, "can't set a %t from a %t", DestValue->Typ, SourceValue->Typ); 
+                AssignFail(Parser, "%t from %t", DestValue->Typ, SourceValue->Typ, 0, 0, FuncName, ParamNo); 
             
             DestValue->Val->Character = COERCE_INTEGER(SourceValue);
             break;
 #ifndef NO_FP
         case TypeFP:
             if (!IS_NUMERIC_COERCIBLE(SourceValue)) 
-                ProgramFail(Parser, "can't set a %t from a %t", DestValue->Typ, SourceValue->Typ); 
+                AssignFail(Parser, "%t from %t", DestValue->Typ, SourceValue->Typ, 0, 0, FuncName, ParamNo); 
             
             DestValue->Val->FP = COERCE_FP(SourceValue);
             break;
 #endif
         case TypePointer:
-            ExpressionAssignToPointer(Parser, DestValue, SourceValue);
+            ExpressionAssignToPointer(Parser, DestValue, SourceValue, FuncName, ParamNo);
             break;
         
         case TypeArray:
             if (DestValue->Typ != SourceValue->Typ)
-                ProgramFail(Parser, "can't set a %t from a %t", DestValue->Typ, SourceValue->Typ); 
+                AssignFail(Parser, "%t from %t", DestValue->Typ, SourceValue->Typ, 0, 0, FuncName, ParamNo); 
             
             if (DestValue->Val->Array.Size != SourceValue->Val->Array.Size)
-                ProgramFail(Parser, "can't assign from an array of size %d to one of size %d", SourceValue->Val->Array.Size, DestValue->Val->Array.Size);
+                AssignFail(Parser, "from an array of size %d to one of size %d", NULL, NULL, SourceValue->Val->Array.Size, DestValue->Val->Array.Size, FuncName, ParamNo);
             
             memcpy((void *)DestValue->Val->Array.Data, (void *)SourceValue->Val->Array.Data, DestValue->Val->Array.Size);
             break;
@@ -314,13 +330,13 @@ void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct
         case TypeStruct:
         case TypeUnion:
             if (DestValue->Typ != SourceValue->Typ)
-                ProgramFail(Parser, "can't set a %t from a %t", DestValue->Typ, SourceValue->Typ); 
+                AssignFail(Parser, "%t from %t", DestValue->Typ, SourceValue->Typ, 0, 0, FuncName, ParamNo); 
             
             memcpy((void *)DestValue->Val, (void *)SourceValue->Val, TypeSizeValue(SourceValue));
             break;
         
         default:
-            ProgramFail(Parser, "can't set a %t", DestValue->Typ);
+            AssignFail(Parser, "%t", DestValue->Typ, NULL, 0, 0, FuncName, ParamNo); 
             break;
     }
 }
@@ -725,7 +741,7 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
         {
             /* assign a NULL pointer */
             HeapUnpopStack(sizeof(struct Value));   /* XXX - possible bug if lvalue is a temp value and takes more than sizeof(struct Value) */
-            ExpressionAssign(Parser, BottomValue, TopValue, FALSE);
+            ExpressionAssign(Parser, BottomValue, TopValue, FALSE, NULL, 0);
             ExpressionStackPushValueNode(Parser, StackTop, BottomValue);
         }
         else
@@ -754,7 +770,7 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
     {
         /* assign a non-numeric type */
         HeapUnpopStack(sizeof(struct Value));   /* XXX - possible bug if lvalue is a temp value and takes more than sizeof(struct Value) */
-        ExpressionAssign(Parser, BottomValue, TopValue, FALSE);
+        ExpressionAssign(Parser, BottomValue, TopValue, FALSE, NULL, 0);
         ExpressionStackPushValueNode(Parser, StackTop, BottomValue);
     }
     else
@@ -1128,7 +1144,7 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
             { 
                 if (ArgCount < FuncValue->Val->FuncDef.NumParams)
                 {
-                    ExpressionAssign(Parser, ParamArray[ArgCount], Param, TRUE);
+                    ExpressionAssign(Parser, ParamArray[ArgCount], Param, TRUE, FuncName, ArgCount+1);
                     VariableStackPop(Parser, Param);
                 }
                 else

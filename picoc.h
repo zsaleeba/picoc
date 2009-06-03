@@ -317,7 +317,7 @@ void ParserCopyPos(struct ParseState *To, struct ParseState *From);
 /* expression.c */
 int ExpressionParse(struct ParseState *Parser, struct Value **Result);
 int ExpressionParseInt(struct ParseState *Parser);
-void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct Value *SourceValue, int Force);
+void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct Value *SourceValue, int Force, const char *FuncName, int ParamNo);
 
 /* type.c */
 void TypeInit();

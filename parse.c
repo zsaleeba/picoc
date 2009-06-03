@@ -149,7 +149,7 @@ int ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
                         
                     if (Parser->Mode == RunModeRun)
                     {
-                        ExpressionAssign(Parser, NewVariable, CValue, FALSE);
+                        ExpressionAssign(Parser, NewVariable, CValue, FALSE, NULL, 0);
                         VariableStackPop(Parser, CValue);
                     }
                 }
@@ -480,7 +480,7 @@ int ParseStatement(struct ParseState *Parser)
                     ProgramFail(Parser, "value required in return");
                     
                 if (TopStackFrame->ReturnValue->Typ->Base != TypeVoid)
-                    ExpressionAssign(Parser, TopStackFrame->ReturnValue, CValue, TRUE);
+                    ExpressionAssign(Parser, TopStackFrame->ReturnValue, CValue, TRUE, NULL, 0);
                     
                 VariableStackPop(Parser, CValue);
                 Parser->Mode = RunModeReturn;
