@@ -21,7 +21,8 @@ TESTS=	00_assignment.test \
 	20_pointer_comparison.test \
 	22_floating_point.test \
 	23_type_coercion.test \
-    24_math_library.test
+	24_math_library.test \
+	26_character_constants.test
 
 %.test: %.expect %.c
 	@echo Test: $*...

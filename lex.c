@@ -211,6 +211,17 @@ enum LexToken LexGetWord(struct LexState *Lexer, struct Value *Value)
     return TokenIdentifier;
 }
 
+/* unescape a character from an octal character constant */
+unsigned char LexUnEscapeCharacterConstant(const char **From, const char *End, unsigned char FirstChar, int Base)
+{
+    unsigned char Total = GET_BASE_DIGIT(FirstChar);
+    int CCount;
+    for (CCount = 0; IS_BASE_DIGIT(**From, Base) && CCount < 2; CCount++, (*From)++)
+        Total = Total * Base + GET_BASE_DIGIT(**From);
+    
+    return Total;
+}
+
 /* unescape a character from a string or character constant */
 unsigned char LexUnEscapeCharacter(const char **From, const char *End)
 {
@@ -243,8 +254,8 @@ unsigned char LexUnEscapeCharacter(const char **From, const char *End)
             case 'r':  return '\r';
             case 't':  return '\t';
             case 'v':  return '\v';
-            /* case '0': XXX - implement octal character constants */
-            /* case 'x': XXX - implement hex character constants */
+            case '0': case '1': case '2': case '3': return LexUnEscapeCharacterConstant(From, End, ThisChar, 8);
+            case 'x': return LexUnEscapeCharacterConstant(From, End, '0', 16);
             default:   return ThisChar;
         }
     }
