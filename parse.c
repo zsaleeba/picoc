@@ -384,6 +384,8 @@ enum ParseResult ParseStatement(struct ParseState *Parser)
         case TokenStructType:
         case TokenUnionType:
         case TokenEnumType:
+        case TokenSignedType:
+        case TokenUnsignedType:
             *Parser = PreState;
             CheckTrailingSemicolon = ParseDeclaration(Parser, Token);
             break;

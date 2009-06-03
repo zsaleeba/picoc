@@ -288,9 +288,22 @@ int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ)
     enum LexToken Token = LexGetToken(Parser, NULL, TRUE);
     *Typ = NULL;
 
+    /* just ignore signed/unsigned for now */
+    if (Token == TokenSignedType || Token == TokenUnsignedType)
+    {
+        Token = LexGetToken(Parser, NULL, FALSE);
+        if (Token != TokenIntType && Token != TokenLongType && Token != TokenShortType && Token != TokenCharType)
+        {
+            *Typ = &IntType;
+            return TRUE;
+        }
+        
+        Token = LexGetToken(Parser, NULL, TRUE);
+    }
+    
     switch (Token)
     {
-        case TokenIntType: case TokenLongType: case TokenShortType: *Typ = &IntType; break;
+        case TokenIntType: case TokenLongType: case TokenShortType: case TokenSignedType: case TokenUnsignedType: *Typ = &IntType; break;
         case TokenCharType: *Typ = &CharType; break;
 #ifndef NO_FP
         case TokenFloatType: case TokenDoubleType: *Typ = &FPType; break;
