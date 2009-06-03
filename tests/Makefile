@@ -22,6 +22,7 @@ TESTS=	00_assignment.test \
 	22_floating_point.test \
 	23_type_coercion.test \
 	24_math_library.test \
+	25_quicksort.test \
 	26_character_constants.test
 
 %.test: %.expect %.c

@@ -1,22 +1,5 @@
 int array[16];
 
-array[0] = 62;
-array[1] = 83;
-array[2] = 4;
-array[3] = 89;
-array[4] = 36;
-array[5] = 21;
-array[6] = 74;
-array[7] = 37;
-array[8] = 65;
-array[9] = 33;
-array[10] = 96;
-array[11] = 38;
-array[12] = 53;
-array[13] = 16;
-array[14] = 74;
-array[15] = 55;
-
 //Swap integer values by array indexes
 void swap(int a, int b)
 {
@@ -59,17 +42,38 @@ void quicksort(int left, int right)
     quicksort(index + 1, right);
 }
  
-int i;
+void main()
+{
+    int i;
 
-for (i = 0; i < 16; i++)
-    printf("%d ", array[i]);
+    array[0] = 62;
+    array[1] = 83;
+    array[2] = 4;
+    array[3] = 89;
+    array[4] = 36;
+    array[5] = 21;
+    array[6] = 74;
+    array[7] = 37;
+    array[8] = 65;
+    array[9] = 33;
+    array[10] = 96;
+    array[11] = 38;
+    array[12] = 53;
+    array[13] = 16;
+    array[14] = 74;
+    array[15] = 55;
 
-printf("\n");
+   for (i = 0; i < 16; i++)
+        printf("%d ", array[i]);
 
-quicksort(0, 15);
+    printf("\n");
 
-for (i = 0; i < 16; i++)
-    printf("%d ", array[i]);
+    quicksort(0, 15);
 
-printf("\n");
+    for (i = 0; i < 16; i++)
+        printf("%d ", array[i]);
+
+    printf("\n");
+}
+main();
 
