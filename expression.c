@@ -1187,7 +1187,7 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
             for (Count = 0; Count < FuncValue->Val->FuncDef.NumParams; Count++)
                 VariableDefine(Parser, FuncValue->Val->FuncDef.ParamName[Count], ParamArray[Count], NULL, TRUE);
                 
-            if (!ParseStatement(&FuncParser))
+            if (ParseStatement(&FuncParser) != ParseResultOk)
                 ProgramFail(&FuncParser, "function body expected");
         
             if (FuncValue->Val->FuncDef.ReturnType != ReturnValue->Typ)

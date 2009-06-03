@@ -261,6 +261,8 @@ struct OutputStream
     union OutputStreamInfo i;
 };
 
+enum ParseResult { ParseResultEOF, ParseResultError, ParseResultOk };
+
 /* globals */
 extern void *HeapStackTop;
 extern void *HeapMemStart;
@@ -307,7 +309,7 @@ void LexInteractiveCompleted(struct ParseState *Parser);
 void LexInteractiveStatementPrompt();
 
 /* parse.c */
-int ParseStatement(struct ParseState *Parser);
+enum ParseResult ParseStatement(struct ParseState *Parser);
 struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *ReturnType, char *Identifier, int IsProtoType);
 void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt);
 void ParseInteractive();
