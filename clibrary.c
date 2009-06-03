@@ -195,7 +195,10 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
                 else
                 {
                     NextArg = (struct Value *)((char *)NextArg + sizeof(struct Value) + TypeStackSizeValue(NextArg));
-                    if (NextArg->Typ != FormatType && !((FormatType == &IntType || *FPos == 'f') && IS_NUMERIC_COERCIBLE(NextArg)))
+                    if (NextArg->Typ != FormatType && 
+                            !((FormatType == &IntType || *FPos == 'f') && IS_NUMERIC_COERCIBLE(NextArg)) &&
+                            !(FormatType == CharPtrType && ( (NextArg->Typ->Base == TypePointer && NextArg->Typ->FromType->Base == TypeArray && NextArg->Typ->FromType->FromType->Base == TypeChar) || 
+                                                             (NextArg->Typ->Base == TypeArray && NextArg->Typ->FromType->Base == TypeChar) ) ) )
                         PrintStr("XXX", Stream);   /* bad type for format */
                     else
                     {
@@ -204,13 +207,20 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
                             case 's':
                             {
 #ifndef NATIVE_POINTERS
-                                struct Value *CharArray = NextArg->Val->Pointer.Segment;
+                                struct Value *CharArray;
                                 char *Str;
                                 
-                                if (NextArg->Val->Pointer.Offset < 0 || NextArg->Val->Pointer.Offset >= CharArray->Val->Array.Size)
-                                    Str = StrEmpty;
+                                if (NextArg->Typ == CharPtrType || NextArg->Typ->Base == TypePointer && NextArg->Typ->FromType->Base == TypeArray && NextArg->Typ->FromType->FromType->Base == TypeChar)
+                                {
+                                    CharArray = NextArg->Val->Pointer.Segment;
+
+                                    if (NextArg->Val->Pointer.Offset < 0 || NextArg->Val->Pointer.Offset >= CharArray->Val->Array.Size)
+                                        Str = StrEmpty;
+                                    else
+                                        Str = (char *)CharArray->Val->Array.Data + NextArg->Val->Pointer.Offset;
+                                }
                                 else
-                                    Str = (char *)CharArray->Val->Array.Data + NextArg->Val->Pointer.Offset;
+                                    Str = NextArg->Val->Array.Data;
 #else
                                 char *Str = NextArg->Val->NativePointer;
                                 /* XXX - dereference this properly */
