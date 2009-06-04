@@ -163,6 +163,10 @@ void ExpressionStackPushValueNode(struct ParseState *Parser, struct ExpressionSt
     StackNode->Next = *StackTop;
     StackNode->p.Val = ValueLoc;
     *StackTop = StackNode;
+#ifdef FANCY_ERROR_MESSAGES
+    StackNode->Line = Parser->Line;
+    StackNode->CharacterPos = Parser->CharacterPos;
+#endif
 #ifdef DEBUG_EXPRESSIONS
     ExpressionStackShow(*StackTop);
 #endif
@@ -216,22 +220,6 @@ void ExpressionPushFP(struct ParseState *Parser, struct ExpressionStack **StackT
     ExpressionStackPushValueNode(Parser, StackTop, ValueLoc);
 }
 #endif
-
-/* like ProgramFail() but gives descriptive error messages for assignment */
-void AssignFail(struct ParseState *Parser, const char *Format, struct ValueType *Type1, struct ValueType *Type2, int Num1, int Num2, const char *FuncName, int ParamNo)
-{
-    PlatformPrintf("%s:%d: can't %s ", Parser->FileName, Parser->Line, (FuncName == NULL) ? "assign" : "set");   
-        
-    if (Type1 != NULL)
-        PlatformPrintf(Format, Type1, Type2);
-    else
-        PlatformPrintf(Format, Num1, Num2);
-    
-    if (FuncName != NULL)
-        PlatformPrintf(" in argument %d of call to %s()", ParamNo, FuncName);
-        
-    ProgramFail(NULL, "");
-}
 
 /* assign to a pointer, leaving a value on the expression stack */
 void ExpressionAssignToPointer(struct ParseState *Parser, struct Value *ToValue, struct Value *FromValue, const char *FuncName, int ParamNo)
@@ -876,6 +864,10 @@ void ExpressionStackPushOperator(struct ParseState *Parser, struct ExpressionSta
     StackNode->Precedence = Precedence;
     *StackTop = StackNode;
     debugf("ExpressionStackPushOperator()\n");
+#ifdef FANCY_ERROR_MESSAGES
+    StackNode->Line = Parser->Line;
+    StackNode->CharacterPos = Parser->CharacterPos;
+#endif
 #ifdef DEBUG_EXPRESSIONS
     ExpressionStackShow(*StackTop);
 #endif

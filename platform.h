@@ -24,6 +24,8 @@
 #define LOCAL_TABLE_SIZE 11                 /* size of local variable table (can expand) */
 #define STRUCT_TABLE_SIZE 11                /* size of struct/union member table (can expand) */
 
+#define FANCY_ERROR_REPORTING               /* optional feature - gives more detailed error messages but uses more memory */
+
 #define INTERACTIVE_PROMPT_START "starting picoc\n"
 #define INTERACTIVE_PROMPT_STATEMENT "picoc> "
 #define INTERACTIVE_PROMPT_LINE "     > "

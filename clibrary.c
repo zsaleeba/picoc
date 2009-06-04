@@ -21,7 +21,7 @@ void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct Libr
     for (Count = 0; (*FuncList)[Count].Prototype != NULL; Count++)
     {
         Tokens = LexAnalyse(IntrinsicName, (*FuncList)[Count].Prototype, strlen((char *)(*FuncList)[Count].Prototype), NULL);
-        LexInitParser(&Parser, Tokens, IntrinsicName, Count+1, TRUE);
+        LexInitParser(&Parser, (*FuncList)[Count].Prototype, Tokens, IntrinsicName, TRUE);
         TypeParse(&Parser, &ReturnType, &Identifier);
         NewValue = ParseFunctionDefinition(&Parser, ReturnType, Identifier, TRUE);
         NewValue->Val->FuncDef.Intrinsic = (*FuncList)[Count].Func;

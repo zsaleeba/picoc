@@ -96,6 +96,10 @@ struct ParseState
     const char *FileName;
     enum RunMode Mode;          /* whether to skip or run code */
     int SearchLabel;            /* what case label we're searching for */
+#ifdef FANCY_ERROR_REPORTING
+    int CharacterPos;
+    const char *SourceText;
+#endif
 };
 
 /* values */
@@ -229,8 +233,12 @@ struct LexState
 {
     const char *Pos;
     const char *End;
-    int Line;
     const char *FileName;
+    int Line;
+#ifdef FANCY_ERROR_REPORTING
+    int CharacterPos;
+    const char *SourceText;
+#endif
 };
 
 /* library function definition */
@@ -261,6 +269,7 @@ struct OutputStream
     union OutputStreamInfo i;
 };
 
+/* possible results of parsing a statement */
 enum ParseResult { ParseResultEOF, ParseResultError, ParseResultOk };
 
 /* globals */
@@ -300,7 +309,7 @@ void TableStrFree();
 void LexInit();
 void LexCleanup();
 void *LexAnalyse(const char *FileName, const char *Source, int SourceLen, int *TokenLen);
-void LexInitParser(struct ParseState *Parser, void *TokenSource, const char *FileName, int Line, int RunIt);
+void LexInitParser(struct ParseState *Parser, const char *SourceText, void *TokenSource, const char *FileName, int RunIt);
 enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int IncPos);
 void LexToEndOfLine(struct ParseState *Parser);
 void *LexCopyTokens(struct ParseState *StartParser, struct ParseState *EndParser);
@@ -376,6 +385,7 @@ void PrintType(struct ValueType *Typ, struct OutputStream *Stream);
 
 /* platform.c */
 void ProgramFail(struct ParseState *Parser, const char *Message, ...);
+void AssignFail(struct ParseState *Parser, const char *Format, struct ValueType *Type1, struct ValueType *Type2, int Num1, int Num2, const char *FuncName, int ParamNo);
 void LexFail(struct LexState *Lexer, const char *Message, ...);
 void PlatformCleanup();
 void PlatformScanFile(const char *FileName);

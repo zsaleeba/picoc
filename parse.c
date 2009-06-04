@@ -188,6 +188,9 @@ void ParserCopyPos(struct ParseState *To, struct ParseState *From)
 {
     To->Pos = From->Pos;
     To->Line = From->Line;
+#ifdef FANCY_ERROR_REPORTING
+    To->CharacterPos = From->CharacterPos;
+#endif
 }
 
 /* parse a "for" statement */
@@ -572,7 +575,7 @@ void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt)
     if (OldCleanupTokens == NULL)
         CleanupTokens = Tokens;
 
-    LexInitParser(&Parser, Tokens, FileName, 1, RunIt);
+    LexInitParser(&Parser, Source, Tokens, FileName, RunIt);
 
     do {
         Ok = ParseStatement(&Parser);
@@ -593,7 +596,7 @@ void ParseInteractive()
     enum ParseResult Ok;
     
     PlatformPrintf(INTERACTIVE_PROMPT_START);
-    LexInitParser(&Parser, NULL, StrEmpty, 1, TRUE);
+    LexInitParser(&Parser, NULL, NULL, StrEmpty, TRUE);
     PlatformSetExitPoint();
     LexInteractiveClear(&Parser);
 
