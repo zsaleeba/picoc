@@ -13,11 +13,9 @@ for (b = a; *b != 0; b++)
     printf("%c: %d\n", *b, *b);
 
 char destarray[10];
-char *dest;
-char *src;
+char *dest = &destarray[0];
+char *src = a;
 
-dest = &destarray[0];
-src = a;
 while (*src != 0)
     *dest++ = *src++;
 

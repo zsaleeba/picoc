@@ -210,7 +210,7 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
                                 struct Value *CharArray;
                                 char *Str;
                                 
-                                if (NextArg->Typ == CharPtrType || NextArg->Typ->Base == TypePointer && NextArg->Typ->FromType->Base == TypeArray && NextArg->Typ->FromType->FromType->Base == TypeChar)
+                                if (NextArg->Typ == CharPtrType || (NextArg->Typ->Base == TypePointer && NextArg->Typ->FromType->Base == TypeArray && NextArg->Typ->FromType->FromType->Base == TypeChar) )
                                 {
                                     CharArray = NextArg->Val->Pointer.Segment;
 

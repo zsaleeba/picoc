@@ -89,13 +89,16 @@ void ExpressionStackShow(struct ExpressionStack *StackTop)
             switch (StackTop->p.Val->Typ->Base)
             {
                 case TypeVoid:      printf("void"); break;
-                case TypeInt: case TypeChar: printf("%d:int", StackTop->p.Val->Val->Integer); break;
+                case TypeInt:       printf("%d:int", StackTop->p.Val->Val->Integer); break;
+                case TypeChar:      printf("%d:char", StackTop->p.Val->Val->Character); break;
                 case TypeFP:        printf("%f:fp", StackTop->p.Val->Val->FP); break;
                 case TypeFunction:  printf("%s:function", StackTop->p.Val->Val->Identifier); break;
                 case TypeMacro:     printf("%s:macro", StackTop->p.Val->Val->Identifier); break;
                 case TypePointer:
-                    if (StackTop->p.Val->Typ->FromType->Base == TypeChar)
-                        printf("\"%s\":string", (char *)StackTop->p.Val->Val->Pointer.Segment->Val->Array.Data);
+                    if (StackTop->p.Val->Val->Pointer.Segment == NULL)
+                        printf("ptr(NULL)");
+                    else if (StackTop->p.Val->Typ->FromType->Base == TypeChar)
+                        printf("\"%s\":string", (char *)StackTop->p.Val->Val->Pointer.Segment->Val->Array.Data + StackTop->p.Val->Val->Pointer.Offset);
                     else
                         printf("ptr(0x%lx,%d)", (long)StackTop->p.Val->Val->Pointer.Segment, StackTop->p.Val->Val->Pointer.Offset); 
                     break;
@@ -786,7 +789,7 @@ void ExpressionStackCollapse(struct ParseState *Parser, struct ExpressionStack *
     struct ExpressionStack *TopStackNode = *StackTop;
     struct ExpressionStack *TopOperatorNode;
     
-    debugf("ExpressionStackCollapse():\n");
+    debugf("ExpressionStackCollapse(%d):\n", Precedence);
 #ifdef DEBUG_EXPRESSIONS
     ExpressionStackShow(*StackTop);
 #endif

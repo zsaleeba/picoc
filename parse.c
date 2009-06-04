@@ -257,7 +257,8 @@ enum RunMode ParseBlock(struct ParseState *Parser, int AbsorbOpenBrace, int Cond
         ProgramFail(Parser, "'{' expected");
     
     if (Parser->Mode != RunModeSkip && !Condition)
-    { /* condition failed - skip this block instead */
+    { 
+        /* condition failed - skip this block instead */
         enum RunMode OldMode = Parser->Mode;
         Parser->Mode = RunModeSkip;
         while (ParseStatement(Parser) == ParseResultOk)
@@ -265,7 +266,8 @@ enum RunMode ParseBlock(struct ParseState *Parser, int AbsorbOpenBrace, int Cond
         Parser->Mode = OldMode;
     }
     else
-    { /* just run it in its current mode */
+    { 
+        /* just run it in its current mode */
         while (ParseStatement(Parser) == ParseResultOk)
         {}
     }
@@ -328,12 +330,21 @@ enum ParseResult ParseStatement(struct ParseState *Parser)
         case TokenWhile:
             {
                 struct ParseState PreConditional;
+
+                if (LexGetToken(Parser, NULL, TRUE) != TokenOpenBracket)
+                    ProgramFail(Parser, "'(' expected");
+                    
                 ParserCopyPos(&PreConditional, Parser);
                 do
                 {
                     ParserCopyPos(Parser, &PreConditional);
                     Condition = ExpressionParseInt(Parser);
-                    ParseBlock(Parser, TRUE, Condition);
+                    if (LexGetToken(Parser, NULL, TRUE) != TokenCloseBracket)
+                        ProgramFail(Parser, "')' expected");
+                    
+                    if (ParseStatementMaybeRun(Parser, Condition) != ParseResultOk)
+                        ProgramFail(Parser, "statement expected");
+                    
                     if (Parser->Mode == RunModeContinue)
                         Parser->Mode = RunModeRun;
                     
@@ -353,15 +364,22 @@ enum ParseResult ParseStatement(struct ParseState *Parser)
                 do
                 {
                     ParserCopyPos(Parser, &PreStatement);
-                    ParseBlock(Parser, TRUE, TRUE);
+                    if (ParseStatement(Parser) != ParseResultOk)
+                        ProgramFail(Parser, "statement expected");
+                
                     if (Parser->Mode == RunModeContinue)
                         Parser->Mode = RunModeRun;
 
                     if (LexGetToken(Parser, NULL, TRUE) != TokenWhile)
                         ProgramFail(Parser, "'while' expected");
                     
+                    if (LexGetToken(Parser, NULL, TRUE) != TokenOpenBracket)
+                        ProgramFail(Parser, "'(' expected");
+                        
                     Condition = ExpressionParseInt(Parser);
-                
+                    if (LexGetToken(Parser, NULL, TRUE) != TokenCloseBracket)
+                        ProgramFail(Parser, "')' expected");
+                    
                 } while (Condition && Parser->Mode == RunModeRun);           
                 
                 if (Parser->Mode == RunModeBreak)
