@@ -276,7 +276,7 @@ void VariableStringLiteralDefine(char *Ident, struct Value *Val)
 }
 
 /* check a pointer for validity and dereference it for use */
-void *VariableDereferencePointer(struct ParseState *Parser, struct Value *PointerValue, struct Value **DerefVal, int *DerefOffset, struct ValueType **DerefType)
+void *VariableDereferencePointer(struct ParseState *Parser, struct Value *PointerValue, struct Value **DerefVal, int *DerefOffset, struct ValueType **DerefType, int *DerefIsLValue)
 {
 #ifndef NATIVE_POINTERS
     struct Value *PointedToValue = PointerValue->Val->Pointer.Segment;
@@ -293,11 +293,16 @@ void *VariableDereferencePointer(struct ParseState *Parser, struct Value *Pointe
     
     /* pass back the optional dereferenced pointer, offset and type */
     if (DerefVal != NULL)
-    {
         *DerefVal = PointedToValue;
+
+    if (DerefOffset != NULL)
         *DerefOffset = PointerValue->Val->Pointer.Offset;
+    
+    if (DerefType != NULL)
         *DerefType = PointerValue->Typ->FromType;
-    }
+    
+    if (DerefIsLValue != NULL)
+        *DerefIsLValue = PointedToValue->IsLValue;
     
     /* return a pointer to the data */
     if (PointedToValue->Typ->Base == TypeArray)
@@ -305,16 +310,17 @@ void *VariableDereferencePointer(struct ParseState *Parser, struct Value *Pointe
     else
         return (void *)((char *)PointedToValue->Val + PointerValue->Val->Pointer.Offset);
 #else
-    struct Value *PointedToValue = PointerValue->Val->NativePointer;
-    
-    /* check if the pointed to item is within picoc's memory range */
-    if (PointerValue->Val->NativePointer - HeapMemStart >= HEAP_SIZE)
+    if (DerefVal != NULL)
         *DerefVal = NULL;
-    else
-        *DerefVal = PointedToValue;
-
-    *DerefType = PointerValue->Typ->FromType;
-    *DerefOffset = 0;
+        
+    if (DerefType != NULL)
+        *DerefType = PointerValue->Typ->FromType;
+        
+    if (DerefOffset != NULL)
+        *DerefOffset = 0;
+        
+    if (DerefIsLValue != NULL)
+        *DerefIsLValue = TRUE;
 
     return PointerValue->Val->NativePointer;
 #endif

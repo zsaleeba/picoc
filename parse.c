@@ -424,7 +424,7 @@ enum ParseResult ParseStatement(struct ParseState *Parser)
 #ifndef NATIVE_POINTERS
             PlatformScanFile(LexerValue->Val->Pointer.Segment->Val->Array.Data);
 #else
-            PlatformScanFile(((struct Value *)(LexerValue->Val->NativePointer))->Val->Array.Data);
+            PlatformScanFile((char *)LexerValue->Val->NativePointer);
 #endif
             CheckTrailingSemicolon = FALSE;
             break;

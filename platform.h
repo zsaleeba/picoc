@@ -68,6 +68,7 @@ extern jmp_buf ExitBuf;
 #  include <math.h>
 #  define assert(x)
 #  undef BIG_ENDIAN
+#  undef FANCY_ERROR_REPORTING
 
 # else
 #  ifdef SURVEYOR_HOST

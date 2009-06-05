@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -pedantic -g -DUNIX_HOST 
+CFLAGS=-Wall -pedantic -g -DUNIX_HOST
 LIBS=#-lm
 
 TARGET	= picoc

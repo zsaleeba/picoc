@@ -206,25 +206,23 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
                         {
                             case 's':
                             {
-#ifndef NATIVE_POINTERS
-                                struct Value *CharArray;
                                 char *Str;
                                 
                                 if (NextArg->Typ == CharPtrType || (NextArg->Typ->Base == TypePointer && NextArg->Typ->FromType->Base == TypeArray && NextArg->Typ->FromType->FromType->Base == TypeChar) )
                                 {
-                                    CharArray = NextArg->Val->Pointer.Segment;
+#ifndef NATIVE_POINTERS
+                                    struct Value *CharArray = NextArg->Val->Pointer.Segment;
 
                                     if (NextArg->Val->Pointer.Offset < 0 || NextArg->Val->Pointer.Offset >= CharArray->Val->Array.Size)
                                         Str = StrEmpty;
                                     else
                                         Str = (char *)CharArray->Val->Array.Data + NextArg->Val->Pointer.Offset;
+#else
+                                    Str = NextArg->Val->NativePointer;
+#endif
                                 }
                                 else
                                     Str = NextArg->Val->Array.Data;
-#else
-                                char *Str = NextArg->Val->NativePointer;
-                                /* XXX - dereference this properly */
-#endif
                                     
                                 PrintStr(Str, Stream); 
                                 break;
@@ -261,15 +259,14 @@ void LibSPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Val
     struct OutputStream StrStream;
     struct Value *DerefVal;
     int DerefOffset;
-    struct ValueType *DerefType;
-    StrStream.i.Str.WritePos = VariableDereferencePointer(StrStream.i.Str.Parser, Param[0], &DerefVal, &DerefOffset, &DerefType);
+    StrStream.i.Str.WritePos = VariableDereferencePointer(StrStream.i.Str.Parser, Param[0], &DerefVal, &DerefOffset, NULL, NULL);
 
     if (DerefVal->Typ->Base != TypeArray)
         ProgramFail(Parser, "can only print to arrays of char");
         
     StrStream.Putch = &SPutc;
     StrStream.i.Str.Parser = Parser;
-    StrStream.i.Str.MaxPos = StrStream.i.Str.WritePos- DerefOffset + DerefVal->Val->Array.Size;
+    StrStream.i.Str.MaxPos = StrStream.i.Str.WritePos - DerefOffset + DerefVal->Val->Array.Size;
     GenericPrintf(Parser, ReturnValue, Param+1, NumArgs-1, &StrStream);
     PrintCh(0, &StrStream);
 #ifndef NATIVE_POINTERS

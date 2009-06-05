@@ -200,8 +200,9 @@ void ExpressionStackPushDereference(struct ParseState *Parser, struct Expression
     struct Value *DerefVal;
     int Offset;
     struct ValueType *DerefType;
-    void *DerefDataLoc = VariableDereferencePointer(Parser, DereferenceValue, &DerefVal, &Offset, &DerefType);
-    struct Value *ValueLoc = VariableAllocValueFromExistingData(Parser, DerefType, (union AnyValue *)DerefDataLoc, DerefVal->IsLValue, DerefVal);
+    int DerefIsLValue;
+    void *DerefDataLoc = VariableDereferencePointer(Parser, DereferenceValue, &DerefVal, &Offset, &DerefType, &DerefIsLValue);
+    struct Value *ValueLoc = VariableAllocValueFromExistingData(Parser, DerefType, (union AnyValue *)DerefDataLoc, DerefIsLValue, DerefVal);
     ExpressionStackPushValueNode(Parser, StackTop, ValueLoc);
 }
 
@@ -225,8 +226,10 @@ void ExpressionPushFP(struct ParseState *Parser, struct ExpressionStack **StackT
 void ExpressionAssignToPointer(struct ParseState *Parser, struct Value *ToValue, struct Value *FromValue, const char *FuncName, int ParamNo)
 {
     struct ValueType *PointedToType = ToValue->Typ->FromType;
+#ifndef NATIVE_POINTERS
     struct Value *DerefVal = NULL;
     int DerefOffset;
+#endif
     
     if (FromValue->Typ == ToValue->Typ)
     {
@@ -251,14 +254,12 @@ void ExpressionAssignToPointer(struct ParseState *Parser, struct Value *ToValue,
     else if (FromValue->Typ->Base == TypePointer && FromValue->Typ->FromType->Base == TypeArray && PointedToType == FromValue->Typ->FromType->FromType)
     {
         /* the form is: blah *x = pointer to array of blah */
-        struct ValueType *DerefType;
-        
-        VariableDereferencePointer(Parser, FromValue, &DerefVal, &DerefOffset, &DerefType);
 #ifndef NATIVE_POINTERS
+        VariableDereferencePointer(Parser, FromValue, &DerefVal, &DerefOffset, NULL, NULL);
         ToValue->Val->Pointer.Segment = DerefVal;
         ToValue->Val->Pointer.Offset = DerefOffset;
 #else
-        ToValue->Val->NativePointer = DerefVal;
+        ToValue->Val->NativePointer = VariableDereferencePointer(Parser, FromValue, NULL, NULL, NULL, NULL);
 #endif
     }
     else if (IS_NUMERIC_COERCIBLE(FromValue) && COERCE_INTEGER(FromValue) == 0)
@@ -360,7 +361,10 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
             if (Result->LValueFrom != NULL)
                 Result->Val->Pointer.Offset = (char *)Result->Val - (char *)Result->LValueFrom;
 #else
-            Result->Val->NativePointer = TempLValue;
+            if (TempLValue->Typ->Base == TypeArray)
+                Result->Val->NativePointer = TempLValue->Val->Array.Data;
+            else
+                Result->Val->NativePointer = TempLValue->Val;
 #endif                
             ExpressionStackPushValueNode(Parser, StackTop, Result);
             break;
@@ -371,14 +375,17 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
         
         case TokenSizeof:
             /* XXX */
+            ProgramFail(Parser, "not supported");
             break;
         
         case TokenLeftSquareBracket:
             /* XXX */
+            ProgramFail(Parser, "not supported");
             break;
         
         case TokenOpenBracket:
             /* XXX - cast */
+            ProgramFail(Parser, "not supported");
             break;
 
         default:
@@ -453,8 +460,8 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
                     
                 switch (Op)
                 {
-                    case TokenIncrement:    TopValue->Val->NativePointer += Size; break;
-                    case TokenDecrement:    TopValue->Val->NativePointer -= Size; break;
+                    case TokenIncrement:    TopValue->Val->NativePointer = (void *)((char *)TopValue->Val->NativePointer + Size); break;
+                    case TokenDecrement:    TopValue->Val->NativePointer = (void *)((char *)TopValue->Val->NativePointer - Size); break;
                     default:                ProgramFail(Parser, "invalid operation"); break;
                 }
 
@@ -487,8 +494,8 @@ void ExpressionPostfixOperator(struct ParseState *Parser, struct ExpressionStack
         {
             case TokenIncrement:            ResultInt = ExpressionAssignInt(Parser, TopValue, TopInt+1, TRUE); break;
             case TokenDecrement:            ResultInt = ExpressionAssignInt(Parser, TopValue, TopInt-1, TRUE); break;
-            case TokenRightSquareBracket:   break;  /* XXX */
-            case TokenCloseBracket:         break;  /* XXX */
+            case TokenRightSquareBracket:   ProgramFail(Parser, "not supported"); break;  /* XXX */
+            case TokenCloseBracket:         ProgramFail(Parser, "not supported"); break;  /* XXX */
             default:                        ProgramFail(Parser, "invalid operation"); break;
         }
     
@@ -534,8 +541,8 @@ void ExpressionPostfixOperator(struct ParseState *Parser, struct ExpressionStack
         
         switch (Op)
         {
-            case TokenIncrement:    TopValue->Val->NativePointer += Size; break;
-            case TokenDecrement:    TopValue->Val->NativePointer -= Size; break;
+            case TokenIncrement:    TopValue->Val->NativePointer = (void *)((char *)TopValue->Val->NativePointer + Size); break;
+            case TokenDecrement:    TopValue->Val->NativePointer = (void *)((char *)TopValue->Val->NativePointer - Size); break;
             default:                ProgramFail(Parser, "invalid operation"); break;
         }
         
@@ -643,8 +650,8 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
             case TokenArithmeticAndAssign:  ResultInt = ExpressionAssignInt(Parser, BottomValue, BottomInt & TopInt, FALSE); break;
             case TokenArithmeticOrAssign:   ResultInt = ExpressionAssignInt(Parser, BottomValue, BottomInt | TopInt, FALSE); break;
             case TokenArithmeticExorAssign: ResultInt = ExpressionAssignInt(Parser, BottomValue, BottomInt ^ TopInt, FALSE); break;
-            case TokenQuestionMark:         break; /* XXX */
-            case TokenColon:                break; /* XXX */
+            case TokenQuestionMark:         ProgramFail(Parser, "not supported"); break; /* XXX */
+            case TokenColon:                ProgramFail(Parser, "not supported"); break; /* XXX */
             case TokenLogicalOr:            ResultInt = BottomInt || TopInt; break;
             case TokenLogicalAnd:           ResultInt = BottomInt && TopInt; break;
             case TokenArithmeticOr:         ResultInt = BottomInt | TopInt; break;
@@ -720,9 +727,9 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
                 ProgramFail(Parser, "invalid use of a NULL pointer");
             
             if (Op == TokenPlus)
-                NativePointer += TopInt * Size;
+                NativePointer = (void *)((char *)NativePointer + TopInt * Size);
             else
-                NativePointer -= TopInt * Size;
+                NativePointer = (void *)((char *)NativePointer - TopInt * Size);
             
             StackValue = ExpressionStackPushValueByType(Parser, StackTop, BottomValue->Typ);
             StackValue->Val->NativePointer = NativePointer;
@@ -887,7 +894,6 @@ void ExpressionGetStructElement(struct ParseState *Parser, struct ExpressionStac
         /* look up the struct element */
         struct Value *ParamVal = (*StackTop)->p.Val;
         struct Value *StructVal = ParamVal;
-        int StructOffset = 0;
         struct ValueType *StructType = ParamVal->Typ;
         char *DerefDataLoc = (char *)ParamVal->Val;
         struct Value *MemberValue;
@@ -895,7 +901,7 @@ void ExpressionGetStructElement(struct ParseState *Parser, struct ExpressionStac
 
         /* if we're doing '->' dereference the struct pointer first */
         if (Token == TokenArrow)
-            DerefDataLoc = VariableDereferencePointer(Parser, ParamVal, &StructVal, &StructOffset, &StructType);
+            DerefDataLoc = VariableDereferencePointer(Parser, ParamVal, &StructVal, NULL, &StructType, NULL);
         
         if (StructType->Base != TypeStruct && StructType->Base != TypeUnion)
             ProgramFail(Parser, "can't use '%s' on something that's not a struct or union %s : it's a %t", (Token == TokenDot) ? "." : "->", (Token == TokenArrow) ? "pointer" : "", ParamVal->Typ);
@@ -908,7 +914,7 @@ void ExpressionGetStructElement(struct ParseState *Parser, struct ExpressionStac
         *StackTop = (*StackTop)->Next;
         
         /* make the result value for this member only */
-        Result = VariableAllocValueFromExistingData(Parser, MemberValue->Typ, (void *)(DerefDataLoc + MemberValue->Val->Integer), TRUE, StructVal->LValueFrom);
+        Result = VariableAllocValueFromExistingData(Parser, MemberValue->Typ, (void *)(DerefDataLoc + MemberValue->Val->Integer), TRUE, (StructVal != NULL) ? StructVal->LValueFrom : NULL);
         ExpressionStackPushValueNode(Parser, StackTop, Result);
     }
 }

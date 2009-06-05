@@ -310,7 +310,7 @@ enum LexToken LexGetStringConstant(struct LexState *Lexer, struct Value *Value)
     Value->Val->Pointer.Segment = ArrayValue;
     Value->Val->Pointer.Offset = 0;
 #else
-    Value->Val->NativePointer = ArrayValue;
+    Value->Val->NativePointer = RegString;
 #endif    
     if (*Lexer->Pos == '"')
         LEXER_INC(Lexer);
@@ -634,7 +634,11 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
         { 
             switch (Token)
             {
+#ifndef NATIVE_POINTERS
                 case TokenStringConstant:       LexValue.Typ = CharPtrType; LexValue.Val->Pointer.Offset = 0; break;
+#else
+                case TokenStringConstant:       LexValue.Typ = CharPtrType; break;
+#endif
                 case TokenIdentifier:           LexValue.Typ = NULL; break;
                 case TokenIntegerConstant:      LexValue.Typ = &IntType; break;
                 case TokenCharacterConstant:    LexValue.Typ = &CharType; break;
