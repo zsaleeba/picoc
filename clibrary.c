@@ -60,36 +60,41 @@ void PrintStr(const char *Str, struct OutputStream *Stream)
         PrintCh(*Str++, Stream);
 }
 
+/* print an unsigned integer to a stream without using printf/sprintf */
+void PrintUnsigned(unsigned int Num, unsigned int Base, struct OutputStream *Stream)
+{
+    char Result[33];
+    int ResPos = sizeof(Result);
+
+    if (Num == 0)
+        PrintCh('0', Stream);
+            
+    Result[--ResPos] = '\0';
+    while (Num > 0)
+    {
+        unsigned int NextNum = Num / Base;
+        unsigned int Digit = Num - NextNum * Base;
+        if (Digit < 10)
+            Result[--ResPos] = '0' + Digit;
+        else
+            Result[--ResPos] = 'a' + Digit - 10;
+        
+        Num = NextNum;
+    }
+    
+    PrintStr(&Result[ResPos], Stream);
+}
+
 /* print an integer to a stream without using printf/sprintf */
 void PrintInt(int Num, struct OutputStream *Stream)
 {
-    int Div;
-    int Remainder = 0;
-    int Printing = FALSE;
-    
     if (Num < 0)
     {
         PrintCh('-', Stream);
         Num = -Num;    
     }
     
-    if (Num == 0)
-        PrintCh('0', Stream);
-    else
-    {
-        Div = LARGE_INT_POWER_OF_TEN;
-        while (Div > 0)
-        {
-            Remainder = Num / Div;
-            if (Printing || Remainder > 0)
-            {
-                PrintCh('0' + Remainder, Stream);
-                Printing = TRUE;
-            }
-            Num -= Remainder * Div;
-            Div /= 10;
-        }
-    }
+    PrintUnsigned((unsigned int)Num, 10, Stream);
 }
 
 #ifndef NO_FP
@@ -179,7 +184,7 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
             switch (*FPos)
             {
                 case 's': FormatType = CharPtrType; break;
-                case 'd': case 'c': FormatType = &IntType; break;
+                case 'd': case 'u': case 'x': case 'b': case 'c': FormatType = &IntType; break;
 #ifndef NO_FP
                 case 'f': FormatType = &FPType; break;
 #endif
@@ -228,6 +233,9 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
                                 break;
                             }
                             case 'd': PrintInt(COERCE_INTEGER(NextArg), Stream); break;
+                            case 'u': PrintUnsigned((unsigned int)COERCE_INTEGER(NextArg), 10, Stream); break;
+                            case 'x': PrintUnsigned((unsigned int)COERCE_INTEGER(NextArg), 16, Stream); break;
+                            case 'b': PrintUnsigned((unsigned int)COERCE_INTEGER(NextArg), 2, Stream); break;
                             case 'c': PrintCh(COERCE_INTEGER(NextArg), Stream); break;
 #ifndef NO_FP
                             case 'f': PrintFP(COERCE_FP(NextArg), Stream); break;
