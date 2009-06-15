@@ -659,11 +659,6 @@ void Cnnlearnblob (struct ParseState *Parser, struct Value *ReturnValue, struct 
     nndisplay(ix);
 }
 
-void Cexit (struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) {
-    ExitBuf[40] = 1;
-    longjmp(ExitBuf, 1);
-}
-
 /* list of all library functions and their prototypes */
 struct LibraryFunction PlatformLibrary[] =
 {
@@ -719,7 +714,6 @@ struct LibraryFunction PlatformLibrary[] =
     { Cnntest,      "void nntest(int, int, int, int, int, int, int, int)" },
     { Cnnmatchblob, "void nnmatchblob(int)" },
     { Cnnlearnblob, "void nnlearnblob(int)" },
-    { Cexit,        "void exit()" },
     { NULL,         NULL }
 };
 

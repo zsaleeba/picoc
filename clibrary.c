@@ -321,6 +321,11 @@ void LibGetc(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
     ReturnValue->Val->Integer = PlatformGetCharacter();
 }
 
+void LibExit(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    PlatformExit();
+}
+
 #ifdef PICOC_MATH_LIBRARY
 void LibSin(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
@@ -365,21 +370,6 @@ void LibCosh(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
 void LibTanh(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     ReturnValue->Val->FP = math_tanh(Param[0]->Val->FP);
-}
-
-void LibAsinh(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
-{
-    ReturnValue->Val->FP = math_asinh(Param[0]->Val->FP);
-}
-
-void LibAcosh(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
-{
-    ReturnValue->Val->FP = math_acosh(Param[0]->Val->FP);
-}
-
-void LibAtanh(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
-{
-    ReturnValue->Val->FP = math_atanh(Param[0]->Val->FP);
 }
 
 void LibExp(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -435,6 +425,7 @@ struct LibraryFunction CLibrary[] =
     { LibSPrintf,       "char *sprintf(char *, char *, ...)" },
     { LibGets,          "void gets(char *, int)" },
     { LibGetc,          "int getchar()" },
+    { LibExit,          "void exit()" },
 #ifdef PICOC_MATH_LIBRARY
     { LibSin,           "float sin(float)" },
     { LibCos,           "float cos(float)" },
@@ -445,9 +436,6 @@ struct LibraryFunction CLibrary[] =
     { LibSinh,          "float sinh(float)" },
     { LibCosh,          "float cosh(float)" },
     { LibTanh,          "float tanh(float)" },
-    { LibAsinh,         "float asinh(float)" },
-    { LibAcosh,         "float acosh(float)" },
-    { LibAtanh,         "float atanh(float)" },
     { LibExp,           "float exp(float)" },
     { LibFabs,          "float fabs(float)" },
     { LibLog,           "float log(float)" },
