@@ -57,17 +57,17 @@ enum LexToken
     /* 0x1a */ TokenShiftLeft, TokenShiftRight, 
     /* 0x1c */ TokenPlus, TokenMinus, 
     /* 0x1e */ TokenAsterisk, TokenSlash, TokenModulus,
-    /* 0x21 */ TokenIncrement, TokenDecrement, TokenUnaryNot, TokenUnaryExor, TokenSizeof,
-    /* 0x26 */ TokenLeftSquareBracket, TokenRightSquareBracket, TokenDot, TokenArrow, 
-    /* 0x2a */ TokenOpenBracket, TokenCloseBracket,
-    /* 0x2c */ TokenIdentifier, TokenIntegerConstant, TokenFPConstant, TokenStringConstant, TokenCharacterConstant,
-    /* 0x31 */ TokenSemicolon, TokenEllipsis,
-    /* 0x33 */ TokenLeftBrace, TokenRightBrace,
-    /* 0x35 */ TokenIntType, TokenCharType, TokenFloatType, TokenDoubleType, TokenVoidType, TokenEnumType,
-    /* 0x3b */ TokenLongType, TokenSignedType, TokenShortType, TokenStructType, TokenUnionType, TokenUnsignedType, TokenTypedef,
-    /* 0x42 */ TokenContinue, TokenDo, TokenElse, TokenFor, TokenIf, TokenWhile, TokenBreak, TokenSwitch, TokenCase, TokenDefault, TokenReturn,
-    /* 0x4d */ TokenHashDefine, TokenHashInclude, TokenNew, TokenDelete,
-    /* 0x51 */ TokenEOF, TokenEndOfLine, TokenEndOfFunction
+    /* 0x21 */ TokenIncrement, TokenDecrement, TokenUnaryNot, TokenUnaryExor, TokenSizeof, TokenCast,
+    /* 0x27 */ TokenLeftSquareBracket, TokenRightSquareBracket, TokenDot, TokenArrow, 
+    /* 0x2b */ TokenOpenBracket, TokenCloseBracket,
+    /* 0x2d */ TokenIdentifier, TokenIntegerConstant, TokenFPConstant, TokenStringConstant, TokenCharacterConstant,
+    /* 0x32 */ TokenSemicolon, TokenEllipsis,
+    /* 0x34 */ TokenLeftBrace, TokenRightBrace,
+    /* 0x36 */ TokenIntType, TokenCharType, TokenFloatType, TokenDoubleType, TokenVoidType, TokenEnumType,
+    /* 0x3c */ TokenLongType, TokenSignedType, TokenShortType, TokenStructType, TokenUnionType, TokenUnsignedType, TokenTypedef,
+    /* 0x43 */ TokenContinue, TokenDo, TokenElse, TokenFor, TokenIf, TokenWhile, TokenBreak, TokenSwitch, TokenCase, TokenDefault, TokenReturn,
+    /* 0x4e */ TokenHashDefine, TokenHashInclude, TokenNew, TokenDelete,
+    /* 0x52 */ TokenEOF, TokenEndOfLine, TokenEndOfFunction
 };
 
 /* used in dynamic memory allocation */
