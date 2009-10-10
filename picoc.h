@@ -117,7 +117,8 @@ enum BaseType
     TypeArray,                  /* an array of a sub-type */
     TypeStruct,                 /* aggregate type */
     TypeUnion,                  /* merged type */
-    TypeEnum                    /* enumated integer type */
+    TypeEnum,                   /* enumerated integer type */
+    Type_Type                   /* a type for storing types */
 };
 
 /* data type */
@@ -284,6 +285,7 @@ extern struct ValueType CharType;
 extern struct ValueType FPType;
 #endif
 extern struct ValueType VoidType;
+extern struct ValueType TypeType;
 extern struct ValueType FunctionType;
 extern struct ValueType MacroType;
 extern struct ValueType *CharPtrType;

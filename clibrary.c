@@ -153,6 +153,7 @@ void PrintType(struct ValueType *Typ, struct OutputStream *Stream)
         case TypeStruct:    PrintStr("struct ", Stream); PrintStr(Typ->Identifier, Stream); break;
         case TypeUnion:     PrintStr("union ", Stream); PrintStr(Typ->Identifier, Stream); break;
         case TypeEnum:      PrintStr("enum ", Stream); PrintStr(Typ->Identifier, Stream); break;
+        case Type_Type:     PrintStr("type ", Stream); break;
     }
 }
 

@@ -9,6 +9,7 @@ struct ValueType WordType;
 struct ValueType FPType;
 #endif
 struct ValueType VoidType;
+struct ValueType TypeType;
 struct ValueType FunctionType;
 struct ValueType MacroType;
 struct ValueType EnumType;
@@ -124,6 +125,7 @@ void TypeInit()
     TypeAddBaseType(&FPType, TypeFP, sizeof(double));
 #endif
     TypeAddBaseType(&VoidType, TypeVoid, 0);
+    TypeAddBaseType(&TypeType, Type_Type, sizeof(struct ValueType *));
     TypeAddBaseType(&FunctionType, TypeFunction, sizeof(int));
     TypeAddBaseType(&MacroType, TypeMacro, sizeof(int));
     TypeAddBaseType(&CharType, TypeChar, sizeof(char));

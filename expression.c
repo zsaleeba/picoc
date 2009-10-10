@@ -4,6 +4,7 @@
 /* whether evaluation is left to right for a given precedence level */
 #define IS_LEFT_TO_RIGHT(p) ((p) != 2 && (p) != 3 && (p) != 14)
 #define BRACKET_PRECEDENCE 20
+#define IS_TYPE_TOKEN(t) ((t) >= TokenIntType && (t) <= TokenEnumType)
 
 #ifdef DEBUG_EXPRESSIONS
 #define debugf printf
@@ -207,6 +208,13 @@ void ExpressionPushInt(struct ParseState *Parser, struct ExpressionStack **Stack
 {
     struct Value *ValueLoc = VariableAllocValueFromType(Parser, &IntType, FALSE, NULL, FALSE);
     ValueLoc->Val->Integer = IntValue;
+    ExpressionStackPushValueNode(Parser, StackTop, ValueLoc);
+}
+
+void ExpressionPushType(struct ParseState *Parser, struct ExpressionStack **StackTop, struct ValueType *TypeValue)
+{
+    struct Value *ValueLoc = VariableAllocValueFromType(Parser, &TypeType, FALSE, NULL, FALSE);
+    ValueLoc->Val->Typ = TypeValue;
     ExpressionStackPushValueNode(Parser, StackTop, ValueLoc);
 }
 
@@ -768,6 +776,11 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
         ExpressionAssign(Parser, BottomValue, TopValue, FALSE, NULL, 0);
         ExpressionStackPushValueNode(Parser, StackTop, BottomValue);
     }
+    else if (Op == TokenCast)
+    {
+        /* cast a value to a different type */
+        printf("do a cast\n");
+    }
     else
         ProgramFail(Parser, "invalid operation");
 }
@@ -946,11 +959,34 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                 
                 LocalPrecedence = OperatorPrecedence[(int)Token].PrefixPrecedence;
                 Precedence = BracketPrecedence + LocalPrecedence;
-                //XXX - look for a type token next
+
                 if (Token == TokenOpenBracket)
                 { 
-                    /* boost the bracket operator precedence, then push */
-                    BracketPrecedence += BRACKET_PRECEDENCE;
+                    /* it's either a new bracket level or a cast */
+                    enum LexToken BracketToken = LexGetToken(Parser, &LexValue, FALSE);
+                    if (IS_TYPE_TOKEN(BracketToken))
+                    {
+                        /* it's a cast - get the new type */
+                        struct ValueType *CastType;
+                        char *CastIdentifier;
+                        struct Value *CastTypeValue;
+                        
+                        TypeParse(Parser, &CastType, &CastIdentifier);
+                        if (LexGetToken(Parser, &LexValue, TRUE) != TokenCloseBracket)
+                            ProgramFail(Parser, "brackets not closed");
+                        
+                        /* scan and collapse the stack to the precedence of this infix cast operator, then push */
+                        Precedence = BracketPrecedence + OperatorPrecedence[(int)TokenCast].PrefixPrecedence;
+
+                        ExpressionStackCollapse(Parser, &StackTop, Precedence);
+                        ExpressionPushType(Parser, &StackTop, CastType);
+                        ExpressionStackPushOperator(Parser, &StackTop, OrderInfix, TokenCast, Precedence);
+                    }
+                    else
+                    {
+                        /* boost the bracket operator precedence */
+                        BracketPrecedence += BRACKET_PRECEDENCE;
+                    }
                 }
                 else
                 { 
