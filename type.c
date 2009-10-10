@@ -121,14 +121,16 @@ void TypeInit()
 {
     UberType.DerivedTypeList = NULL;
     TypeAddBaseType(&IntType, TypeInt, sizeof(int));
-#ifndef NO_FP
-    TypeAddBaseType(&FPType, TypeFP, sizeof(double));
-#endif
     TypeAddBaseType(&VoidType, TypeVoid, 0);
-    TypeAddBaseType(&TypeType, Type_Type, sizeof(struct ValueType *));
     TypeAddBaseType(&FunctionType, TypeFunction, sizeof(int));
     TypeAddBaseType(&MacroType, TypeMacro, sizeof(int));
     TypeAddBaseType(&CharType, TypeChar, sizeof(char));
+#ifndef NO_FP
+    TypeAddBaseType(&FPType, TypeFP, sizeof(double));
+    TypeAddBaseType(&TypeType, Type_Type, sizeof(double));  /* must be large enough to cast to a double */
+#else
+    TypeAddBaseType(&TypeType, Type_Type, sizeof(struct ValueType *));
+#endif
     CharArrayType = TypeAdd(NULL, &CharType, TypeArray, 0, StrEmpty, sizeof(char));
 #ifndef NATIVE_POINTERS
     CharPtrType = TypeAdd(NULL, &CharType, TypePointer, 0, StrEmpty, sizeof(struct PointerValue));

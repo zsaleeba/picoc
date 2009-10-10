@@ -28,13 +28,26 @@
 
 /* coercion of numeric types to other numeric types */
 #ifndef NO_FP
-#define IS_NUMERIC_COERCIBLE(v) ((v)->Typ->Base == TypeInt || (v)->Typ->Base == TypeFP || (v)->Typ->Base == TypeChar)
-#define COERCE_INTEGER(v) (((v)->Typ->Base == TypeInt) ? (v)->Val->Integer : (((v)->Typ->Base == TypeChar) ? (int)(v)->Val->Character : (int)(v)->Val->FP))
-#define COERCE_FP(v) (((v)->Typ->Base == TypeInt) ? (double)(v)->Val->Integer : (((v)->Typ->Base == TypeChar) ? (double)(v)->Val->Character : (v)->Val->FP))
+#define IS_FP(v) ((v)->Typ->Base == TypeFP)
+#define FP_VAL(v) ((v)->Val->FP)
 #else
-#define IS_NUMERIC_COERCIBLE(v) ((v)->Typ->Base == TypeInt || (v)->Typ->Base == TypeChar)
-#define COERCE_INTEGER(v) (((v)->Typ->Base == TypeChar) ? (int)(v)->Val->Character : (v)->Val->Integer)
+#define IS_FP(v) 0
+#define FP_VAL(v) 0
 #endif
+
+#ifdef NATIVE_POINTERS
+#define IS_POINTER_COERCIBLE(v, ap) ((ap) ? ((v)->Typ->Base == TypePointer) : 0)
+#define POINTER_COERCE(v) ((int)(v)->Val->NativePointer)
+#else
+#define IS_POINTER_COERCIBLE(v, ap) 0
+#define POINTER_COERCE(v) 0
+#endif
+
+#define IS_INTEGER_NUMERIC(v) ((v)->Typ->Base == TypeInt || (v)->Typ->Base == TypeChar)
+#define IS_NUMERIC_COERCIBLE(v) (IS_INTEGER_NUMERIC(v) || IS_FP(v))
+#define IS_NUMERIC_COERCIBLE_PLUS_POINTERS(v,ap) (IS_NUMERIC_COERCIBLE(v) || IS_POINTER_COERCIBLE(v,ap))
+#define COERCE_INTEGER(v) (((v)->Typ->Base == TypeInt) ? (v)->Val->Integer : (((v)->Typ->Base == TypeChar) ? (int)(v)->Val->Character : (((v)->Typ->Base == TypePointer) ? POINTER_COERCE(v) : (int)FP_VAL(v))))
+#define COERCE_FP(v) (((v)->Typ->Base == TypeFP) ? (v)->Val->FP : (((v)->Typ->Base == TypeInt) ? (double)(v)->Val->Integer : (((v)->Typ->Base == TypeChar) ? (double)(v)->Val->Character : POINTER_COERCE(v))))
 
 
 struct Table;
@@ -330,7 +343,7 @@ void ParserCopyPos(struct ParseState *To, struct ParseState *From);
 /* expression.c */
 int ExpressionParse(struct ParseState *Parser, struct Value **Result);
 int ExpressionParseInt(struct ParseState *Parser);
-void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct Value *SourceValue, int Force, const char *FuncName, int ParamNo);
+void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct Value *SourceValue, int Force, const char *FuncName, int ParamNo, int AllowPointerCoercion);
 
 /* type.c */
 void TypeInit();
