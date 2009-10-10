@@ -274,7 +274,7 @@ void ExpressionAssignToPointer(struct ParseState *Parser, struct Value *ToValue,
     else if (AllowPointerCoercion && IS_NUMERIC_COERCIBLE(FromValue))
     {
         /* assign integer to native pointer */
-        ToValue->Val->NativePointer = COERCE_INTEGER(FromValue);
+        ToValue->Val->NativePointer = (void *)COERCE_INTEGER(FromValue);
     }
 #endif
     else
