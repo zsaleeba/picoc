@@ -43,11 +43,17 @@
 #define POINTER_COERCE(v) 0
 #endif
 
-#define IS_INTEGER_NUMERIC(v) ((v)->Typ->Base == TypeInt || (v)->Typ->Base == TypeChar)
+#define IS_INTEGER_NUMERIC(v) ((v)->Typ->Base == TypeInt || (v)->Typ->Base == TypeChar || (v)->Typ->Base == TypeShort)
 #define IS_NUMERIC_COERCIBLE(v) (IS_INTEGER_NUMERIC(v) || IS_FP(v))
 #define IS_NUMERIC_COERCIBLE_PLUS_POINTERS(v,ap) (IS_NUMERIC_COERCIBLE(v) || IS_POINTER_COERCIBLE(v,ap))
-#define COERCE_INTEGER(v) (((v)->Typ->Base == TypeInt) ? (v)->Val->Integer : (((v)->Typ->Base == TypeChar) ? (int)(v)->Val->Character : (((v)->Typ->Base == TypePointer) ? POINTER_COERCE(v) : (int)FP_VAL(v))))
-#define COERCE_FP(v) (((v)->Typ->Base == TypeFP) ? (v)->Val->FP : (((v)->Typ->Base == TypeInt) ? (double)(v)->Val->Integer : (((v)->Typ->Base == TypeChar) ? (double)(v)->Val->Character : POINTER_COERCE(v))))
+#define COERCE_INTEGER(v) (((v)->Typ->Base == TypeInt) ? (v)->Val->Integer : \
+                           (((v)->Typ->Base == TypeChar) ? (int)(v)->Val->Character : \
+                            (((v)->Typ->Base == TypeShort) ? (int)(v)->Val->ShortInteger : \
+                             (((v)->Typ->Base == TypePointer) ? POINTER_COERCE(v) : (int)FP_VAL(v)))))
+#define COERCE_FP(v) (((v)->Typ->Base == TypeFP) ? (v)->Val->FP : \
+                      (((v)->Typ->Base == TypeInt) ? (double)(v)->Val->Integer : \
+                       (((v)->Typ->Base == TypeChar) ? (double)(v)->Val->Character : \
+                        (((v)->Typ->Base == TypeShort) ? (double)(v)->Val->ShortInteger : POINTER_COERCE(v)))))
 
 
 struct Table;
@@ -120,6 +126,7 @@ enum BaseType
 {
     TypeVoid,                   /* no type */
     TypeInt,                    /* integer */
+    TypeShort,                  /* short integer */
 #ifndef NO_FP
     TypeFP,                     /* floating point */
 #endif
@@ -293,6 +300,7 @@ extern struct Table GlobalTable;
 extern struct StackFrame *TopStackFrame;
 extern struct ValueType UberType;
 extern struct ValueType IntType;
+extern struct ValueType ShortType;
 extern struct ValueType CharType;
 #ifndef NO_FP
 extern struct ValueType FPType;

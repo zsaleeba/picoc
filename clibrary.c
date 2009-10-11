@@ -142,10 +142,11 @@ void PrintType(struct ValueType *Typ, struct OutputStream *Stream)
     {
         case TypeVoid:      PrintStr("void", Stream); break;
         case TypeInt:       PrintStr("int", Stream); break;
+        case TypeShort:     PrintStr("short", Stream); break;
+        case TypeChar:      PrintStr("char", Stream); break;
 #ifndef NO_FP
         case TypeFP:        PrintStr("double", Stream); break;
 #endif
-        case TypeChar:      PrintStr("char", Stream); break;
         case TypeFunction:  PrintStr("function", Stream); break;
         case TypeMacro:     PrintStr("macro", Stream); break;
         case TypePointer:   if (Typ->FromType) PrintType(Typ->FromType, Stream); PrintCh('*', Stream); break;

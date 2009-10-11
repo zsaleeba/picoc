@@ -3,8 +3,8 @@
 /* some basic types */
 struct ValueType UberType;
 struct ValueType IntType;
+struct ValueType ShortType;
 struct ValueType CharType;
-struct ValueType WordType;
 #ifndef NO_FP
 struct ValueType FPType;
 #endif
@@ -73,7 +73,7 @@ int TypeStackSizeValue(struct Value *Val)
 /* memory used by a value */
 int TypeSizeValue(struct Value *Val)
 {
-    if (Val->Typ->Base == TypeChar)
+    if (Val->Typ->Base == TypeChar || Val->Typ->Base == TypeShort)
         return sizeof(int);     /* allow some extra room for type extension to int */
     else if (Val->Typ->Base != TypeArray)
         return Val->Typ->Sizeof;
@@ -93,7 +93,7 @@ int TypeLastAccessibleOffset(struct Value *Val)
 /* memory used by a variable given its type and array size */
 int TypeSize(struct ValueType *Typ, int ArraySize, int Compact)
 {
-    if (Typ->Base == TypeChar && !Compact)
+    if ( (Typ->Base == TypeChar || Typ->Base == TypeShort) && !Compact)
         return sizeof(int);     /* allow some extra room for type extension to int */
     else if (Typ->Base != TypeArray)
         return Typ->Sizeof;
@@ -121,10 +121,11 @@ void TypeInit()
 {
     UberType.DerivedTypeList = NULL;
     TypeAddBaseType(&IntType, TypeInt, sizeof(int));
+    TypeAddBaseType(&ShortType, TypeShort, sizeof(short));
+    TypeAddBaseType(&CharType, TypeChar, sizeof(char));
     TypeAddBaseType(&VoidType, TypeVoid, 0);
     TypeAddBaseType(&FunctionType, TypeFunction, sizeof(int));
     TypeAddBaseType(&MacroType, TypeMacro, sizeof(int));
-    TypeAddBaseType(&CharType, TypeChar, sizeof(char));
 #ifndef NO_FP
     TypeAddBaseType(&FPType, TypeFP, sizeof(double));
     TypeAddBaseType(&TypeType, Type_Type, sizeof(double));  /* must be large enough to cast to a double */
@@ -307,7 +308,8 @@ int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ)
     
     switch (Token)
     {
-        case TokenIntType: case TokenLongType: case TokenShortType: case TokenSignedType: case TokenUnsignedType: *Typ = &IntType; break;
+        case TokenIntType: case TokenLongType: case TokenSignedType: case TokenUnsignedType: *Typ = &IntType; break;
+        case TokenShortType: *Typ = &ShortType; break;
         case TokenCharType: *Typ = &CharType; break;
 #ifndef NO_FP
         case TokenFloatType: case TokenDoubleType: *Typ = &FPType; break;

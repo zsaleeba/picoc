@@ -398,6 +398,7 @@ enum ParseResult ParseStatement(struct ParseState *Parser)
         case TokenSemicolon: break;
 
         case TokenIntType:
+        case TokenShortType:
         case TokenCharType:
         case TokenFloatType:
         case TokenDoubleType:

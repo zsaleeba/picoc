@@ -42,6 +42,7 @@ struct OpPrecedence
     char *Name;
 };
 
+/* NOTE: the order of this array must correspond exactly to the order of these tokens in enum LexToken */
 static struct OpPrecedence OperatorPrecedence[] =
 {
     /* TokenNone, */ { 0, 0, 0, "none" },
@@ -88,6 +89,7 @@ void ExpressionStackShow(struct ExpressionStack *StackTop)
             {
                 case TypeVoid:      printf("void"); break;
                 case TypeInt:       printf("%d:int", StackTop->Val->Val->Integer); break;
+                case TypeShort:     printf("%d:short", StackTop->Val->Val->ShortInteger); break;
                 case TypeChar:      printf("%d:char", StackTop->Val->Val->Character); break;
                 case TypeFP:        printf("%f:fp", StackTop->Val->Val->FP); break;
                 case TypeFunction:  printf("%s:function", StackTop->Val->Val->Identifier); break;
@@ -294,6 +296,13 @@ void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct
                 AssignFail(Parser, "%t from %t", DestValue->Typ, SourceValue->Typ, 0, 0, FuncName, ParamNo); 
             
             DestValue->Val->Integer = COERCE_INTEGER(SourceValue);
+            break;
+
+        case TypeShort:
+            if (!IS_NUMERIC_COERCIBLE_PLUS_POINTERS(SourceValue, AllowPointerCoercion)) 
+                AssignFail(Parser, "%t from %t", DestValue->Typ, SourceValue->Typ, 0, 0, FuncName, ParamNo); 
+            
+            DestValue->Val->ShortInteger = COERCE_INTEGER(SourceValue);
             break;
 
         case TypeChar:
