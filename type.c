@@ -78,7 +78,7 @@ int TypeSizeValue(struct Value *Val)
     else if (Val->Typ->Base != TypeArray)
         return Val->Typ->Sizeof;
     else
-        return sizeof(struct ArrayValue) + Val->Typ->FromType->Sizeof * Val->Val->Array.Size;
+        return sizeof(struct ArrayValue) + Val->Typ->FromType->Sizeof * Val->Typ->ArraySize;
 }
 
 /* the last accessible offset of a value */
@@ -99,6 +99,15 @@ int TypeSize(struct ValueType *Typ, int ArraySize, int Compact)
         return Typ->Sizeof;
     else
         return sizeof(struct ArrayValue) + Typ->FromType->Sizeof * ArraySize;
+}
+
+/* memory used by the base (non-array) type of a type. This is used for alignment. */
+int TypeSizeAlignment(struct ValueType *Typ)
+{
+    if (Typ->Base == TypeArray)
+        return sizeof(unsigned int);
+    else
+        return Typ->Sizeof;
 }
 
 /* add a base type */
@@ -179,6 +188,7 @@ void TypeParseStruct(struct ParseState *Parser, struct ValueType **Typ, int IsSt
     char *MemberIdentifier;
     struct Value *MemberValue;
     enum LexToken Token;
+    int AlignBoundary;
     
     if (TopStackFrame != NULL)
         ProgramFail(Parser, "struct/union definitions can only be globals");
@@ -210,15 +220,21 @@ void TypeParseStruct(struct ParseState *Parser, struct ValueType **Typ, int IsSt
         MemberValue = VariableAllocValueAndData(Parser, sizeof(int), FALSE, NULL, TRUE);
         MemberValue->Typ = MemberType;
         if (IsStruct)
-        { /* allocate this member's location in the struct */
+        { 
+            /* allocate this member's location in the struct */
+            AlignBoundary = TypeSizeAlignment(MemberValue->Typ);
+            if (((*Typ)->Sizeof & (AlignBoundary-1)) != 0)
+                (*Typ)->Sizeof += AlignBoundary - ((*Typ)->Sizeof & (AlignBoundary-1));
+                
             MemberValue->Val->Integer = (*Typ)->Sizeof;
-            (*Typ)->Sizeof += MemberValue->Typ->Sizeof;
+            (*Typ)->Sizeof += TypeSizeValue(MemberValue);
         }
         else
-        { /* union members always start at 0, make sure it's big enough to hold the largest member */
+        { 
+            /* union members always start at 0, make sure it's big enough to hold the largest member */
             MemberValue->Val->Integer = 0;
             if (MemberValue->Typ->Sizeof > (*Typ)->Sizeof)
-                (*Typ)->Sizeof = MemberValue->Typ->Sizeof;
+                (*Typ)->Sizeof = TypeSizeValue(MemberValue);
         }
         
         if (!TableSet((*Typ)->Members, MemberIdentifier, MemberValue))
