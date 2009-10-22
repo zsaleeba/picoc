@@ -34,6 +34,9 @@ char *PlatformGetLine(char *Buf, int MaxLen)
 /* write a character to the console */
 void PlatformPutc(unsigned char OutCh, union OutputStreamInfo *Stream)
 {
+    if (OutCh == '\n')
+        putchar('\r');
+        
     putchar(OutCh);
 }
 
