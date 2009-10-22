@@ -388,8 +388,11 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
             break;
         
         case TokenSizeof:
-            /* XXX */
-            ProgramFail(Parser, "not supported");
+            /* return the size of the argument */
+            if (TopValue->Typ == &TypeType)
+                ExpressionPushInt(Parser, StackTop, TypeSize(TopValue->Val->Typ, TopValue->Val->Typ->ArraySize, TRUE));
+            else
+                ExpressionPushInt(Parser, StackTop, TypeSize(TopValue->Typ, TopValue->Typ->ArraySize, TRUE));
             break;
         
         case TokenLeftSquareBracket:
@@ -1111,6 +1114,23 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                 
             PrefixState = FALSE;
             ExpressionStackPushValue(Parser, &StackTop, LexValue);
+        }
+        else if (IS_TYPE_TOKEN(Token))
+        {
+            /* it's a type. push it on the stack like a value. this is used in sizeof() */
+            struct ValueType *Typ;
+            char *Identifier;
+            struct Value *TypeValue;
+            
+            if (!PrefixState)
+                ProgramFail(Parser, "type not expected here");
+                
+            PrefixState = FALSE;
+            *Parser = PreState;
+            TypeParse(Parser, &Typ, &Identifier);
+            TypeValue = VariableAllocValueFromType(Parser, &TypeType, FALSE, NULL, FALSE);
+            TypeValue->Val->Typ = Typ;
+            ExpressionStackPushValueNode(Parser, &StackTop, TypeValue);
         }
         else
         { 

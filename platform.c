@@ -124,7 +124,7 @@ void PlatformVPrintf(const char *Format, va_list Args)
             switch (*FPos)
             {
             case 's': PrintStr(va_arg(Args, char *), &CStdOut); break;
-            case 'd': PrintInt(va_arg(Args, int), &CStdOut); break;
+            case 'd': PrintInt(va_arg(Args, int), 0, FALSE, FALSE, &CStdOut); break;
             case 'c': PrintCh(va_arg(Args, int), &CStdOut); break;
             case 't': PrintType(va_arg(Args, struct ValueType *), &CStdOut); break;
 #ifndef NO_FP
