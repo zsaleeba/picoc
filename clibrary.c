@@ -43,8 +43,10 @@ void SPutc(unsigned char Ch, union OutputStreamInfo *Stream)
 {
     struct StringOutputStream *Out = &Stream->Str;
     *Out->WritePos++ = Ch;
+#ifndef NATIVE_POINTERS
     if (Out->WritePos == Out->MaxPos)
         Out->WritePos--;
+#endif
 }
 
 /* print a character to a stream without using printf/sprintf */
@@ -60,8 +62,15 @@ void PrintStr(const char *Str, struct OutputStream *Stream)
         PrintCh(*Str++, Stream);
 }
 
+/* print a single character a given number of times */
+void PrintRepeatedChar(char ShowChar, int Length, struct OutputStream *Stream)
+{
+    while (Length-- > 0)
+        PrintCh(ShowChar, Stream);
+}
+
 /* print an unsigned integer to a stream without using printf/sprintf */
-void PrintUnsigned(unsigned int Num, unsigned int Base, struct OutputStream *Stream)
+void PrintUnsigned(unsigned int Num, unsigned int Base, int FieldWidth, int ZeroPad, int LeftJustify, struct OutputStream *Stream)
 {
     char Result[33];
     int ResPos = sizeof(Result);
@@ -82,19 +91,27 @@ void PrintUnsigned(unsigned int Num, unsigned int Base, struct OutputStream *Str
         Num = NextNum;
     }
     
+    if (FieldWidth > 0 && !LeftJustify)
+        PrintRepeatedChar(ZeroPad ? '0' : ' ', FieldWidth - (sizeof(Result) - 1 - ResPos), Stream);
+        
     PrintStr(&Result[ResPos], Stream);
+
+    if (FieldWidth > 0 && LeftJustify)
+        PrintRepeatedChar(' ', FieldWidth - (sizeof(Result) - 1 - ResPos), Stream);
 }
 
 /* print an integer to a stream without using printf/sprintf */
-void PrintInt(int Num, struct OutputStream *Stream)
+void PrintInt(int Num, int FieldWidth, int ZeroPad, int LeftJustify, struct OutputStream *Stream)
 {
     if (Num < 0)
     {
         PrintCh('-', Stream);
-        Num = -Num;    
+        Num = -Num;
+        if (FieldWidth != 0)
+            FieldWidth--;
     }
     
-    PrintUnsigned((unsigned int)Num, 10, Stream);
+    PrintUnsigned((unsigned int)Num, 10, FieldWidth, ZeroPad, LeftJustify, Stream);
 }
 
 #ifndef NO_FP
@@ -116,7 +133,7 @@ void PrintFP(double Num, struct OutputStream *Stream)
         Exponent = math_log(Num) / LOG10E - 0.999999999;
     
     Num /= math_pow(10.0, Exponent);    
-    PrintInt((int)Num, Stream);
+    PrintInt((int)Num, 0, FALSE, FALSE, Stream);
     PrintCh('.', Stream);
     Num = (Num - (int)Num) * 10;
     if (abs(Num) >= 1e-7)
@@ -130,7 +147,7 @@ void PrintFP(double Num, struct OutputStream *Stream)
     if (Exponent != 0)
     {
         PrintCh('e', Stream);
-        PrintInt(Exponent, Stream);
+        PrintInt(Exponent, 0, FALSE, FALSE, Stream);
     }
 }
 #endif
@@ -150,7 +167,7 @@ void PrintType(struct ValueType *Typ, struct OutputStream *Stream)
         case TypeFunction:  PrintStr("function", Stream); break;
         case TypeMacro:     PrintStr("macro", Stream); break;
         case TypePointer:   if (Typ->FromType) PrintType(Typ->FromType, Stream); PrintCh('*', Stream); break;
-        case TypeArray:     PrintType(Typ->FromType, Stream); PrintCh('[', Stream); if (Typ->ArraySize != 0) PrintInt(Typ->ArraySize, Stream); PrintCh(']', Stream); break;
+        case TypeArray:     PrintType(Typ->FromType, Stream); PrintCh('[', Stream); if (Typ->ArraySize != 0) PrintInt(Typ->ArraySize, 0, FALSE, FALSE, Stream); PrintCh(']', Stream); break;
         case TypeStruct:    PrintStr("struct ", Stream); PrintStr(Typ->Identifier, Stream); break;
         case TypeUnion:     PrintStr("union ", Stream); PrintStr(Typ->Identifier, Stream); break;
         case TypeEnum:      PrintStr("enum ", Stream); PrintStr(Typ->Identifier, Stream); break;
@@ -165,6 +182,9 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
     struct Value *NextArg = Param[0];
     struct ValueType *FormatType;
     int ArgCount = 1;
+    int LeftJustify = FALSE;
+    int ZeroPad = FALSE;
+    int FieldWidth = 0;
 #ifndef NATIVE_POINTERS
     char *Format;
     struct Value *CharArray = Param[0]->Val->Pointer.Segment;
@@ -183,6 +203,25 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
         if (*FPos == '%')
         {
             FPos++;
+            if (*FPos == '-')
+            {
+                /* a leading '-' means left justify */
+                LeftJustify = TRUE;
+                FPos++;
+            }
+            
+            if (*FPos == '0')
+            {
+                /* a leading zero means zero pad a decimal number */
+                ZeroPad = TRUE;
+                FPos++;
+            }
+            
+            /* get any field width in the format */
+            while (isdigit(*FPos))
+                FieldWidth = FieldWidth * 10 + (*FPos++ - '0');
+            
+            /* now check the format type */
             switch (*FPos)
             {
                 case 's': FormatType = CharPtrType; break;
@@ -234,10 +273,10 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
                                 PrintStr(Str, Stream); 
                                 break;
                             }
-                            case 'd': PrintInt(COERCE_INTEGER(NextArg), Stream); break;
-                            case 'u': PrintUnsigned((unsigned int)COERCE_INTEGER(NextArg), 10, Stream); break;
-                            case 'x': PrintUnsigned((unsigned int)COERCE_INTEGER(NextArg), 16, Stream); break;
-                            case 'b': PrintUnsigned((unsigned int)COERCE_INTEGER(NextArg), 2, Stream); break;
+                            case 'd': PrintInt(COERCE_INTEGER(NextArg), FieldWidth, ZeroPad, LeftJustify, Stream); break;
+                            case 'u': PrintUnsigned((unsigned int)COERCE_INTEGER(NextArg), 10, FieldWidth, ZeroPad, LeftJustify, Stream); break;
+                            case 'x': PrintUnsigned((unsigned int)COERCE_INTEGER(NextArg), 16, FieldWidth, ZeroPad, LeftJustify, Stream); break;
+                            case 'b': PrintUnsigned((unsigned int)COERCE_INTEGER(NextArg), 2, FieldWidth, ZeroPad, LeftJustify, Stream); break;
                             case 'c': PrintCh(COERCE_INTEGER(NextArg), Stream); break;
 #ifndef NO_FP
                             case 'f': PrintFP(COERCE_FP(NextArg), Stream); break;
@@ -276,7 +315,9 @@ void LibSPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Val
         
     StrStream.Putch = &SPutc;
     StrStream.i.Str.Parser = Parser;
+#ifndef NATIVE_POINTERS
     StrStream.i.Str.MaxPos = StrStream.i.Str.WritePos - DerefOffset + DerefVal->Val->Array.Size;
+#endif
     GenericPrintf(Parser, ReturnValue, Param+1, NumArgs-1, &StrStream);
     PrintCh(0, &StrStream);
 #ifndef NATIVE_POINTERS
@@ -310,15 +351,10 @@ void LibGets(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
 #else
     struct Value *CharArray = (struct Value *)(Param[0]->Val->NativePointer);
     char *ReadBuffer = CharArray->Val->Array.Data;
-    int MaxLength = CharArray->Val->Array.Size;
     char *Result;
 
     ReturnValue->Val->NativePointer = NULL;
-    
-    if (MaxLength < 0)
-        return; /* no room for data */
-    
-    Result = PlatformGetLine(ReadBuffer, MaxLength);
+    Result = PlatformGetLine(ReadBuffer, GETS_BUF_MAX);
     if (Result == NULL)
         return;
     

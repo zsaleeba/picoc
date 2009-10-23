@@ -107,7 +107,9 @@ struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct Value
     NewValue->Typ = Typ;
     if (Typ->Base == TypeArray)
     {
+#ifndef NATIVE_POINTERS
         NewValue->Val->Array.Size = Typ->ArraySize;
+#endif
         NewValue->Val->Array.Data = (void *)((char *)NewValue->Val + sizeof(struct ArrayValue));
     }
     
@@ -195,8 +197,11 @@ void VariableDefinePlatformVar(struct ParseState *Parser, char *Ident, struct Va
     if (Typ->Base != TypeArray)
         SomeValue->Val = FromValue;
     else
-    { /* define an array */
+    { 
+        /* define an array */
+#ifndef NATIVE_POINTERS
         SomeValue->Val->Array.Size = Typ->ArraySize;
+#endif
         SomeValue->Val->Array.Data = FromValue;
     }
     

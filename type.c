@@ -81,6 +81,7 @@ int TypeSizeValue(struct Value *Val)
         return sizeof(struct ArrayValue) + Val->Typ->FromType->Sizeof * Val->Typ->ArraySize;
 }
 
+#ifndef NATIVE_POINTERS
 /* the last accessible offset of a value */
 int TypeLastAccessibleOffset(struct Value *Val)
 {
@@ -89,6 +90,7 @@ int TypeLastAccessibleOffset(struct Value *Val)
     else
         return Val->Typ->FromType->Sizeof * (Val->Val->Array.Size-1);
 }
+#endif
 
 /* memory used by a variable given its type and array size */
 int TypeSize(struct ValueType *Typ, int ArraySize, int Compact)

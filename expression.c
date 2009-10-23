@@ -327,10 +327,17 @@ void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct
             if (DestValue->Typ != SourceValue->Typ)
                 AssignFail(Parser, "%t from %t", DestValue->Typ, SourceValue->Typ, 0, 0, FuncName, ParamNo); 
             
+#ifndef NATIVE_POINTERS
             if (DestValue->Val->Array.Size != SourceValue->Val->Array.Size)
                 AssignFail(Parser, "from an array of size %d to one of size %d", NULL, NULL, SourceValue->Val->Array.Size, DestValue->Val->Array.Size, FuncName, ParamNo);
-            
+
             memcpy((void *)DestValue->Val->Array.Data, (void *)SourceValue->Val->Array.Data, DestValue->Val->Array.Size);
+#else
+            if (DestValue->Typ->ArraySize != SourceValue->Typ->ArraySize)
+                AssignFail(Parser, "from an array of size %d to one of size %d", NULL, NULL, DestValue->Typ->ArraySize, SourceValue->Typ->ArraySize, FuncName, ParamNo);
+            
+            memcpy((void *)DestValue->Val->Array.Data, (void *)SourceValue->Val->Array.Data, DestValue->Typ->ArraySize);
+#endif
             break;
         
         case TypeStruct:
@@ -603,9 +610,11 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
             ProgramFail(Parser, "array index must be an integer");
         
         ArrayIndex = COERCE_INTEGER(TopValue);
+#ifndef NATIVE_POINTERS
         if (ArrayIndex < 0 || ArrayIndex >= BottomValue->Val->Array.Size)
             ProgramFail(Parser, "illegal array index %d [0..%d]", ArrayIndex, BottomValue->Val->Array.Size-1);
-        
+#endif
+
         /* make the array element result */
         Result = VariableAllocValueFromExistingData(Parser, BottomValue->Typ->FromType, (union AnyValue *)((char *)BottomValue->Val->Array.Data + TypeSize(BottomValue->Typ->FromType, 0, FALSE) * ArrayIndex), BottomValue->IsLValue, BottomValue->LValueFrom);
         ExpressionStackPushValueNode(Parser, StackTop, Result);

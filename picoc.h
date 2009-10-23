@@ -25,6 +25,7 @@
 #ifndef PATH_MAX
 #define PATH_MAX 1024
 #endif
+#define GETS_BUF_MAX 256
 
 /* coercion of numeric types to other numeric types */
 #ifndef NO_FP
@@ -170,7 +171,9 @@ struct FuncDef
 /* values */
 struct ArrayValue
 {
+#ifndef NATIVE_POINTERS
     unsigned int Size;              /* the number of elements in the array */
+#endif
     void *Data;                     /* pointer to the array data */
 };
 
@@ -276,7 +279,9 @@ union OutputStreamInfo
     {
         struct ParseState *Parser;
         char *WritePos;
+#ifndef NATIVE_POINTERS
         char *MaxPos;
+#endif
     } Str;
 };
 
