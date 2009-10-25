@@ -508,6 +508,26 @@ void LibStrncmp(struct ParseState *Parser, struct Value *ReturnValue, struct Val
     ReturnValue->Val->Integer = strncmp(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
 }
 
+void LibStrcat(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    strcat(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer);
+}
+
+void LibIndex(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->NativePointer = index(Param[0]->Val->NativePointer, Param[1]->Val->Integer);
+}
+
+void LibRindex(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->NativePointer = rindex(Param[0]->Val->NativePointer, Param[1]->Val->Integer);
+}
+
+void LibStrlen(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = strlen(Param[0]->Val->NativePointer);
+}
+
 void LibMemset(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     memset(Param[0]->Val->NativePointer, Param[1]->Val->Integer, Param[2]->Val->Integer);
@@ -561,6 +581,10 @@ struct LibraryFunction CLibrary[] =
     { LibStrncpy,       "void strncpy(char *,char *,int)" },
     { LibStrcmp,        "int strcmp(char *,char *)" },
     { LibStrncmp,       "int strncmp(char *,char *,int)" },
+    { LibStrcat,        "void strcat(char *,char *)" },
+    { LibIndex,         "char *index(char *,int)" },
+    { LibRindex,        "char *rindex(char *,int)" },
+    { LibStrlen,        "int strlen(char *)" },
     { LibMemset,        "void memset(void *,int,int)" },
     { LibMemcpy,        "void memcpy(void *,void *,int)" },
     { LibMemcmp,        "int memcmp(void *,void *,int)" },
