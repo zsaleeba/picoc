@@ -18,6 +18,7 @@ struct ValueType MacroType;
 struct ValueType EnumType;
 struct ValueType *CharPtrType;
 struct ValueType *CharArrayType;
+struct ValueType *VoidPtrType;
 
 
 /* add a new type to the set of types we know about */
@@ -152,8 +153,10 @@ void TypeInit()
     CharArrayType = TypeAdd(NULL, &CharType, TypeArray, 0, StrEmpty, sizeof(char));
 #ifndef NATIVE_POINTERS
     CharPtrType = TypeAdd(NULL, &CharType, TypePointer, 0, StrEmpty, sizeof(struct PointerValue));
+    VoidPtrType = TypeAdd(NULL, &VoidType, TypePointer, 0, StrEmpty, sizeof(struct PointerValue));
 #else
     CharPtrType = TypeAdd(NULL, &CharType, TypePointer, 0, StrEmpty, sizeof(void *));
+    VoidPtrType = TypeAdd(NULL, &VoidType, TypePointer, 0, StrEmpty, sizeof(void *));
 #endif
 }
 
@@ -339,7 +342,7 @@ int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ)
     
     switch (Token)
     {
-        case TokenIntType: case TokenLongType: case TokenSignedType: case TokenUnsignedType: *Typ = Unsigned ? &UnsignedIntType : &IntType; break;
+        case TokenIntType: case TokenLongType: *Typ = Unsigned ? &UnsignedIntType : &IntType; break;
         case TokenShortType: *Typ = Unsigned ? &UnsignedShortType : &ShortType; break;
         case TokenCharType: *Typ = Unsigned ? &UnsignedCharType : &CharType; break;
 #ifndef NO_FP

@@ -467,6 +467,28 @@ void LibFloor(struct ParseState *Parser, struct Value *ReturnValue, struct Value
 }
 #endif
 
+#ifdef NATIVE_POINTERS
+void LibMalloc(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->NativePointer = malloc(Param[0]->Val->Integer);
+}
+
+void LibCalloc(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->NativePointer = calloc(Param[0]->Val->Integer, Param[1]->Val->Integer);
+}
+
+void LibRealloc(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->NativePointer = realloc(Param[0]->Val->NativePointer, Param[1]->Val->Integer);
+}
+
+void LibFree(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    free(Param[0]->Val->NativePointer);
+}
+#endif
+
 /* list of all library functions and their prototypes */
 struct LibraryFunction CLibrary[] =
 {
@@ -494,6 +516,12 @@ struct LibraryFunction CLibrary[] =
     { LibRound,         "float round(float)" },
     { LibCeil,          "float ceil(float)" },
     { LibFloor,         "float floor(float)" },
+#endif
+#ifdef NATIVE_POINTERS
+    { LibMalloc,        "void *malloc(int)" },
+    { LibCalloc,        "void *calloc(int,int)" },
+    { LibCalloc,        "void *realloc(void *,int)" },
+    { LibFree,          "void free(void *)" },
 #endif
     { NULL,             NULL }
 };

@@ -314,6 +314,7 @@ extern struct ValueType FunctionType;
 extern struct ValueType MacroType;
 extern struct ValueType *CharPtrType;
 extern struct ValueType *CharArrayType;
+extern struct ValueType *VoidPtrType;
 extern char *StrEmpty;
 extern struct PointerValue NULLPointer;
 extern struct LibraryFunction CLibrary[];

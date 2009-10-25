@@ -111,7 +111,8 @@ void ExpressionStackShow(struct ExpressionStack *StackTop)
             printf("[0x%lx,0x%lx]", (long)StackTop, (long)StackTop->Val);
         }
         else
-        { /* it's an operator */
+        { 
+            /* it's an operator */
             printf("op='%s' %s %d", OperatorPrecedence[(int)StackTop->Op].Name, 
                 (StackTop->Order == OrderPrefix) ? "prefix" : ((StackTop->Order == OrderPostfix) ? "postfix" : "infix"), 
                 StackTop->Precedence);
@@ -294,7 +295,7 @@ void ExpressionAssignToPointer(struct ParseState *Parser, struct Value *ToValue,
     int DerefOffset;
 #endif
     
-    if (FromValue->Typ == ToValue->Typ)
+    if (FromValue->Typ == ToValue->Typ || FromValue->Typ == VoidPtrType || ToValue->Typ == VoidPtrType)
     {
 #ifndef NATIVE_POINTERS
         ToValue->Val->Pointer = FromValue->Val->Pointer;      /* plain old pointer assignment */
