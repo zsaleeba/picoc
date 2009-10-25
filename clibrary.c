@@ -157,21 +157,24 @@ void PrintType(struct ValueType *Typ, struct OutputStream *Stream)
 {
     switch (Typ->Base)
     {
-        case TypeVoid:      PrintStr("void", Stream); break;
-        case TypeInt:       PrintStr("int", Stream); break;
-        case TypeShort:     PrintStr("short", Stream); break;
-        case TypeChar:      PrintStr("char", Stream); break;
+        case TypeVoid:          PrintStr("void", Stream); break;
+        case TypeInt:           PrintStr("int", Stream); break;
+        case TypeShort:         PrintStr("short", Stream); break;
+        case TypeChar:          PrintStr("char", Stream); break;
+        case TypeUnsignedInt:   PrintStr("unsigned int", Stream); break;
+        case TypeUnsignedShort: PrintStr("unsigned short", Stream); break;
+        case TypeUnsignedChar:  PrintStr("unsigned char", Stream); break;
 #ifndef NO_FP
-        case TypeFP:        PrintStr("double", Stream); break;
+        case TypeFP:            PrintStr("double", Stream); break;
 #endif
-        case TypeFunction:  PrintStr("function", Stream); break;
-        case TypeMacro:     PrintStr("macro", Stream); break;
-        case TypePointer:   if (Typ->FromType) PrintType(Typ->FromType, Stream); PrintCh('*', Stream); break;
-        case TypeArray:     PrintType(Typ->FromType, Stream); PrintCh('[', Stream); if (Typ->ArraySize != 0) PrintInt(Typ->ArraySize, 0, FALSE, FALSE, Stream); PrintCh(']', Stream); break;
-        case TypeStruct:    PrintStr("struct ", Stream); PrintStr(Typ->Identifier, Stream); break;
-        case TypeUnion:     PrintStr("union ", Stream); PrintStr(Typ->Identifier, Stream); break;
-        case TypeEnum:      PrintStr("enum ", Stream); PrintStr(Typ->Identifier, Stream); break;
-        case Type_Type:     PrintStr("type ", Stream); break;
+        case TypeFunction:      PrintStr("function", Stream); break;
+        case TypeMacro:         PrintStr("macro", Stream); break;
+        case TypePointer:       if (Typ->FromType) PrintType(Typ->FromType, Stream); PrintCh('*', Stream); break;
+        case TypeArray:         PrintType(Typ->FromType, Stream); PrintCh('[', Stream); if (Typ->ArraySize != 0) PrintInt(Typ->ArraySize, 0, FALSE, FALSE, Stream); PrintCh(']', Stream); break;
+        case TypeStruct:        PrintStr("struct ", Stream); PrintStr(Typ->Identifier, Stream); break;
+        case TypeUnion:         PrintStr("union ", Stream); PrintStr(Typ->Identifier, Stream); break;
+        case TypeEnum:          PrintStr("enum ", Stream); PrintStr(Typ->Identifier, Stream); break;
+        case Type_Type:         PrintStr("type ", Stream); break;
     }
 }
 
@@ -273,13 +276,13 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
                                 PrintStr(Str, Stream); 
                                 break;
                             }
-                            case 'd': PrintInt(COERCE_INTEGER(NextArg), FieldWidth, ZeroPad, LeftJustify, Stream); break;
-                            case 'u': PrintUnsigned((unsigned int)COERCE_INTEGER(NextArg), 10, FieldWidth, ZeroPad, LeftJustify, Stream); break;
-                            case 'x': PrintUnsigned((unsigned int)COERCE_INTEGER(NextArg), 16, FieldWidth, ZeroPad, LeftJustify, Stream); break;
-                            case 'b': PrintUnsigned((unsigned int)COERCE_INTEGER(NextArg), 2, FieldWidth, ZeroPad, LeftJustify, Stream); break;
-                            case 'c': PrintCh(COERCE_INTEGER(NextArg), Stream); break;
+                            case 'd': PrintInt(ExpressionCoerceInteger(NextArg), FieldWidth, ZeroPad, LeftJustify, Stream); break;
+                            case 'u': PrintUnsigned((unsigned int)ExpressionCoerceInteger(NextArg), 10, FieldWidth, ZeroPad, LeftJustify, Stream); break;
+                            case 'x': PrintUnsigned((unsigned int)ExpressionCoerceInteger(NextArg), 16, FieldWidth, ZeroPad, LeftJustify, Stream); break;
+                            case 'b': PrintUnsigned((unsigned int)ExpressionCoerceInteger(NextArg), 2, FieldWidth, ZeroPad, LeftJustify, Stream); break;
+                            case 'c': PrintCh(ExpressionCoerceInteger(NextArg), Stream); break;
 #ifndef NO_FP
-                            case 'f': PrintFP(COERCE_FP(NextArg), Stream); break;
+                            case 'f': PrintFP(ExpressionCoerceFP(NextArg), Stream); break;
 #endif
                         }
                     }

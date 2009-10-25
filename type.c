@@ -5,6 +5,9 @@ struct ValueType UberType;
 struct ValueType IntType;
 struct ValueType ShortType;
 struct ValueType CharType;
+struct ValueType UnsignedIntType;
+struct ValueType UnsignedShortType;
+struct ValueType UnsignedCharType;
 #ifndef NO_FP
 struct ValueType FPType;
 #endif
@@ -134,6 +137,9 @@ void TypeInit()
     TypeAddBaseType(&IntType, TypeInt, sizeof(int));
     TypeAddBaseType(&ShortType, TypeShort, sizeof(short));
     TypeAddBaseType(&CharType, TypeChar, sizeof(char));
+    TypeAddBaseType(&UnsignedIntType, TypeUnsignedInt, sizeof(unsigned int));
+    TypeAddBaseType(&UnsignedShortType, TypeUnsignedShort, sizeof(unsigned short));
+    TypeAddBaseType(&UnsignedCharType, TypeUnsignedChar, sizeof(unsigned char));
     TypeAddBaseType(&VoidType, TypeVoid, 0);
     TypeAddBaseType(&FunctionType, TypeFunction, sizeof(int));
     TypeAddBaseType(&MacroType, TypeMacro, sizeof(int));
@@ -309,15 +315,22 @@ int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ)
 {
     struct ParseState Before = *Parser;
     enum LexToken Token = LexGetToken(Parser, NULL, TRUE);
+    int Unsigned = FALSE;
     *Typ = NULL;
 
-    /* just ignore signed/unsigned for now */
+    /* handle signed/unsigned with no trailing type */
     if (Token == TokenSignedType || Token == TokenUnsignedType)
     {
-        Token = LexGetToken(Parser, NULL, FALSE);
-        if (Token != TokenIntType && Token != TokenLongType && Token != TokenShortType && Token != TokenCharType)
+        enum LexToken FollowToken = LexGetToken(Parser, NULL, FALSE);
+        Unsigned = (Token == TokenUnsignedType);
+        
+        if (FollowToken != TokenIntType && FollowToken != TokenLongType && FollowToken != TokenShortType && FollowToken != TokenCharType)
         {
-            *Typ = &IntType;
+            if (Token == TokenUnsignedType)
+                *Typ = &UnsignedIntType;
+            else
+                *Typ = &IntType;
+            
             return TRUE;
         }
         
@@ -326,9 +339,9 @@ int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ)
     
     switch (Token)
     {
-        case TokenIntType: case TokenLongType: case TokenSignedType: case TokenUnsignedType: *Typ = &IntType; break;
-        case TokenShortType: *Typ = &ShortType; break;
-        case TokenCharType: *Typ = &CharType; break;
+        case TokenIntType: case TokenLongType: case TokenSignedType: case TokenUnsignedType: *Typ = Unsigned ? &UnsignedIntType : &IntType; break;
+        case TokenShortType: *Typ = Unsigned ? &UnsignedShortType : &ShortType; break;
+        case TokenCharType: *Typ = Unsigned ? &UnsignedCharType : &CharType; break;
 #ifndef NO_FP
         case TokenFloatType: case TokenDoubleType: *Typ = &FPType; break;
 #endif

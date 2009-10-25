@@ -47,14 +47,6 @@
 #define IS_INTEGER_NUMERIC(v) ((v)->Typ->Base == TypeInt || (v)->Typ->Base == TypeChar || (v)->Typ->Base == TypeShort)
 #define IS_NUMERIC_COERCIBLE(v) (IS_INTEGER_NUMERIC(v) || IS_FP(v))
 #define IS_NUMERIC_COERCIBLE_PLUS_POINTERS(v,ap) (IS_NUMERIC_COERCIBLE(v) || IS_POINTER_COERCIBLE(v,ap))
-#define COERCE_INTEGER(v) (((v)->Typ->Base == TypeInt) ? (v)->Val->Integer : \
-                           (((v)->Typ->Base == TypeChar) ? (int)(v)->Val->Character : \
-                            (((v)->Typ->Base == TypeShort) ? (int)(v)->Val->ShortInteger : \
-                             (((v)->Typ->Base == TypePointer) ? POINTER_COERCE(v) : (int)FP_VAL(v)))))
-#define COERCE_FP(v) (((v)->Typ->Base == TypeFP) ? (v)->Val->FP : \
-                      (((v)->Typ->Base == TypeInt) ? (double)(v)->Val->Integer : \
-                       (((v)->Typ->Base == TypeChar) ? (double)(v)->Val->Character : \
-                        (((v)->Typ->Base == TypeShort) ? (double)(v)->Val->ShortInteger : POINTER_COERCE(v)))))
 
 
 struct Table;
@@ -128,10 +120,13 @@ enum BaseType
     TypeVoid,                   /* no type */
     TypeInt,                    /* integer */
     TypeShort,                  /* short integer */
+    TypeChar,                   /* a single character */
+    TypeUnsignedInt,            /* unsigned integer */
+    TypeUnsignedShort,          /* unsigned short integer */
+    TypeUnsignedChar,           /* a single unsigned character */
 #ifndef NO_FP
     TypeFP,                     /* floating point */
 #endif
-    TypeChar,                   /* a single character */
     TypeFunction,               /* a function */
     TypeMacro,                  /* a macro */
     TypePointer,                /* a pointer */
@@ -187,9 +182,12 @@ struct PointerValue
 
 union AnyValue
 {
-    unsigned char Character;
+    char Character;
     short ShortInteger;
     int Integer;
+    unsigned char UnsignedCharacter;
+    unsigned short UnsignedShortInteger;
+    unsigned int UnsignedInteger;
     char *Identifier;
     struct ArrayValue Array;
     struct ParseState Parser;
@@ -357,6 +355,11 @@ void ParserCopyPos(struct ParseState *To, struct ParseState *From);
 int ExpressionParse(struct ParseState *Parser, struct Value **Result);
 int ExpressionParseInt(struct ParseState *Parser);
 void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct Value *SourceValue, int Force, const char *FuncName, int ParamNo, int AllowPointerCoercion);
+int ExpressionCoerceInteger(struct Value *Val);
+unsigned int ExpressionCoerceUnsignedInteger(struct Value *Val);
+#ifndef NO_FP
+double ExpressionCoerceFP(struct Value *Val);
+#endif
 
 /* type.c */
 void TypeInit();
