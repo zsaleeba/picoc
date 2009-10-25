@@ -134,7 +134,7 @@ int ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
             }
             else
             {
-                if (Token == TokenVoidType && Identifier != StrEmpty)
+                if (Typ == &VoidType && Identifier != StrEmpty)
                     ProgramFail(Parser, "can't define a void variable");
                     
                 if (Parser->Mode == RunModeRun)
