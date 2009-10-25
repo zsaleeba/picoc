@@ -487,6 +487,41 @@ void LibFree(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
 {
     free(Param[0]->Val->NativePointer);
 }
+
+void LibStrcpy(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    strcpy(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer);
+}
+
+void LibStrncpy(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    strncpy(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
+}
+
+void LibStrcmp(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = strcmp(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer);
+}
+
+void LibStrncmp(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = strncmp(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
+}
+
+void LibMemset(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    memset(Param[0]->Val->NativePointer, Param[1]->Val->Integer, Param[2]->Val->Integer);
+}
+
+void LibMemcpy(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    memcpy(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
+}
+
+void LibMemcmp(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = memcmp(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
+}
 #endif
 
 /* list of all library functions and their prototypes */
@@ -522,6 +557,13 @@ struct LibraryFunction CLibrary[] =
     { LibCalloc,        "void *calloc(int,int)" },
     { LibCalloc,        "void *realloc(void *,int)" },
     { LibFree,          "void free(void *)" },
+    { LibStrcpy,        "void strcpy(char *,char *)" },
+    { LibStrncpy,       "void strncpy(char *,char *,int)" },
+    { LibStrcmp,        "int strcmp(char *,char *)" },
+    { LibStrncmp,       "int strncmp(char *,char *,int)" },
+    { LibMemset,        "void memset(void *,int,int)" },
+    { LibMemcpy,        "void memcpy(void *,void *,int)" },
+    { LibMemcmp,        "int memcmp(void *,void *,int)" },
 #endif
     { NULL,             NULL }
 };
