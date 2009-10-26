@@ -312,7 +312,7 @@ void ExpressionAssignToPointer(struct ParseState *Parser, struct Value *ToValue,
         ToValue->Val->Pointer.Offset = 0;
         DerefVal = FromValue;
 #else
-        ToValue->Val->NativePointer = FromValue;
+        ToValue->Val->NativePointer = FromValue->Val->Array.Data;
 #endif
     }
     else if (FromValue->Typ->Base == TypePointer && FromValue->Typ->FromType->Base == TypeArray && PointedToType == FromValue->Typ->FromType->FromType)
