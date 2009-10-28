@@ -437,7 +437,7 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
                 Result->Val->Pointer.Offset = (char *)Result->Val - (char *)Result->LValueFrom;
 #else
             if (TempLValue->Typ->Base == TypeArray)
-                Result->Val->NativePointer = TempLValue->Val->Array.Data;
+                Result->Val->NativePointer = TopValue->Val;
             else
                 Result->Val->NativePointer = TempLValue->Val;
 #endif                
