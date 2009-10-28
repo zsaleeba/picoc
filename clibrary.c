@@ -273,7 +273,10 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
                                 else
                                     Str = NextArg->Val->Array.Data;
                                     
-                                PrintStr(Str, Stream); 
+                                if (Str == NULL)
+                                    PrintStr("NULL", Stream); 
+                                else
+                                    PrintStr(Str, Stream); 
                                 break;
                             }
                             case 'd': PrintInt(ExpressionCoerceInteger(NextArg), FieldWidth, ZeroPad, LeftJustify, Stream); break;

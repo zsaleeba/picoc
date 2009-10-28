@@ -411,7 +411,6 @@ void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct
 /* evaluate a prefix operator */
 void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack **StackTop, enum LexToken Op, struct Value *TopValue)
 {
-    struct Value *TempLValue;
     struct Value *Result;
 
     if (Parser->Mode != RunModeRun)
@@ -428,18 +427,17 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
             if (!TopValue->IsLValue)
                 ProgramFail(Parser, "can't get the address of this");
 
-            TempLValue = TopValue->LValueFrom;
-            assert(TempLValue != NULL);
             Result = VariableAllocValueFromType(Parser, TypeGetMatching(Parser, TopValue->Typ, TypePointer, 0, StrEmpty), FALSE, NULL, FALSE);
 #ifndef NATIVE_POINTERS
-            Result->Val->Pointer.Segment = TempLValue;
-            if (Result->LValueFrom != NULL)
-                Result->Val->Pointer.Offset = (char *)Result->Val - (char *)Result->LValueFrom;
+            {
+                struct Value *TempLValue = TopValue->LValueFrom;
+                assert(TempLValue != NULL);
+                Result->Val->Pointer.Segment = TempLValue;
+                if (Result->LValueFrom != NULL)
+                    Result->Val->Pointer.Offset = (char *)Result->Val - (char *)Result->LValueFrom;
+            }
 #else
-            if (TempLValue->Typ->Base == TypeArray)
-                Result->Val->NativePointer = TopValue->Val;
-            else
-                Result->Val->NativePointer = TempLValue->Val;
+            Result->Val->NativePointer = TopValue->Val;
 #endif                
             ExpressionStackPushValueNode(Parser, StackTop, Result);
             break;
