@@ -670,7 +670,7 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
 #endif
 
         /* make the array element result */
-        Result = VariableAllocValueFromExistingData(Parser, BottomValue->Typ->FromType, (union AnyValue *)((char *)BottomValue->Val->Array.Data + TypeSize(BottomValue->Typ->FromType, 0, FALSE) * ArrayIndex), BottomValue->IsLValue, BottomValue->LValueFrom);
+        Result = VariableAllocValueFromExistingData(Parser, BottomValue->Typ->FromType, (union AnyValue *)((char *)BottomValue->Val->Array.Data + TypeSize(BottomValue->Typ->FromType, 0, TRUE) * ArrayIndex), BottomValue->IsLValue, BottomValue->LValueFrom);
         ExpressionStackPushValueNode(Parser, StackTop, Result);
     }
 #ifndef NO_FP
