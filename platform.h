@@ -113,6 +113,7 @@ extern int ExitBuf[];
 
 #endif
 
+#define math_abs(x) (((x) < 0) ? (-(x)) : (x))
 #ifdef NEED_MATH_LIBRARY
 extern double math_sin(double x);
 extern double math_cos(double x);

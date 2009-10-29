@@ -1,3 +1,5 @@
+#include <math.h>
+
 #include "picoc.h"
 
 struct OutputStream CStdOut;
@@ -128,18 +130,18 @@ void PrintFP(double Num, struct OutputStream *Stream)
     }
     
     if (Num >= 1e7)
-        Exponent = math_log(Num) / LOG10E;
+        Exponent = math_log10(Num);
     else if (Num <= 1e-7 && Num != 0.0)
-        Exponent = math_log(Num) / LOG10E - 0.999999999;
+        Exponent = math_log10(Num) - 0.999999999;
     
     Num /= math_pow(10.0, Exponent);    
     PrintInt((int)Num, 0, FALSE, FALSE, Stream);
     PrintCh('.', Stream);
     Num = (Num - (int)Num) * 10;
-    if (abs(Num) >= 1e-7)
+    if (math_abs(Num) >= 1e-7)
     {
-       for (MaxDecimal = 6; MaxDecimal > 0 && abs(Num) >= 1e-7; Num = (Num - (int)(Num + 1e-7)) * 10, MaxDecimal--)
-           PrintCh('0' + (int)(Num + 1e-7), Stream);
+        for (MaxDecimal = 6; MaxDecimal > 0 && math_abs(Num) >= 1e-7; Num = (Num - (int)(Num + 1e-7)) * 10, MaxDecimal--)
+            PrintCh('0' + (int)(Num + 1e-7), Stream);
     }
     else
         PrintCh('0', Stream);
