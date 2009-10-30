@@ -185,7 +185,9 @@ double ExpressionCoerceFP(struct Value *Val)
         case TypeUnsignedInt:     return (double)Val->Val->UnsignedInteger;
         case TypeUnsignedChar:    return (double)Val->Val->UnsignedCharacter;
         case TypeUnsignedShort:   return (double)Val->Val->UnsignedShortInteger;
+#ifndef NO_FP
         case TypeFP:              return (double)Val->Val->FP;
+#endif
         default:                  return 0;
     }
 }
