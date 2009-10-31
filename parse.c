@@ -44,7 +44,8 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
     ParamParser = *Parser;
     Token = LexGetToken(Parser, NULL, TRUE);
     if (Token != TokenCloseBracket && Token != TokenEOF)
-    { /* count the number of parameters */
+    { 
+        /* count the number of parameters */
         ParamCount++;
         while ((Token = LexGetToken(Parser, NULL, TRUE)) != TokenCloseBracket && Token != TokenEOF)
         { 
@@ -443,7 +444,8 @@ enum ParseResult ParseStatement(struct ParseState *Parser)
             if (LexGetToken(Parser, NULL, FALSE) != TokenLeftBrace)
                 ProgramFail(Parser, "'{' expected");
             
-            { /* new block so we can store parser state */
+            { 
+                /* new block so we can store parser state */
                 enum RunMode OldMode = Parser->Mode;
                 int OldSearchLabel = Parser->SearchLabel;
                 Parser->Mode = RunModeCaseSearch;
@@ -517,39 +519,19 @@ enum ParseResult ParseStatement(struct ParseState *Parser)
         
         case TokenDelete:
         {
-            /* first try to parse this as "delete a pointer from an expression" */
-            struct ParseState PreExpression = *Parser;
-            int WasPointer = FALSE;
-            
-            if (ExpressionParse(Parser, &CValue))
-            { /* found an expression */
-                if (Parser->Mode == RunModeRun)
-                {
-                    if (TopStackFrame->ReturnValue->Typ->Base == TypePointer)
-                    { /* this was a pointer to something - delete the object we're pointing to */
-                        /* XXX - now I'm having second thoughts about this */
-                        WasPointer = TRUE;
-                    }
-                    
-                    VariableStackPop(Parser, CValue);
-                }
-            }
-            
-            if (!WasPointer)
-            { /* go back and try it as a function or variable name to delete */
-                *Parser = PreExpression;
-                if (LexGetToken(Parser, &LexerValue, TRUE) != TokenIdentifier)
-                    ProgramFail(Parser, "identifier expected");
-                    
-                if (Parser->Mode == RunModeRun)
-                { /* delete this variable or function */
-                    CValue = TableDelete(&GlobalTable, LexerValue->Val->Identifier);
-    
-                    if (CValue == NULL)
-                        ProgramFail(Parser, "'%s' is not defined", LexerValue->Val->Identifier);
-                    
-                    VariableFree(CValue);
-                }
+            /* try it as a function or variable name to delete */
+            if (LexGetToken(Parser, &LexerValue, TRUE) != TokenIdentifier)
+                ProgramFail(Parser, "identifier expected");
+                
+            if (Parser->Mode == RunModeRun)
+            { 
+                /* delete this variable or function */
+                CValue = TableDelete(&GlobalTable, LexerValue->Val->Identifier);
+
+                if (CValue == NULL)
+                    ProgramFail(Parser, "'%s' is not defined", LexerValue->Val->Identifier);
+                
+                VariableFree(CValue);
             }
             break;
         }
