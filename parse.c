@@ -502,13 +502,18 @@ enum ParseResult ParseStatement(struct ParseState *Parser)
         case TokenReturn:
             if (Parser->Mode == RunModeRun)
             {
-                if (!ExpressionParse(Parser, &CValue) && TopStackFrame->ReturnValue->Typ->Base != TypeVoid)
-                    ProgramFail(Parser, "value required in return");
-                    
                 if (TopStackFrame->ReturnValue->Typ->Base != TypeVoid)
                 {
+                    if (!ExpressionParse(Parser, &CValue))
+                        ProgramFail(Parser, "value required in return");
+                    
                     ExpressionAssign(Parser, TopStackFrame->ReturnValue, CValue, TRUE, NULL, 0, FALSE);
                     VariableStackPop(Parser, CValue);
+                }
+                else
+                {
+                    if (ExpressionParse(Parser, &CValue))
+                        ProgramFail(Parser, "value in return from a void function");                    
                 }
                 
                 Parser->Mode = RunModeReturn;
