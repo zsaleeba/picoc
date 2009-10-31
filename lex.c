@@ -528,7 +528,6 @@ void *LexAnalyse(const char *FileName, const char *Source, int SourceLen, int *T
 {
     struct LexState Lexer;
     
-    printf("LexAnalyse(\"%s\")\n", Source);
     Lexer.Pos = Source;
     Lexer.End = Source + SourceLen;
     Lexer.Line = 1;
@@ -561,7 +560,6 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
     enum LexToken Token = TokenNone;
     int ValueSize;
     
-    printf("Parser->Pos == %08lx\n", (unsigned long)Parser->Pos);
     do
     { 
         /* get the next token */
@@ -602,7 +600,6 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
 
                 /* put the new line at the end of the linked list of interactive lines */        
                 LineTokens = LexAnalyse(StrEmpty, &LineBuffer[0], strlen(LineBuffer), &LineBytes);
-                printf("Added new line node at %08lx-%08lx with text %s\n", (unsigned long)LineTokens, (unsigned long)LineTokens+LineBytes-TOKEN_DATA_OFFSET, &LineBuffer[0]);
                 LineNode = VariableAlloc(Parser, sizeof(struct TokenLine), TRUE);
                 LineNode->Tokens = LineTokens;
                 LineNode->NumBytes = LineBytes;
@@ -623,16 +620,11 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
             else
             { 
                 /* go to the next token line */
-                printf("Next token line...\n"); 
                 if (Parser->Pos != &InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes-TOKEN_DATA_OFFSET])
                 { 
                     /* scan for the line */
                     for (InteractiveCurrentLine = InteractiveHead; Parser->Pos != &InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes-TOKEN_DATA_OFFSET]; InteractiveCurrentLine = InteractiveCurrentLine->Next)
-                    { 
-                        printf("InteractiveCurrentLine = %08lx-%08lx, Pos = %08lx, NumBytes = %d\n", (unsigned long)&InteractiveCurrentLine->Tokens[0], (unsigned long)&InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes-TOKEN_DATA_OFFSET], (unsigned long)Parser->Pos, InteractiveCurrentLine->NumBytes); 
-                        assert(InteractiveCurrentLine->Next != NULL);
-                        printf("    next InteractiveCurrentLine = %08lx-%08lx, Pos = %08lx, NumBytes = %d\n", (unsigned long)&InteractiveCurrentLine->Next->Tokens[0], (unsigned long)&InteractiveCurrentLine->Next->Tokens[InteractiveCurrentLine->Next->NumBytes-TOKEN_DATA_OFFSET], (unsigned long)Parser->Pos, InteractiveCurrentLine->Next->NumBytes); 
-                    }
+                    { assert(InteractiveCurrentLine->Next != NULL); }
                 }
 
                 assert(InteractiveCurrentLine != NULL);
@@ -734,7 +726,7 @@ void *LexCopyTokens(struct ParseState *StartParser, struct ParseState *EndParser
         if (EndParser->Pos >= StartParser->Pos && EndParser->Pos < &InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes])
         { 
             /* all on a single line */
-            MemSize = EndParser->Pos - StartParser->Pos - TOKEN_DATA_OFFSET;
+            MemSize = EndParser->Pos - StartParser->Pos;
             NewTokens = VariableAlloc(StartParser, MemSize + 1, TRUE);
             memcpy(NewTokens, (void *)StartParser->Pos, MemSize);
         }
@@ -742,79 +734,28 @@ void *LexCopyTokens(struct ParseState *StartParser, struct ParseState *EndParser
         { 
             /* it's spread across multiple lines */
             MemSize = &InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes-TOKEN_DATA_OFFSET] - Pos;
-            {
-                int Count;
-                printf("Adding up: %d bytes - ", MemSize);
-                for (Count = 0; Count < MemSize; Count++)
-                    printf("%02x ", Pos[Count]);
-                printf("\n");
-            }
 
             for (ILine = InteractiveCurrentLine->Next; ILine != NULL && (EndParser->Pos < &ILine->Tokens[0] || EndParser->Pos >= &ILine->Tokens[ILine->NumBytes]); ILine = ILine->Next)
-            {
-                {
-                    int Count;
-                    printf("Adding up: %d bytes - ", ILine->NumBytes - TOKEN_DATA_OFFSET);
-                    for (Count = 0; Count < ILine->NumBytes - TOKEN_DATA_OFFSET; Count++)
-                        printf("%02x ", ILine->Tokens[Count]);
-                    printf("\n");
-                }
                 MemSize += ILine->NumBytes - TOKEN_DATA_OFFSET;
-            }
             
             assert(ILine != NULL);
             MemSize += EndParser->Pos - &ILine->Tokens[0];
-            {
-                int Count;
-                printf("Adding up: %d bytes - ", EndParser->Pos - &ILine->Tokens[0]);
-                for (Count = 0; Count < EndParser->Pos - &ILine->Tokens[0]; Count++)
-                    printf("%02x ", ILine->Tokens[Count]);
-                printf("\n");
-            }
             NewTokens = VariableAlloc(StartParser, MemSize + 1, TRUE);
             
             CopySize = &InteractiveCurrentLine->Tokens[InteractiveCurrentLine->NumBytes-TOKEN_DATA_OFFSET] - Pos;
             memcpy(NewTokens, Pos, CopySize);
-                {
-                    int Count;
-                    printf("Copying - ");
-                    for (Count = 0; Count < CopySize; Count++)
-                        printf("%02x ", Pos[Count]);
-                    printf("\n");
-                }
             NewTokenPos = NewTokens + CopySize;
             for (ILine = InteractiveCurrentLine->Next; ILine != NULL && (EndParser->Pos < &ILine->Tokens[0] || EndParser->Pos >= &ILine->Tokens[ILine->NumBytes]); ILine = ILine->Next)
             {
-                {
-                    int Count;
-                    printf("Copying - ");
-                    for (Count = 0; Count < ILine->NumBytes - TOKEN_DATA_OFFSET; Count++)
-                        printf("%02x ", ILine->Tokens[Count]);
-                    printf("\n");
-                }
                 memcpy(NewTokenPos, &ILine->Tokens[0], ILine->NumBytes - TOKEN_DATA_OFFSET);
                 NewTokenPos += ILine->NumBytes-TOKEN_DATA_OFFSET;
             }
             assert(ILine != NULL);
-                {
-                    int Count;
-                    printf("Copying - ");
-                    for (Count = 0; Count < EndParser->Pos - &ILine->Tokens[0]; Count++)
-                        printf("%02x ", ILine->Tokens[Count]);
-                    printf("\n");
-                }
             memcpy(NewTokenPos, &ILine->Tokens[0], EndParser->Pos - &ILine->Tokens[0]);
         }
     }
     
     NewTokens[MemSize] = (unsigned char)TokenEndOfFunction;
-    printf("Copied tokens to address range %08lx-%08lx, size %d\n", (unsigned long)NewTokens, (unsigned long)NewTokens+MemSize+1, MemSize+1);
-    {
-        int Count;
-        for (Count = 0; Count <= MemSize; Count++)
-            printf("%02x ", NewTokens[Count]);
-        printf("\n");
-    }
         
     return NewTokens;
 }
