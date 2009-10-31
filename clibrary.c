@@ -1,5 +1,3 @@
-#include <math.h>
-
 #include "picoc.h"
 
 struct OutputStream CStdOut;
