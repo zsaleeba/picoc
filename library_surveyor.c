@@ -2,7 +2,7 @@
 
 static int Blobcnt, Blobx1, Blobx2, Bloby1, Bloby2, Iy1, Iy2, Iu1, Iu2, Iv1, Iv2;
 static int GPSlat, GPSlon, GPSalt, GPSfix, GPSsat, GPSutc, Elcount, Ercount;
-static int ScanVect[16];
+static int ScanVect[16], NNVect[NUM_OUTPUT];
 
 void PlatformLibraryInit()
 {
@@ -10,6 +10,7 @@ void PlatformLibraryInit()
     
     IntArrayType = TypeGetMatching(NULL, &IntType, TypeArray, 16, NULL);
     VariableDefinePlatformVar(NULL, "scanvect", IntArrayType, (union AnyValue *)&ScanVect, FALSE);
+    VariableDefinePlatformVar(NULL, "neuron", IntArrayType, (union AnyValue *)&NNVect, FALSE);
     VariableDefinePlatformVar(NULL, "blobcnt", &IntType, (union AnyValue *)&Blobcnt, FALSE);
     VariableDefinePlatformVar(NULL, "blobx1", &IntType, (union AnyValue *)&Blobx1, FALSE);
     VariableDefinePlatformVar(NULL, "blobx2", &IntType, (union AnyValue *)&Blobx2, FALSE);
@@ -362,7 +363,7 @@ void Cvblob(struct ParseState *Parser, struct Value *ReturnValue, struct Value *
         
     numblob = vblob((unsigned char *)FRAME_BUF, (unsigned char *)FRAME_BUF3, ix);
 
-    if (blobcnt[iblob] == 0) {
+    if ((blobcnt[iblob] == 0) || (numblob == -1)) {
         Blobcnt = 0;
     } else {
         Blobcnt = blobcnt[iblob];
@@ -374,6 +375,39 @@ void Cvblob(struct ParseState *Parser, struct Value *ReturnValue, struct Value *
     ReturnValue->Val->Integer = numblob;
 }
 
+void Cvjpeg (struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) {
+    unsigned int image_size, qual;
+    unsigned char *output_start, *output_end;
+    
+    qual = Param[0]->Val->Integer;
+    if ((qual < 1) || (qual > 8))
+        ProgramFail(NULL, "vjpeg():  quality parameter out of range");
+        
+    output_start = (unsigned char *)JPEG_BUF;
+    output_end = encode_image((unsigned char *)FRAME_BUF, output_start, qual, 
+            FOUR_TWO_TWO, imgWidth, imgHeight); 
+    image_size = (unsigned int)(output_end - output_start);
+
+    ReturnValue->Val->Integer = image_size;
+}
+
+void Cvsend (struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) {
+    unsigned int ix, image_size;
+    unsigned char *cp;
+    
+    image_size = Param[0]->Val->Integer;
+    if ((image_size < 0) || (image_size > 200000))
+        ProgramFail(NULL, "vsend():  image size out of range");
+        
+    led1_on();
+
+    cp = (unsigned char *)JPEG_BUF;
+    for (ix=0; ix<image_size; ix++) 
+        putchar(*cp++);
+
+    led0_on();
+}
+
 void Ccompass(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // return reading from HMC6352 I2C compass
 {
     unsigned char i2c_data[2];
@@ -381,7 +415,7 @@ void Ccompass(struct ParseState *Parser, struct Value *ReturnValue, struct Value
     
     i2c_data[0] = 0x41;  // read compass twice to clear last reading
     i2cread(0x22, (unsigned char *)i2c_data, 2, SCCB_ON);
-    delayMS(10);
+    delayMS(20);
     i2c_data[0] = 0x41;
     i2cread(0x22, (unsigned char *)i2c_data, 2, SCCB_ON);
     ix = ((unsigned int)(i2c_data[0] << 8) + i2c_data[1]) / 10;
@@ -601,12 +635,12 @@ void Cnntrain(struct ParseState *Parser, struct Value *ReturnValue, struct Value
         nncalculate_network();
         for (i1=0; i1<NUM_OUTPUT; i1++) 
             printf(" %3d", N_OUT(i1)/10);
-        printf("\n\r");
+        printf("\r\n");
     }
 }
 
 void Cnntest(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) {
-    int ix, i1, i2;
+    int ix, i1, i2, max;
     unsigned char ch;
     
     ix = 0;
@@ -620,13 +654,20 @@ void Cnntest(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
         }
     }
     nncalculate_network();
-    for (i1=0; i1<NUM_OUTPUT; i1++) 
-        printf(" %3d", N_OUT(i1)/10);
-    printf("\n\r");
+    ix = 0;
+    max = 0;
+    for (i1=0; i1<NUM_OUTPUT; i1++) {
+        NNVect[i1] = N_OUT(i1)/10;
+        if (max < NNVect[i1]) {
+            ix = i1;
+            max = NNVect[i1];
+        }
+    }
+    ReturnValue->Val->Integer = ix;
 }
 
 void Cnnmatchblob(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) {            
-    int ix, i1;
+    int ix, i1, max;
     
     ix = Param[0]->Val->Integer;
     if (ix > MAX_BLOBS)
@@ -640,9 +681,16 @@ void Cnnmatchblob(struct ParseState *Parser, struct Value *ReturnValue, struct V
     nnscale8x8((unsigned char *)FRAME_BUF3, blobix[ix], blobx1[ix], blobx2[ix], 
             bloby1[ix], bloby2[ix], imgWidth, imgHeight);
     nncalculate_network();
-    for (i1=0; i1<NUM_OUTPUT; i1++) 
-        printf(" %3d", N_OUT(i1)/10);
-    printf("\n\r");
+    ix = 0;
+    max = 0;
+    for (i1=0; i1<NUM_OUTPUT; i1++) {
+        NNVect[i1] = N_OUT(i1)/10;
+        if (max < NNVect[i1]) {
+            ix = i1;
+            max = NNVect[i1];
+        }
+    }
+    ReturnValue->Val->Integer = ix;
 }
 
 void Cnnlearnblob (struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) {
@@ -657,6 +705,23 @@ void Cnnlearnblob (struct ParseState *Parser, struct Value *ReturnValue, struct 
             bloby1[0], bloby2[0], imgWidth, imgHeight);
     nnpack8x8(ix);
     nndisplay(ix);
+}
+
+void Cautorun (struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) {
+    int ix, t0;
+    unsigned char ch;
+    
+    ix = Param[0]->Val->Integer;
+    t0 = readRTC();
+    while (readRTC() < (t0 + ix*1000)) { // watch for ESC in 'ix' seconds
+        if (getchar(&ch)) {
+            if (ch == 0x1B) {  // if ESC found, exit picoC
+                printf("found ESC\r\n");
+                ExitBuf[40] = 1;
+                longjmp(ExitBuf, 1);
+            }
+        }
+    }
 }
 
 /* list of all library functions and their prototypes */
@@ -691,6 +756,8 @@ struct LibraryFunction PlatformLibrary[] =
     { Cvscan,       "int vscan(int, int)" },
     { Cvmean,       "void vmean()" },
     { Cvblob,       "int vblob(int, int)" },
+    { Cvjpeg,       "int vjpeg(int)" },
+    { Cvsend,       "void vsend(int)" },
     { Ccompass,     "int compass()" },
     { Canalog,      "int analog(int)" },
     { Ctilt,        "int tilt(int)" },
@@ -711,9 +778,10 @@ struct LibraryFunction PlatformLibrary[] =
     { Cnnset,       "void nnset(int, int, int, int, int, int, int, int, int)" },
     { Cnninit,      "void nninit()" },
     { Cnntrain,     "void nntrain()" },
-    { Cnntest,      "void nntest(int, int, int, int, int, int, int, int)" },
-    { Cnnmatchblob, "void nnmatchblob(int)" },
+    { Cnntest,      "int nntest(int, int, int, int, int, int, int, int)" },
+    { Cnnmatchblob, "int nnmatchblob(int)" },
     { Cnnlearnblob, "void nnlearnblob(int)" },
+    { Cautorun,     "void autorun(int)" },
     { NULL,         NULL }
 };
 

@@ -86,6 +86,7 @@ extern jmp_buf ExitBuf;
 #   include "../neural.h"
 #   include "../gps.h"
 #   include "../i2c.h"
+#   include "../jpeg.h"
 #   define assert(x)
 #   undef INTERACTIVE_PROMPT_STATEMENT
 #   undef INTERACTIVE_PROMPT_LINE
