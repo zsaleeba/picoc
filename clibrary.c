@@ -245,7 +245,7 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
                                 if (NextArg->Typ->Base == TypePointer)
                                     Str = NextArg->Val->NativePointer;
                                 else
-                                    Str = NextArg->Val->Array.Data;
+                                    Str = NextArg->Val->ArrayData;
                                     
                                 if (Str == NULL)
                                     PrintStr("NULL", Stream); 
@@ -304,7 +304,7 @@ void LibSPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Val
 void LibGets(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     struct Value *CharArray = (struct Value *)(Param[0]->Val->NativePointer);
-    char *ReadBuffer = CharArray->Val->Array.Data;
+    char *ReadBuffer = CharArray->Val->ArrayData;
     char *Result;
 
     ReturnValue->Val->NativePointer = NULL;

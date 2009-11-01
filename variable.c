@@ -106,7 +106,7 @@ struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct Value
     assert(Size > 0 || Typ == &VoidType);
     NewValue->Typ = Typ;
     if (Typ->Base == TypeArray)
-        NewValue->Val->Array.Data = (void *)((char *)NewValue->Val + sizeof(struct ArrayValue));
+        NewValue->Val->ArrayData = (void *)((char *)NewValue->Val + sizeof(void *));
     
     return NewValue;
 }
@@ -187,12 +187,12 @@ void VariableGet(struct ParseState *Parser, const char *Ident, struct Value **LV
 /* define a global variable shared with a platform global. Ident will be registered */
 void VariableDefinePlatformVar(struct ParseState *Parser, char *Ident, struct ValueType *Typ, union AnyValue *FromValue, int IsWritable)
 {
-    struct Value *SomeValue = VariableAllocValueAndData(NULL, (Typ->Base == TypeArray) ? sizeof(struct ArrayValue) : 0, IsWritable, NULL, TRUE);
+    struct Value *SomeValue = VariableAllocValueAndData(NULL, (Typ->Base == TypeArray) ? sizeof(void *) : 0, IsWritable, NULL, TRUE);
     SomeValue->Typ = Typ;
     if (Typ->Base != TypeArray)
         SomeValue->Val = FromValue;
     else
-        SomeValue->Val->Array.Data = FromValue;
+        SomeValue->Val->ArrayData = FromValue;
     
     if (!TableSet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, TableStrRegister(Ident), SomeValue))
         ProgramFail(Parser, "'%s' is already defined", Ident);

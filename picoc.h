@@ -159,21 +159,16 @@ struct FuncDef
 };
 
 /* values */
-struct ArrayValue
-{
-    void *Data;                     /* pointer to the array data */
-};
-
 union AnyValue
 {
-    char Character;
+    unsigned char Character;
     short ShortInteger;
     int Integer;
     unsigned char UnsignedCharacter;
     unsigned short UnsignedShortInteger;
     unsigned int UnsignedInteger;
     char *Identifier;
-    struct ArrayValue Array;
+    void *ArrayData;
     struct ParseState Parser;
     struct ValueType *Typ;
     struct FuncDef FuncDef;

@@ -98,7 +98,7 @@ void ExpressionStackShow(struct ExpressionStack *StackTop)
                     if (StackTop->Val->Val->Pointer.Segment == NULL)
                         printf("ptr(NULL)");
                     else if (StackTop->Val->Typ->FromType->Base == TypeChar)
-                        printf("\"%s\":string", (char *)StackTop->Val->Val->Pointer.Segment->Val->Array.Data + StackTop->Val->Val->Pointer.Offset);
+                        printf("\"%s\":string", (char *)StackTop->Val->Val->Pointer.Segment->Val->ArrayData + StackTop->Val->Val->Pointer.Offset);
                     else
                         printf("ptr(0x%lx,%d)", (long)StackTop->Val->Val->Pointer.Segment, StackTop->Val->Val->Pointer.Offset); 
                     break;
@@ -287,7 +287,7 @@ void ExpressionAssignToPointer(struct ParseState *Parser, struct Value *ToValue,
     else if (FromValue->Typ->Base == TypeArray && PointedToType == FromValue->Typ->FromType)
     {
         /* the form is: blah *x = array of blah */
-        ToValue->Val->NativePointer = FromValue->Val->Array.Data;
+        ToValue->Val->NativePointer = FromValue->Val->ArrayData;
     }
     else if (FromValue->Typ->Base == TypePointer && FromValue->Typ->FromType->Base == TypeArray && PointedToType == FromValue->Typ->FromType->FromType)
     {
@@ -345,7 +345,7 @@ void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct
             if (DestValue->Typ->ArraySize != SourceValue->Typ->ArraySize)
                 AssignFail(Parser, "from an array of size %d to one of size %d", NULL, NULL, DestValue->Typ->ArraySize, SourceValue->Typ->ArraySize, FuncName, ParamNo);
             
-            memcpy((void *)DestValue->Val->Array.Data, (void *)SourceValue->Val->Array.Data, DestValue->Typ->ArraySize);
+            memcpy((void *)DestValue->Val->ArrayData, (void *)SourceValue->Val->ArrayData, DestValue->Typ->ArraySize);
             break;
         
         case TypeStruct:
@@ -553,7 +553,7 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
         /* make the array element result */
         switch (BottomValue->Typ->Base)
         {
-            case TypeArray:   Result = VariableAllocValueFromExistingData(Parser, BottomValue->Typ->FromType, (union AnyValue *)((char *)BottomValue->Val->Array.Data + TypeSize(BottomValue->Typ->FromType, 0, TRUE) * ArrayIndex), BottomValue->IsLValue, BottomValue->LValueFrom); break;
+            case TypeArray:   Result = VariableAllocValueFromExistingData(Parser, BottomValue->Typ->FromType, (union AnyValue *)((char *)BottomValue->Val->ArrayData + TypeSize(BottomValue->Typ->FromType, 0, TRUE) * ArrayIndex), BottomValue->IsLValue, BottomValue->LValueFrom); break;
             case TypePointer: Result = VariableAllocValueFromExistingData(Parser, BottomValue->Typ->FromType, (union AnyValue *)((char *)BottomValue->Val->NativePointer + TypeSize(BottomValue->Typ->FromType, 0, TRUE) * ArrayIndex), BottomValue->IsLValue, BottomValue->LValueFrom); break;
             default:          ProgramFail(Parser, "this %t is not an array", BottomValue->Typ);
         }
