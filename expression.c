@@ -657,20 +657,19 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
         int ArrayIndex;
         struct Value *Result;
         
-        if (BottomValue->Typ->Base != TypeArray)
-            ProgramFail(Parser, "this %t is not an array", BottomValue->Typ);
-        
         if (!IS_NUMERIC_COERCIBLE(TopValue))
             ProgramFail(Parser, "array index must be an integer");
         
         ArrayIndex = ExpressionCoerceInteger(TopValue);
-#ifndef NATIVE_POINTERS
-        if (ArrayIndex < 0 || ArrayIndex >= BottomValue->Val->Array.Size)
-            ProgramFail(Parser, "illegal array index %d [0..%d]", ArrayIndex, BottomValue->Val->Array.Size-1);
-#endif
 
         /* make the array element result */
-        Result = VariableAllocValueFromExistingData(Parser, BottomValue->Typ->FromType, (union AnyValue *)((char *)BottomValue->Val->Array.Data + TypeSize(BottomValue->Typ->FromType, 0, TRUE) * ArrayIndex), BottomValue->IsLValue, BottomValue->LValueFrom);
+        switch (BottomValue->Typ->Base)
+        {
+            case TypeArray:   Result = VariableAllocValueFromExistingData(Parser, BottomValue->Typ->FromType, (union AnyValue *)((char *)BottomValue->Val->Array.Data + TypeSize(BottomValue->Typ->FromType, 0, TRUE) * ArrayIndex), BottomValue->IsLValue, BottomValue->LValueFrom); break;
+            case TypePointer: Result = VariableAllocValueFromExistingData(Parser, BottomValue->Typ->FromType, (union AnyValue *)((char *)BottomValue->Val->NativePointer + TypeSize(BottomValue->Typ->FromType, 0, TRUE) * ArrayIndex), BottomValue->IsLValue, BottomValue->LValueFrom); break;
+            default:          ProgramFail(Parser, "this %t is not an array", BottomValue->Typ);
+        }
+        
         ExpressionStackPushValueNode(Parser, StackTop, Result);
     }
 #ifndef NO_FP
