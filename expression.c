@@ -136,7 +136,6 @@ int ExpressionCoerceInteger(struct Value *Val)
         case TypeChar:            return (int)Val->Val->Character;
         case TypeShort:           return (int)Val->Val->ShortInteger;
         case TypeUnsignedInt:     return (int)Val->Val->UnsignedInteger;
-        case TypeUnsignedChar:    return (int)Val->Val->UnsignedCharacter;
         case TypeUnsignedShort:   return (int)Val->Val->UnsignedShortInteger;
         case TypePointer:         return (int)Val->Val->NativePointer;
 #ifndef NO_FP
@@ -154,7 +153,6 @@ unsigned int ExpressionCoerceUnsignedInteger(struct Value *Val)
         case TypeChar:            return (unsigned int)Val->Val->Character;
         case TypeShort:           return (unsigned int)Val->Val->ShortInteger;
         case TypeUnsignedInt:     return (unsigned int)Val->Val->UnsignedInteger;
-        case TypeUnsignedChar:    return (unsigned int)Val->Val->UnsignedCharacter;
         case TypeUnsignedShort:   return (unsigned int)Val->Val->UnsignedShortInteger;
         case TypePointer:         return (unsigned int)Val->Val->NativePointer;
 #ifndef NO_FP
@@ -172,7 +170,6 @@ double ExpressionCoerceFP(struct Value *Val)
         case TypeChar:            return (double)Val->Val->Character;
         case TypeShort:           return (double)Val->Val->ShortInteger;
         case TypeUnsignedInt:     return (double)Val->Val->UnsignedInteger;
-        case TypeUnsignedChar:    return (double)Val->Val->UnsignedCharacter;
         case TypeUnsignedShort:   return (double)Val->Val->UnsignedShortInteger;
 #ifndef NO_FP
         case TypeFP:              return (double)Val->Val->FP;
@@ -321,10 +318,9 @@ void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct
     {
         case TypeInt:           DestValue->Val->Integer = ExpressionCoerceInteger(SourceValue); break;
         case TypeShort:         DestValue->Val->ShortInteger = ExpressionCoerceInteger(SourceValue); break;
-        case TypeChar:          DestValue->Val->Character = ExpressionCoerceInteger(SourceValue); break;
+        case TypeChar:          DestValue->Val->Character = ExpressionCoerceUnsignedInteger(SourceValue); break;
         case TypeUnsignedInt:   DestValue->Val->UnsignedInteger = ExpressionCoerceUnsignedInteger(SourceValue); break;
         case TypeUnsignedShort: DestValue->Val->UnsignedShortInteger = ExpressionCoerceUnsignedInteger(SourceValue); break;
-        case TypeUnsignedChar:  DestValue->Val->UnsignedCharacter = ExpressionCoerceUnsignedInteger(SourceValue); break;
 
 #ifndef NO_FP
         case TypeFP:

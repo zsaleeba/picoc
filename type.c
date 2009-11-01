@@ -7,7 +7,6 @@ struct ValueType ShortType;
 struct ValueType CharType;
 struct ValueType UnsignedIntType;
 struct ValueType UnsignedShortType;
-struct ValueType UnsignedCharType;
 #ifndef NO_FP
 struct ValueType FPType;
 #endif
@@ -122,10 +121,9 @@ void TypeInit()
     UberType.DerivedTypeList = NULL;
     TypeAddBaseType(&IntType, TypeInt, sizeof(int));
     TypeAddBaseType(&ShortType, TypeShort, sizeof(short));
-    TypeAddBaseType(&CharType, TypeChar, sizeof(char));
+    TypeAddBaseType(&CharType, TypeChar, sizeof(unsigned char));
     TypeAddBaseType(&UnsignedIntType, TypeUnsignedInt, sizeof(unsigned int));
     TypeAddBaseType(&UnsignedShortType, TypeUnsignedShort, sizeof(unsigned short));
-    TypeAddBaseType(&UnsignedCharType, TypeUnsignedChar, sizeof(unsigned char));
     TypeAddBaseType(&VoidType, TypeVoid, 0);
     TypeAddBaseType(&FunctionType, TypeFunction, sizeof(int));
     TypeAddBaseType(&MacroType, TypeMacro, sizeof(int));
@@ -324,7 +322,7 @@ int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ)
     {
         case TokenIntType: case TokenLongType: *Typ = Unsigned ? &UnsignedIntType : &IntType; break;
         case TokenShortType: *Typ = Unsigned ? &UnsignedShortType : &ShortType; break;
-        case TokenCharType: *Typ = Unsigned ? &UnsignedCharType : &CharType; break;
+        case TokenCharType: *Typ = &CharType; break;
 #ifndef NO_FP
         case TokenFloatType: case TokenDoubleType: *Typ = &FPType; break;
 #endif

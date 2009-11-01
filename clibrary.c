@@ -159,7 +159,6 @@ void PrintType(struct ValueType *Typ, struct OutputStream *Stream)
         case TypeChar:          PrintStr("char", Stream); break;
         case TypeUnsignedInt:   PrintStr("unsigned int", Stream); break;
         case TypeUnsignedShort: PrintStr("unsigned short", Stream); break;
-        case TypeUnsignedChar:  PrintStr("unsigned char", Stream); break;
 #ifndef NO_FP
         case TypeFP:            PrintStr("double", Stream); break;
 #endif

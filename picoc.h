@@ -115,10 +115,9 @@ enum BaseType
     TypeVoid,                   /* no type */
     TypeInt,                    /* integer */
     TypeShort,                  /* short integer */
-    TypeChar,                   /* a single character */
+    TypeChar,                   /* a single character (unsigned) */
     TypeUnsignedInt,            /* unsigned integer */
     TypeUnsignedShort,          /* unsigned short integer */
-    TypeUnsignedChar,           /* a single unsigned character */
 #ifndef NO_FP
     TypeFP,                     /* floating point */
 #endif
@@ -164,7 +163,6 @@ union AnyValue
     unsigned char Character;
     short ShortInteger;
     int Integer;
-    unsigned char UnsignedCharacter;
     unsigned short UnsignedShortInteger;
     unsigned int UnsignedInteger;
     char *Identifier;
