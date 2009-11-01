@@ -1320,8 +1320,8 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
             if (ParseStatement(&FuncParser) != ParseResultOk)
                 ProgramFail(&FuncParser, "function body expected");
         
-            if (FuncValue->Val->FuncDef.ReturnType != ReturnValue->Typ)
-                ProgramFail(&FuncParser, "return value is %t instead of %t", ReturnValue->Typ, FuncValue->Val->FuncDef.ReturnType);
+            if (FuncValue->Val->FuncDef.ReturnType != &VoidType && FuncParser.Mode == RunModeRun)
+                ProgramFail(&FuncParser, "no value returned from a function returning %t", FuncValue->Val->FuncDef.ReturnType);
 
             VariableStackFramePop(Parser);
         }
