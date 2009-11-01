@@ -423,11 +423,7 @@ enum ParseResult ParseStatement(struct ParseState *Parser)
             if (LexGetToken(Parser, &LexerValue, TRUE) != TokenStringConstant)
                 ProgramFail(Parser, "\"filename.h\" expected");
             
-#ifndef NATIVE_POINTERS
-            PlatformScanFile(LexerValue->Val->Pointer.Segment->Val->Array.Data);
-#else
             PlatformScanFile((char *)LexerValue->Val->NativePointer);
-#endif
             CheckTrailingSemicolon = FALSE;
             break;
 #endif

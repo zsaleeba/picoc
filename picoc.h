@@ -36,13 +36,8 @@
 #define FP_VAL(v) 0
 #endif
 
-#ifdef NATIVE_POINTERS
 #define IS_POINTER_COERCIBLE(v, ap) ((ap) ? ((v)->Typ->Base == TypePointer) : 0)
 #define POINTER_COERCE(v) ((int)(v)->Val->NativePointer)
-#else
-#define IS_POINTER_COERCIBLE(v, ap) 0
-#define POINTER_COERCE(v) 0
-#endif
 
 #define IS_INTEGER_NUMERIC(v) ((v)->Typ->Base == TypeInt || (v)->Typ->Base == TypeChar || (v)->Typ->Base == TypeShort)
 #define IS_NUMERIC_COERCIBLE(v) (IS_INTEGER_NUMERIC(v) || IS_FP(v))
@@ -166,19 +161,8 @@ struct FuncDef
 /* values */
 struct ArrayValue
 {
-#ifndef NATIVE_POINTERS
-    unsigned int Size;              /* the number of elements in the array */
-#endif
     void *Data;                     /* pointer to the array data */
 };
-
-#ifndef NATIVE_POINTERS
-struct PointerValue
-{
-    struct Value *Segment;          /* array or basic value which this points to, NULL for machine memory access */
-    unsigned int Offset;            /* index into an array */
-};
-#endif
 
 union AnyValue
 {
@@ -198,11 +182,7 @@ union AnyValue
     double FP;
 #endif
 
-#ifndef NATIVE_POINTERS
-    struct PointerValue Pointer;    /* safe pointers */
-#else
     void *NativePointer;            /* unsafe native pointers */
-#endif
 };
 
 struct Value
@@ -277,9 +257,6 @@ union OutputStreamInfo
     {
         struct ParseState *Parser;
         char *WritePos;
-#ifndef NATIVE_POINTERS
-        char *MaxPos;
-#endif
     } Str;
 };
 

@@ -43,10 +43,6 @@ void SPutc(unsigned char Ch, union OutputStreamInfo *Stream)
 {
     struct StringOutputStream *Out = &Stream->Str;
     *Out->WritePos++ = Ch;
-#ifndef NATIVE_POINTERS
-    if (Out->WritePos == Out->MaxPos)
-        Out->WritePos--;
-#endif
 }
 
 /* print a character to a stream without using printf/sprintf */
@@ -188,18 +184,7 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
     int LeftJustify = FALSE;
     int ZeroPad = FALSE;
     int FieldWidth = 0;
-#ifndef NATIVE_POINTERS
-    char *Format;
-    struct Value *CharArray = Param[0]->Val->Pointer.Segment;
-
-    if (Param[0]->Val->Pointer.Offset < 0 || Param[0]->Val->Pointer.Offset >= CharArray->Val->Array.Size)
-        Format = StrEmpty;
-    else
-        Format = (char *)CharArray->Val->Array.Data + Param[0]->Val->Pointer.Offset;
-#else
     char *Format = Param[0]->Val->NativePointer;
-    /* XXX - dereference this properly */
-#endif
     
     for (FPos = Format; *FPos != '\0'; FPos++)
     {
@@ -258,18 +243,7 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
                                 char *Str;
                                 
                                 if (NextArg->Typ->Base == TypePointer)
-                                {
-#ifndef NATIVE_POINTERS
-                                    struct Value *CharArray = NextArg->Val->Pointer.Segment;
-
-                                    if (NextArg->Val->Pointer.Offset < 0 || NextArg->Val->Pointer.Offset >= CharArray->Val->Array.Size)
-                                        Str = StrEmpty;
-                                    else
-                                        Str = (char *)CharArray->Val->Array.Data + NextArg->Val->Pointer.Offset;
-#else
                                     Str = NextArg->Val->NativePointer;
-#endif
-                                }
                                 else
                                     Str = NextArg->Val->Array.Data;
                                     
@@ -321,40 +295,14 @@ void LibSPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Val
         
     StrStream.Putch = &SPutc;
     StrStream.i.Str.Parser = Parser;
-#ifndef NATIVE_POINTERS
-    StrStream.i.Str.MaxPos = StrStream.i.Str.WritePos - DerefOffset + DerefVal->Val->Array.Size;
-#endif
     GenericPrintf(Parser, ReturnValue, Param+1, NumArgs-1, &StrStream);
     PrintCh(0, &StrStream);
-#ifndef NATIVE_POINTERS
-    ReturnValue->Val->Pointer.Segment = *Param;
-    ReturnValue->Val->Pointer.Offset = 0;
-#else
     ReturnValue->Val->NativePointer = *Param;
-#endif
 }
 
 /* get a line of input. protected from buffer overrun */
 void LibGets(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-#ifndef NATIVE_POINTERS
-    struct Value *CharArray = Param[0]->Val->Pointer.Segment;
-    char *ReadBuffer = (char *)CharArray->Val->Array.Data + Param[0]->Val->Pointer.Offset;
-    int MaxLength = CharArray->Val->Array.Size - Param[0]->Val->Pointer.Offset;
-    char *Result;
-
-    ReturnValue->Val->Pointer.Segment = NULL;
-    ReturnValue->Val->Pointer.Offset = 0;
-    
-    if (Param[0]->Val->Pointer.Offset < 0 || MaxLength < 0)
-        return; /* no room for data */
-    
-    Result = PlatformGetLine(ReadBuffer, MaxLength);
-    if (Result == NULL)
-        return;
-    
-    ReturnValue->Val->Pointer = Param[0]->Val->Pointer;
-#else
     struct Value *CharArray = (struct Value *)(Param[0]->Val->NativePointer);
     char *ReadBuffer = CharArray->Val->Array.Data;
     char *Result;
@@ -365,7 +313,6 @@ void LibGets(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
         return;
     
     ReturnValue->Val->NativePointer = Param[0]->Val->NativePointer;
-#endif
 }
 
 void LibGetc(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -470,7 +417,7 @@ void LibFloor(struct ParseState *Parser, struct Value *ReturnValue, struct Value
 }
 #endif
 
-#ifdef NATIVE_POINTERS
+#ifndef NO_STRING_FUNCTIONS
 void LibMalloc(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     ReturnValue->Val->NativePointer = malloc(Param[0]->Val->Integer);
@@ -575,7 +522,7 @@ struct LibraryFunction CLibrary[] =
     { LibCeil,          "float ceil(float)" },
     { LibFloor,         "float floor(float)" },
 #endif
-#ifdef NATIVE_POINTERS
+#ifndef NO_STRING_FUNCTIONS
     { LibMalloc,        "void *malloc(int)" },
     { LibCalloc,        "void *calloc(int,int)" },
     { LibCalloc,        "void *realloc(void *,int)" },

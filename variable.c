@@ -106,12 +106,7 @@ struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct Value
     assert(Size > 0 || Typ == &VoidType);
     NewValue->Typ = Typ;
     if (Typ->Base == TypeArray)
-    {
-#ifndef NATIVE_POINTERS
-        NewValue->Val->Array.Size = Typ->ArraySize;
-#endif
         NewValue->Val->Array.Data = (void *)((char *)NewValue->Val + sizeof(struct ArrayValue));
-    }
     
     return NewValue;
 }
@@ -197,13 +192,7 @@ void VariableDefinePlatformVar(struct ParseState *Parser, char *Ident, struct Va
     if (Typ->Base != TypeArray)
         SomeValue->Val = FromValue;
     else
-    { 
-        /* define an array */
-#ifndef NATIVE_POINTERS
-        SomeValue->Val->Array.Size = Typ->ArraySize;
-#endif
         SomeValue->Val->Array.Data = FromValue;
-    }
     
     if (!TableSet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, TableStrRegister(Ident), SomeValue))
         ProgramFail(Parser, "'%s' is already defined", Ident);
@@ -283,38 +272,6 @@ void VariableStringLiteralDefine(char *Ident, struct Value *Val)
 /* check a pointer for validity and dereference it for use */
 void *VariableDereferencePointer(struct ParseState *Parser, struct Value *PointerValue, struct Value **DerefVal, int *DerefOffset, struct ValueType **DerefType, int *DerefIsLValue)
 {
-#ifndef NATIVE_POINTERS
-    struct Value *PointedToValue = PointerValue->Val->Pointer.Segment;
-
-    /* this is a pointer to picoc memory */
-    if (PointerValue->Typ->Base != TypePointer)
-        ProgramFail(Parser, "pointer expected");
-    
-    if (PointedToValue == NULL)
-        ProgramFail(Parser, "can't dereference NULL pointer");
-    
-    if (PointerValue->Val->Pointer.Offset < 0 || PointerValue->Val->Pointer.Offset > TypeLastAccessibleOffset(PointedToValue))
-        ProgramFail(Parser, "attempt to access invalid pointer");
-    
-    /* pass back the optional dereferenced pointer, offset and type */
-    if (DerefVal != NULL)
-        *DerefVal = PointedToValue;
-
-    if (DerefOffset != NULL)
-        *DerefOffset = PointerValue->Val->Pointer.Offset;
-    
-    if (DerefType != NULL)
-        *DerefType = PointerValue->Typ->FromType;
-    
-    if (DerefIsLValue != NULL)
-        *DerefIsLValue = PointedToValue->IsLValue;
-    
-    /* return a pointer to the data */
-    if (PointedToValue->Typ->Base == TypeArray)
-        return (void *)((char *)PointedToValue->Val->Array.Data + PointerValue->Val->Pointer.Offset);
-    else
-        return (void *)((char *)PointedToValue->Val + PointerValue->Val->Pointer.Offset);
-#else
     if (DerefVal != NULL)
         *DerefVal = NULL;
         
@@ -328,5 +285,5 @@ void *VariableDereferencePointer(struct ParseState *Parser, struct Value *Pointe
         *DerefIsLValue = TRUE;
 
     return PointerValue->Val->NativePointer;
-#endif
 }
+

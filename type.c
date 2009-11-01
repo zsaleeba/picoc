@@ -52,11 +52,7 @@ struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *P
         
     switch (Base)
     {
-#ifndef NATIVE_POINTERS
-        case TypePointer:   Sizeof = sizeof(struct PointerValue); break;
-#else
         case TypePointer:   Sizeof = sizeof(void *); break;
-#endif
         case TypeArray:     Sizeof = sizeof(struct ArrayValue) + ArraySize * ParentType->Sizeof; break;
         case TypeEnum:      Sizeof = sizeof(int); break;
         default:            Sizeof = 0; break;      /* structs and unions will get bigger when we add members to them */
@@ -84,17 +80,6 @@ int TypeSizeValue(struct Value *Val)
     else
         return sizeof(struct ArrayValue) + Val->Typ->FromType->Sizeof * Val->Typ->ArraySize;
 }
-
-#ifndef NATIVE_POINTERS
-/* the last accessible offset of a value */
-int TypeLastAccessibleOffset(struct Value *Val)
-{
-    if (Val->Typ->Base != TypeArray)
-        return 0;
-    else
-        return Val->Typ->FromType->Sizeof * (Val->Val->Array.Size-1);
-}
-#endif
 
 /* memory used by a variable given its type and array size */
 int TypeSize(struct ValueType *Typ, int ArraySize, int Compact)
@@ -151,13 +136,8 @@ void TypeInit()
     TypeAddBaseType(&TypeType, Type_Type, sizeof(struct ValueType *));
 #endif
     CharArrayType = TypeAdd(NULL, &CharType, TypeArray, 0, StrEmpty, sizeof(char));
-#ifndef NATIVE_POINTERS
-    CharPtrType = TypeAdd(NULL, &CharType, TypePointer, 0, StrEmpty, sizeof(struct PointerValue));
-    VoidPtrType = TypeAdd(NULL, &VoidType, TypePointer, 0, StrEmpty, sizeof(struct PointerValue));
-#else
     CharPtrType = TypeAdd(NULL, &CharType, TypePointer, 0, StrEmpty, sizeof(void *));
     VoidPtrType = TypeAdd(NULL, &VoidType, TypePointer, 0, StrEmpty, sizeof(void *));
-#endif
 }
 
 /* deallocate heap-allocated types */
