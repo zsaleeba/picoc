@@ -170,11 +170,9 @@ union AnyValue
     struct ParseState Parser;
     struct ValueType *Typ;
     struct FuncDef FuncDef;
-
 #ifndef NO_FP
     double FP;
 #endif
-
     void *NativePointer;            /* unsafe native pointers */
 };
 

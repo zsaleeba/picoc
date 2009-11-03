@@ -187,11 +187,19 @@ int ExpressionAssignInt(struct ParseState *Parser, struct Value *DestValue, int 
         ProgramFail(Parser, "can't assign to this"); 
     
     if (After)
-        Result = DestValue->Val->Integer;
+        Result = ExpressionCoerceInteger(DestValue);
     else
         Result = FromInt;
 
-    DestValue->Val->Integer = FromInt;
+    switch (DestValue->Typ->Base)
+    {
+        case TypeInt:           DestValue->Val->Integer = FromInt; break;
+        case TypeShort:         DestValue->Val->ShortInteger = (short)FromInt; break;
+        case TypeChar:          DestValue->Val->Character = (unsigned char)FromInt; break;
+        case TypeUnsignedInt:   DestValue->Val->UnsignedInteger = (unsigned int)FromInt; break;
+        case TypeUnsignedShort: DestValue->Val->UnsignedShortInteger = (unsigned short)FromInt; break;
+        default: break;
+    }
     return Result;
 }
 
