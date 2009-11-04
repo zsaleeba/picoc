@@ -64,8 +64,8 @@ int picoc(char *SourceStr)
         for (ix=0; ix<strlen(SourceStr); ix++)  /* clear out ctrl-z from XMODEM transfer */
             if (SourceStr[ix] == 0x1A)
                 SourceStr[ix] = 0x20;
-        //printf("%s\n\r", SourceStr);  /* display program source */
-        //printf("=====================\n");
+        /*printf("%s\n\r", SourceStr);*/  /* display program source */
+        /*printf("=====================\n");*/
     }
     ExitBuf[40] = 0;
     PlatformSetExitPoint();
