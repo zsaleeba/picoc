@@ -19,12 +19,6 @@
 
 #define MEM_ALIGN(x) (((x) + ARCH_ALIGN_WORDSIZE - 1) & ~(ARCH_ALIGN_WORDSIZE-1))
 
-#define LOG10E 0.43429448190325182765
-#define INTERACTIVE_FILE_NAME "input"
-
-#ifndef PATH_MAX
-#define PATH_MAX 1024
-#endif
 #define GETS_BUF_MAX 256
 
 /* coercion of numeric types to other numeric types */
