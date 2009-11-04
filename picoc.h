@@ -166,7 +166,7 @@ union AnyValue
     unsigned short UnsignedShortInteger;
     unsigned int UnsignedInteger;
     char *Identifier;
-    void *ArrayData;
+    char ArrayMem[2];               /* placeholder for where the data starts, doesn't point to it */
     struct ParseState Parser;
     struct ValueType *Typ;
     struct FuncDef FuncDef;

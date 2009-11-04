@@ -286,15 +286,16 @@ void ExpressionAssignToPointer(struct ParseState *Parser, struct Value *ToValue,
 {
     struct ValueType *PointedToType = ToValue->Typ->FromType;
     
-    if (FromValue->Typ == ToValue->Typ || FromValue->Typ == VoidPtrType || ToValue->Typ == VoidPtrType)
+    if (FromValue->Typ == ToValue->Typ || FromValue->Typ == VoidPtrType || (ToValue->Typ == VoidPtrType && FromValue->Typ->Base == TypePointer))
         ToValue->Val->NativePointer = FromValue->Val->NativePointer;      /* plain old pointer assignment */
         
-    else if (FromValue->Typ->Base == TypeArray && PointedToType == FromValue->Typ->FromType)
+    else if (FromValue->Typ->Base == TypeArray && (PointedToType == FromValue->Typ->FromType || ToValue->Typ == VoidPtrType))
     {
         /* the form is: blah *x = array of blah */
-        ToValue->Val->NativePointer = FromValue->Val->ArrayData;
+        ToValue->Val->NativePointer = (void *)&FromValue->Val->ArrayMem[0];
     }
-    else if (FromValue->Typ->Base == TypePointer && FromValue->Typ->FromType->Base == TypeArray && PointedToType == FromValue->Typ->FromType->FromType)
+    else if (FromValue->Typ->Base == TypePointer && FromValue->Typ->FromType->Base == TypeArray && 
+               (PointedToType == FromValue->Typ->FromType->FromType || ToValue->Typ == VoidPtrType) )
     {
         /* the form is: blah *x = pointer to array of blah */
         ToValue->Val->NativePointer = VariableDereferencePointer(Parser, FromValue, NULL, NULL, NULL, NULL);
@@ -349,7 +350,7 @@ void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct
             if (DestValue->Typ->ArraySize != SourceValue->Typ->ArraySize)
                 AssignFail(Parser, "from an array of size %d to one of size %d", NULL, NULL, DestValue->Typ->ArraySize, SourceValue->Typ->ArraySize, FuncName, ParamNo);
             
-            memcpy((void *)DestValue->Val->ArrayData, (void *)SourceValue->Val->ArrayData, DestValue->Typ->ArraySize);
+            memcpy((void *)DestValue->Val, (void *)SourceValue->Val, TypeSizeValue(DestValue));
             break;
         
         case TypeStruct:
@@ -557,7 +558,7 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
         /* make the array element result */
         switch (BottomValue->Typ->Base)
         {
-            case TypeArray:   Result = VariableAllocValueFromExistingData(Parser, BottomValue->Typ->FromType, (union AnyValue *)((char *)BottomValue->Val->ArrayData + TypeSize(BottomValue->Typ->FromType, 0, TRUE) * ArrayIndex), BottomValue->IsLValue, BottomValue->LValueFrom); break;
+            case TypeArray:   Result = VariableAllocValueFromExistingData(Parser, BottomValue->Typ->FromType, (union AnyValue *)(&BottomValue->Val->ArrayMem[0] + TypeSize(BottomValue->Typ->FromType, 0, TRUE) * ArrayIndex), BottomValue->IsLValue, BottomValue->LValueFrom); break;
             case TypePointer: Result = VariableAllocValueFromExistingData(Parser, BottomValue->Typ->FromType, (union AnyValue *)((char *)BottomValue->Val->NativePointer + TypeSize(BottomValue->Typ->FromType, 0, TRUE) * ArrayIndex), BottomValue->IsLValue, BottomValue->LValueFrom); break;
             default:          ProgramFail(Parser, "this %t is not an array", BottomValue->Typ);
         }

@@ -222,7 +222,8 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
             }
             
             if (FormatType != NULL)
-            { /* we have to format something */
+            { 
+                /* we have to format something */
                 if (ArgCount >= NumArgs)
                     PrintStr("XXX", Stream);   /* not enough parameters for format */
                 else
@@ -244,7 +245,7 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
                                 if (NextArg->Typ->Base == TypePointer)
                                     Str = NextArg->Val->NativePointer;
                                 else
-                                    Str = NextArg->Val->ArrayData;
+                                    Str = &NextArg->Val->ArrayMem[0];
                                     
                                 if (Str == NULL)
                                     PrintStr("NULL", Stream); 
@@ -303,7 +304,7 @@ void LibSPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Val
 void LibGets(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     struct Value *CharArray = (struct Value *)(Param[0]->Val->NativePointer);
-    char *ReadBuffer = CharArray->Val->ArrayData;
+    char *ReadBuffer = &CharArray->Val->ArrayMem[0];
     char *Result;
 
     ReturnValue->Val->NativePointer = NULL;

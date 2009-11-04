@@ -306,9 +306,9 @@ enum LexToken LexGetStringConstant(struct LexState *Lexer, struct Value *Value)
     if (ArrayValue == NULL)
     {
         /* create and store this string literal */
-        ArrayValue = VariableAllocValueAndData(NULL, sizeof(void *), FALSE, NULL, TRUE);
+        ArrayValue = VariableAllocValueAndData(NULL, 0, FALSE, NULL, TRUE);
         ArrayValue->Typ = CharArrayType;
-        ArrayValue->Val->ArrayData = RegString;
+        ArrayValue->Val = (union AnyValue *)RegString;
         VariableStringLiteralDefine(RegString, ArrayValue);
     }
 
