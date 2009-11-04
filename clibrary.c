@@ -450,12 +450,14 @@ void LibStrncpy(struct ParseState *Parser, struct Value *ReturnValue, struct Val
 
 void LibStrcmp(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = strcmp(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer);
+    int Result = strcmp(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer);
+    ReturnValue->Val->Integer = (Result > 0) ? 1 : ((Result < 0) ? -1 : 0);
 }
 
 void LibStrncmp(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = strncmp(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
+    int Result = strncmp(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
+    ReturnValue->Val->Integer = (Result > 0) ? 1 : ((Result < 0) ? -1 : 0);
 }
 
 void LibStrcat(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -490,7 +492,8 @@ void LibMemcpy(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
 
 void LibMemcmp(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = memcmp(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
+    int Result = memcmp(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
+    ReturnValue->Val->Integer = (Result > 0) ? 1 : ((Result < 0) ? -1 : 0);
 }
 #endif
 
