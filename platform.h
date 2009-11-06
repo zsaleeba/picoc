@@ -14,7 +14,7 @@
 #define HEAP_SIZE 16384                     /* default space for the heap and the stack */
 #endif
 #define LARGE_INT_POWER_OF_TEN 1000000000   /* the largest power of ten which fits in an int on this architecture */
-#define ARCH_ALIGN_WORDSIZE sizeof(int)     /* memory alignment boundary on this architecture */
+#define ARCH_ALIGN_WORDSIZE sizeof(void *)  /* memory alignment boundary on this architecture */
 
 #define GLOBAL_TABLE_SIZE 97                /* global variable table */
 #define STRING_TABLE_SIZE 97                /* shared string table size */

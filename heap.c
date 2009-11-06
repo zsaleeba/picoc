@@ -126,7 +126,7 @@ void *HeapAllocMem(int Size)
 #else
     struct AllocNode *NewMem = NULL;
     struct AllocNode **FreeNode;
-    int AllocSize = MEM_ALIGN(Size) + sizeof(NewMem->Size);
+    int AllocSize = MEM_ALIGN(Size) + MEM_ALIGN(sizeof(NewMem->Size));
     int Bucket;
     
     if (Size == 0)
@@ -140,7 +140,8 @@ void *HeapAllocMem(int Size)
     
     Bucket = AllocSize >> 2;
     if (Bucket < FREELIST_BUCKETS && FreeListBucket[Bucket] != NULL)
-    { /* try to allocate from a freelist bucket first */
+    { 
+        /* try to allocate from a freelist bucket first */
 #ifdef DEBUG_HEAP
         printf("allocating %d(%d) from bucket", Size, AllocSize);
 #endif
@@ -151,7 +152,8 @@ void *HeapAllocMem(int Size)
         NewMem->Size = AllocSize;
     }
     else if (FreeListBig != NULL)
-    { /* grab the first item from the "big" freelist we can fit in */
+    { 
+        /* grab the first item from the "big" freelist we can fit in */
         for (FreeNode = &FreeListBig; *FreeNode != NULL && (*FreeNode)->Size < AllocSize; FreeNode = &(*FreeNode)->NextFree)
         {}
         
@@ -159,8 +161,9 @@ void *HeapAllocMem(int Size)
         {
             assert((unsigned long)*FreeNode >= (unsigned long)&HeapMemory[0] && (unsigned char *)*FreeNode - &HeapMemory[0] < HEAP_SIZE);
             assert((*FreeNode)->Size < HEAP_SIZE && (*FreeNode)->Size > 0);
-            if ((*FreeNode)->Size < Size + SPLIT_MEM_THRESHOLD)
-            { /* close in size - reduce fragmentation by not splitting */
+            if ((*FreeNode)->Size < AllocSize + SPLIT_MEM_THRESHOLD)
+            { 
+                /* close in size - reduce fragmentation by not splitting */
 #ifdef DEBUG_HEAP
                printf("allocating %d(%d) from freelist, no split (%d)", Size, AllocSize, (*FreeNode)->Size);
 #endif
@@ -169,7 +172,8 @@ void *HeapAllocMem(int Size)
                 *FreeNode = NewMem->NextFree;
             }
             else
-            { /* split this big memory chunk */
+            { 
+                /* split this big memory chunk */
 #ifdef DEBUG_HEAP
                 printf("allocating %d(%d) from freelist, split chunk (%d)", Size, AllocSize, (*FreeNode)->Size);
 #endif
@@ -182,7 +186,8 @@ void *HeapAllocMem(int Size)
     }
     
     if (NewMem == NULL)
-    { /* couldn't allocate from a freelist - try to increase the size of the heap area */
+    { 
+        /* couldn't allocate from a freelist - try to increase the size of the heap area */
 #ifdef DEBUG_HEAP
         printf("allocating %d(%d) at bottom of heap (0x%lx-0x%lx)", Size, AllocSize, (long)(HeapBottom - AllocSize), (long)HeapBottom);
 #endif
@@ -217,7 +222,8 @@ void HeapFreeMem(void *Mem)
         return;
     
     if ((void *)MemNode == HeapBottom)
-    { /* pop it off the bottom of the heap, reducing the heap size */
+    { 
+        /* pop it off the bottom of the heap, reducing the heap size */
 #ifdef DEBUG_HEAP
         printf("freeing %d from bottom of heap\n", MemNode->Size);
 #endif
@@ -227,7 +233,8 @@ void HeapFreeMem(void *Mem)
 #endif
     }
     else if (Bucket < FREELIST_BUCKETS)
-    { /* we can fit it in a bucket */
+    { 
+        /* we can fit it in a bucket */
 #ifdef DEBUG_HEAP
         printf("freeing %d to bucket\n", MemNode->Size);
 #endif
@@ -236,7 +243,8 @@ void HeapFreeMem(void *Mem)
         FreeListBucket[Bucket] = (struct AllocNode *)MemNode;
     }
     else
-    { /* put it in the big memory freelist */
+    { 
+        /* put it in the big memory freelist */
 #ifdef DEBUG_HEAP
         printf("freeing %lx:%d to freelist\n", (unsigned long)Mem, MemNode->Size);
 #endif
@@ -249,3 +257,4 @@ void HeapFreeMem(void *Mem)
     }
 #endif
 }
+

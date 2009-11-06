@@ -546,7 +546,7 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
     
     debugf("ExpressionInfixOperator()\n");
     if (BottomValue == NULL || TopValue == NULL)
-        ProgramFail(Parser, "bad expression");
+        ProgramFail(Parser, "invalid expression");
         
     if (Op == TokenLeftSquareBracket)
     { 
