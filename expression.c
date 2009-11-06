@@ -95,17 +95,18 @@ void ExpressionStackShow(struct ExpressionStack *StackTop)
                 case TypeFunction:  printf("%s:function", StackTop->Val->Val->Identifier); break;
                 case TypeMacro:     printf("%s:macro", StackTop->Val->Val->Identifier); break;
                 case TypePointer:
-                    if (StackTop->Val->Val->Pointer.Segment == NULL)
+                    if (StackTop->Val->Val->NativePointer == NULL)
                         printf("ptr(NULL)");
                     else if (StackTop->Val->Typ->FromType->Base == TypeChar)
-                        printf("\"%s\":string", (char *)StackTop->Val->Val->Pointer.Segment->Val->ArrayData + StackTop->Val->Val->Pointer.Offset);
+                        printf("\"%s\":string", (char *)StackTop->Val->Val->NativePointer);
                     else
-                        printf("ptr(0x%lx,%d)", (long)StackTop->Val->Val->Pointer.Segment, StackTop->Val->Val->Pointer.Offset); 
+                        printf("ptr(0x%lx)", (long)StackTop->Val->Val->NativePointer); 
                     break;
                 case TypeArray:     printf("array"); break;
                 case TypeStruct:    printf("%s:struct", StackTop->Val->Val->Identifier); break;
                 case TypeUnion:     printf("%s:union", StackTop->Val->Val->Identifier); break;
                 case TypeEnum:      printf("%s:enum", StackTop->Val->Val->Identifier); break;
+                case Type_Type:     PrintType(StackTop->Val->Val->Typ, &CStdOut); printf(":type"); break;
                 default:            printf("unknown"); break;
             }
             printf("[0x%lx,0x%lx]", (long)StackTop, (long)StackTop->Val);
@@ -535,7 +536,7 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
     int ResultInt = 0;
     struct Value *StackValue;
     void *NativePointer;
-
+    
     if (Parser->Mode != RunModeRun)
     {
         /* we're not running it so just return 0 */
@@ -544,6 +545,9 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
     }
     
     debugf("ExpressionInfixOperator()\n");
+    if (BottomValue == NULL || TopValue == NULL)
+        ProgramFail(Parser, "bad expression");
+        
     if (Op == TokenLeftSquareBracket)
     { 
         /* array index */
@@ -782,14 +786,19 @@ void ExpressionStackCollapse(struct ParseState *Parser, struct ExpressionStack *
                     /* infix evaluation */
                     debugf("infix evaluation\n");
                     TopValue = TopStackNode->Val;
-                    BottomValue = TopOperatorNode->Next->Val;
-                    
-                    /* pop a value, the operator and another value - assume they'll still be there until we're done */
-                    HeapPopStack(BottomValue, sizeof(struct ExpressionStack)*3 + sizeof(struct Value)*2 + TypeStackSizeValue(TopValue) + TypeStackSizeValue(BottomValue));
-                    *StackTop = TopOperatorNode->Next->Next;
-                    
-                    /* do the infix operation */
-                    ExpressionInfixOperator(Parser, StackTop, TopOperatorNode->Op, BottomValue, TopValue);
+                    if (TopValue != NULL)
+                    {
+                        BottomValue = TopOperatorNode->Next->Val;
+                        
+                        /* pop a value, the operator and another value - assume they'll still be there until we're done */
+                        HeapPopStack(BottomValue, sizeof(struct ExpressionStack)*3 + sizeof(struct Value)*2 + TypeStackSizeValue(TopValue) + TypeStackSizeValue(BottomValue));
+                        *StackTop = TopOperatorNode->Next->Next;
+                        
+                        /* do the infix operation */
+                        ExpressionInfixOperator(Parser, StackTop, TopOperatorNode->Op, BottomValue, TopValue);
+                    }
+                    else
+                        FoundPrecedence = -1;
                     break;
 
                 case OrderNone:
@@ -916,7 +925,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                         /* scan and collapse the stack to the precedence of this infix cast operator, then push */
                         Precedence = BracketPrecedence + OperatorPrecedence[(int)TokenCast].PrefixPrecedence;
 
-                        ExpressionStackCollapse(Parser, &StackTop, Precedence);
+                        ExpressionStackCollapse(Parser, &StackTop, Precedence+1);
                         CastTypeValue = VariableAllocValueFromType(Parser, &TypeType, FALSE, NULL, FALSE);
                         CastTypeValue->Val->Typ = CastType;
                         ExpressionStackPushValueNode(Parser, &StackTop, CastTypeValue);
