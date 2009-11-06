@@ -128,6 +128,7 @@ void *HeapAllocMem(int Size)
     struct AllocNode **FreeNode;
     int AllocSize = MEM_ALIGN(Size) + MEM_ALIGN(sizeof(NewMem->Size));
     int Bucket;
+    void *ReturnMem;
     
     if (Size == 0)
         return NULL;
@@ -199,11 +200,12 @@ void *HeapAllocMem(int Size)
         NewMem->Size = AllocSize;
     }
     
-    memset((void *)&NewMem->NextFree, '\0', AllocSize-sizeof(NewMem->Size));
+    ReturnMem = (void *)((char *)NewMem + MEM_ALIGN(sizeof(NewMem->Size)));
+    memset(ReturnMem, '\0', AllocSize - MEM_ALIGN(sizeof(NewMem->Size)));
 #ifdef DEBUG_HEAP
-    printf(" = %lx\n", (unsigned long)&NewMem->NextFree);
+    printf(" = %lx\n", (unsigned long)ReturnMem);
 #endif
-    return (void *)&NewMem->NextFree;
+    return ReturnMem;
 #endif
 }
 
@@ -213,7 +215,7 @@ void HeapFreeMem(void *Mem)
 #ifdef USE_MALLOC_HEAP
     return free(Mem);
 #else
-    struct AllocNode *MemNode = (struct AllocNode *)((char *)Mem-sizeof(int));
+    struct AllocNode *MemNode = (struct AllocNode *)((char *)Mem - MEM_ALIGN(sizeof(MemNode->Size)));
     int Bucket = MemNode->Size >> 2;
     
     assert((unsigned long)Mem >= (unsigned long)&HeapMemory[0] && (unsigned char *)Mem - &HeapMemory[0] < HEAP_SIZE);
