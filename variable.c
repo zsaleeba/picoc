@@ -201,7 +201,7 @@ void VariableStackPop(struct ParseState *Parser, struct Value *Var)
     
 #ifdef DEBUG_HEAP
     if (Var->ValOnStack)
-        printf("popping %d at 0x%lx\n", sizeof(struct Value) + VariableSizeValue(Var), (unsigned long)Var);
+        printf("popping %ld at 0x%lx\n", (unsigned long)(sizeof(struct Value) + TypeSizeValue(Var)), (unsigned long)Var);
 #endif
         
     if (Var->ValOnHeap)

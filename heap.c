@@ -56,7 +56,7 @@ void *HeapAllocStack(int Size)
     char *NewMem = HeapStackTop;
     char *NewTop = (char *)HeapStackTop + MEM_ALIGN(Size);
 #ifdef DEBUG_HEAP
-    printf("HeapAllocStack(%d) at 0x%lx\n", MEM_ALIGN(Size), (unsigned long)HeapStackTop);
+    printf("HeapAllocStack(%ld) at 0x%lx\n", (unsigned long)MEM_ALIGN(Size), (unsigned long)HeapStackTop);
 #endif
     if (NewTop > (char *)HeapBottom)
         return NULL;
@@ -70,7 +70,7 @@ void *HeapAllocStack(int Size)
 void HeapUnpopStack(int Size)
 {
 #ifdef DEBUG_HEAP
-    printf("HeapUnpopStack(%d) at 0x%lx\n", MEM_ALIGN(Size), (unsigned long)HeapStackTop);
+    printf("HeapUnpopStack(%ld) at 0x%lx\n", (unsigned long)MEM_ALIGN(Size), (unsigned long)HeapStackTop);
 #endif
     HeapStackTop = (void *)((char *)HeapStackTop + MEM_ALIGN(Size));
 }
@@ -83,7 +83,7 @@ int HeapPopStack(void *Addr, int Size)
         return FALSE;
     
 #ifdef DEBUG_HEAP
-    printf("HeapPopStack(0x%lx, %d) back to 0x%lx\n", (unsigned long)Addr, MEM_ALIGN(Size), (unsigned long)HeapStackTop - ToLose);
+    printf("HeapPopStack(0x%lx, %ld) back to 0x%lx\n", (unsigned long)Addr, (unsigned long)MEM_ALIGN(Size), (unsigned long)HeapStackTop - ToLose);
 #endif
     HeapStackTop = (void *)((char *)HeapStackTop - ToLose);
     assert(HeapStackTop == Addr);
@@ -190,7 +190,7 @@ void *HeapAllocMem(int Size)
     { 
         /* couldn't allocate from a freelist - try to increase the size of the heap area */
 #ifdef DEBUG_HEAP
-        printf("allocating %d(%d) at bottom of heap (0x%lx-0x%lx)", Size, AllocSize, (long)(HeapBottom - AllocSize), (long)HeapBottom);
+        printf("allocating %d(%d) at bottom of heap (0x%lx-0x%lx)", Size, AllocSize, (long)((char *)HeapBottom - AllocSize), (long)HeapBottom);
 #endif
         if ((char *)HeapBottom - AllocSize < (char *)HeapStackTop)
             return NULL;
@@ -218,6 +218,9 @@ void HeapFreeMem(void *Mem)
     struct AllocNode *MemNode = (struct AllocNode *)((char *)Mem - MEM_ALIGN(sizeof(MemNode->Size)));
     int Bucket = MemNode->Size >> 2;
     
+#ifdef DEBUG_HEAP
+    printf("HeapFreeMem(%lx)\n", (unsigned long)Mem);
+#endif
     assert((unsigned long)Mem >= (unsigned long)&HeapMemory[0] && (unsigned char *)Mem - &HeapMemory[0] < HEAP_SIZE);
     assert(MemNode->Size < HEAP_SIZE && MemNode->Size > 0);
     if (Mem == NULL)

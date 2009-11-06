@@ -138,7 +138,7 @@ int ExpressionCoerceInteger(struct Value *Val)
         case TypeShort:           return (int)Val->Val->ShortInteger;
         case TypeUnsignedInt:     return (int)Val->Val->UnsignedInteger;
         case TypeUnsignedShort:   return (int)Val->Val->UnsignedShortInteger;
-        case TypePointer:         return (int)Val->Val->NativePointer;
+        case TypePointer:         return (int)(unsigned long)Val->Val->NativePointer;
 #ifndef NO_FP
         case TypeFP:              return (int)Val->Val->FP;
 #endif
@@ -155,7 +155,7 @@ unsigned int ExpressionCoerceUnsignedInteger(struct Value *Val)
         case TypeShort:           return (unsigned int)Val->Val->ShortInteger;
         case TypeUnsignedInt:     return (unsigned int)Val->Val->UnsignedInteger;
         case TypeUnsignedShort:   return (unsigned int)Val->Val->UnsignedShortInteger;
-        case TypePointer:         return (unsigned int)Val->Val->NativePointer;
+        case TypePointer:         return (unsigned int)(unsigned long)Val->Val->NativePointer;
 #ifndef NO_FP
         case TypeFP:              return (unsigned int)Val->Val->FP;
 #endif
@@ -309,7 +309,7 @@ void ExpressionAssignToPointer(struct ParseState *Parser, struct Value *ToValue,
     else if (AllowPointerCoercion && IS_NUMERIC_COERCIBLE(FromValue))
     {
         /* assign integer to native pointer */
-        ToValue->Val->NativePointer = (void *)ExpressionCoerceUnsignedInteger(FromValue);
+        ToValue->Val->NativePointer = (void *)(unsigned long)ExpressionCoerceUnsignedInteger(FromValue);
     }
     else
         AssignFail(Parser, "%t from %t", ToValue->Typ, FromValue->Typ, 0, 0, FuncName, ParamNo); 
