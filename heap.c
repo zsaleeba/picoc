@@ -86,7 +86,7 @@ int HeapPopStack(void *Addr, int Size)
     printf("HeapPopStack(0x%lx, %ld) back to 0x%lx\n", (unsigned long)Addr, (unsigned long)MEM_ALIGN(Size), (unsigned long)HeapStackTop - ToLose);
 #endif
     HeapStackTop = (void *)((char *)HeapStackTop - ToLose);
-    assert(HeapStackTop == Addr);
+    assert(Addr == NULL || HeapStackTop == Addr);
     
     return TRUE;
 }
@@ -99,7 +99,7 @@ void HeapPushStackFrame()
 #endif
     *(void **)HeapStackTop = StackFrame;
     StackFrame = HeapStackTop;
-    HeapStackTop = (void *)((char *)HeapStackTop + sizeof(void *));
+    HeapStackTop = (void *)((char *)HeapStackTop + MEM_ALIGN(sizeof(void *)));
 }
 
 /* pop the current stack frame, freeing all memory in the frame. can return NULL */
@@ -219,7 +219,7 @@ void HeapFreeMem(void *Mem)
     int Bucket = MemNode->Size >> 2;
     
 #ifdef DEBUG_HEAP
-    printf("HeapFreeMem(%lx)\n", (unsigned long)Mem);
+    printf("HeapFreeMem(0x%lx)\n", (unsigned long)Mem);
 #endif
     assert((unsigned long)Mem >= (unsigned long)&HeapMemory[0] && (unsigned char *)Mem - &HeapMemory[0] < HEAP_SIZE);
     assert(MemNode->Size < HEAP_SIZE && MemNode->Size > 0);

@@ -258,11 +258,15 @@ void ExpressionStackPushLValue(struct ParseState *Parser, struct ExpressionStack
 void ExpressionStackPushDereference(struct ParseState *Parser, struct ExpressionStack **StackTop, struct Value *DereferenceValue)
 {
     struct Value *DerefVal;
+    struct Value *ValueLoc;
     int Offset;
     struct ValueType *DerefType;
     int DerefIsLValue;
     void *DerefDataLoc = VariableDereferencePointer(Parser, DereferenceValue, &DerefVal, &Offset, &DerefType, &DerefIsLValue);
-    struct Value *ValueLoc = VariableAllocValueFromExistingData(Parser, DerefType, (union AnyValue *)DerefDataLoc, DerefIsLValue, DerefVal);
+    if (DerefDataLoc == NULL)
+        ProgramFail(Parser, "NULL pointer dereference");
+
+    ValueLoc = VariableAllocValueFromExistingData(Parser, DerefType, (union AnyValue *)DerefDataLoc, DerefIsLValue, DerefVal);
     ExpressionStackPushValueNode(Parser, StackTop, ValueLoc);
 }
 
@@ -372,6 +376,7 @@ void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct
 void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack **StackTop, enum LexToken Op, struct Value *TopValue)
 {
     struct Value *Result;
+    union AnyValue *ValPtr;
 
     if (Parser->Mode != RunModeRun)
     {
@@ -387,8 +392,9 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
             if (!TopValue->IsLValue)
                 ProgramFail(Parser, "can't get the address of this");
 
+	    ValPtr = TopValue->Val;
             Result = VariableAllocValueFromType(Parser, TypeGetMatching(Parser, TopValue->Typ, TypePointer, 0, StrEmpty), FALSE, NULL, FALSE);
-            Result->Val->NativePointer = TopValue->Val;
+            Result->Val->NativePointer = (void *)ValPtr;
             ExpressionStackPushValueNode(Parser, StackTop, Result);
             break;
 
@@ -762,7 +768,8 @@ void ExpressionStackCollapse(struct ParseState *Parser, struct ExpressionStack *
                     TopValue = TopStackNode->Val;
                     
                     /* pop the value and then the prefix operator - assume they'll still be there until we're done */
-                    HeapPopStack(TopOperatorNode, sizeof(struct ExpressionStack)*2 + sizeof(struct Value) + TypeStackSizeValue(TopValue));
+                    HeapPopStack(NULL, sizeof(struct ExpressionStack) + sizeof(struct Value) + TypeStackSizeValue(TopValue));
+                    HeapPopStack(TopOperatorNode, sizeof(struct ExpressionStack));
                     *StackTop = TopOperatorNode->Next;
                     
                     /* do the prefix operation */
@@ -775,7 +782,8 @@ void ExpressionStackCollapse(struct ParseState *Parser, struct ExpressionStack *
                     TopValue = TopStackNode->Next->Val;
                     
                     /* pop the postfix operator and then the value - assume they'll still be there until we're done */
-                    HeapPopStack(TopValue, sizeof(struct ExpressionStack)*2 + sizeof(struct Value) + TypeStackSizeValue(TopValue));
+                    HeapPopStack(NULL, sizeof(struct ExpressionStack));
+                    HeapPopStack(TopValue, sizeof(struct ExpressionStack) + sizeof(struct Value) + TypeStackSizeValue(TopValue));
                     *StackTop = TopStackNode->Next->Next;
 
                     /* do the postfix operation */
@@ -791,7 +799,9 @@ void ExpressionStackCollapse(struct ParseState *Parser, struct ExpressionStack *
                         BottomValue = TopOperatorNode->Next->Val;
                         
                         /* pop a value, the operator and another value - assume they'll still be there until we're done */
-                        HeapPopStack(BottomValue, sizeof(struct ExpressionStack)*3 + sizeof(struct Value)*2 + TypeStackSizeValue(TopValue) + TypeStackSizeValue(BottomValue));
+                        HeapPopStack(NULL, sizeof(struct ExpressionStack) + sizeof(struct Value) + TypeStackSizeValue(TopValue));
+                        HeapPopStack(NULL, sizeof(struct ExpressionStack));
+                        HeapPopStack(BottomValue, sizeof(struct ExpressionStack) + sizeof(struct Value) + TypeStackSizeValue(BottomValue));
                         *StackTop = TopOperatorNode->Next->Next;
                         
                         /* do the infix operation */

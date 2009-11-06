@@ -73,7 +73,7 @@ int TypeStackSizeValue(struct Value *Val)
 int TypeSizeValue(struct Value *Val)
 {
     if (Val->Typ->Base == TypeChar || Val->Typ->Base == TypeShort)
-        return sizeof(int);     /* allow some extra room for type extension to int */
+        return sizeof(void *);     /* allow some extra room for type extension */
     else if (Val->Typ->Base != TypeArray)
         return Val->Typ->Sizeof;
     else
@@ -84,7 +84,7 @@ int TypeSizeValue(struct Value *Val)
 int TypeSize(struct ValueType *Typ, int ArraySize, int Compact)
 {
     if ( (Typ->Base == TypeChar || Typ->Base == TypeShort) && !Compact)
-        return sizeof(int);     /* allow some extra room for type extension to int */
+        return sizeof(void *);     /* allow some extra room for type extension */
     else if (Typ->Base != TypeArray)
         return Typ->Sizeof;
     else
