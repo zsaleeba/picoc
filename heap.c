@@ -99,7 +99,7 @@ void HeapPushStackFrame()
 #endif
     *(void **)HeapStackTop = StackFrame;
     StackFrame = HeapStackTop;
-    HeapStackTop = (void *)((char *)HeapStackTop + MEM_ALIGN(sizeof(void *)));
+    HeapStackTop = (void *)((char *)HeapStackTop + MEM_ALIGN(sizeof(ALIGN_TYPE)));
 }
 
 /* pop the current stack frame, freeing all memory in the frame. can return NULL */

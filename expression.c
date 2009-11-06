@@ -461,6 +461,8 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
                 /* pointer prefix arithmetic */
                 int Size = TypeSize(TopValue->Typ->FromType, 0, TRUE);
                 struct Value *StackValue;
+		void *ResultPtr;
+
                 if (TopValue->Val->NativePointer == NULL)
                     ProgramFail(Parser, "invalid use of a NULL pointer");
                 
@@ -474,8 +476,9 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
                     default:                ProgramFail(Parser, "invalid operation"); break;
                 }
 
+		ResultPtr = TopValue->Val->NativePointer;
                 StackValue = ExpressionStackPushValueByType(Parser, StackTop, TopValue->Typ);
-                StackValue->Val->NativePointer = TopValue->Val->NativePointer;
+                StackValue->Val->NativePointer = ResultPtr;
             }
             else
                 ProgramFail(Parser, "invalid operation");
