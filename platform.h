@@ -10,9 +10,6 @@
  * #define  UMON_HOST
  */
 
-#ifndef SURVEYOR_HOST
-#define HEAP_SIZE 16384                     /* default space for the heap and the stack */
-#endif
 #define LARGE_INT_POWER_OF_TEN 1000000000   /* the largest power of ten which fits in an int on this architecture */
 #define ALIGN_TYPE void *                   /* the data type to use for alignment */
 #define ARCH_ALIGN_WORDSIZE sizeof(ALIGN_TYPE)  /* memory alignment boundary on this architecture */
@@ -38,6 +35,7 @@
 
 /* host platform includes */
 #ifdef UNIX_HOST
+# define HEAP_SIZE (128*1024)               /* space for the heap and the stack */
 # include <stdio.h>
 # include <stdlib.h>
 # include <ctype.h>
@@ -59,6 +57,7 @@ extern jmp_buf ExitBuf;
 
 #else
 # ifdef FLYINGFOX_HOST
+#  define HEAP_SIZE (16*1024)               /* space for the heap and the stack */
 #  define NO_HASH_INCLUDE
 #  include <stdlib.h>
 #  include <ctype.h>
@@ -96,6 +95,7 @@ extern jmp_buf ExitBuf;
 #   undef BIG_ENDIAN
 #  else
 #   ifdef UMON_HOST
+#    define HEAP_SIZE (128*1024)               /* space for the heap and the stack */
 #    define NO_FP
 #    include <stdlib.h>
 #    include <string.h>
