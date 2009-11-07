@@ -88,8 +88,8 @@ void *VariableAlloc(struct ParseState *Parser, int Size, int OnHeap)
 /* allocate a value either on the heap or the stack using space dependent on what type we want */
 struct Value *VariableAllocValueAndData(struct ParseState *Parser, int DataSize, int IsLValue, struct Value *LValueFrom, int OnHeap)
 {
-    struct Value *NewValue = VariableAlloc(Parser, sizeof(struct Value) + DataSize, OnHeap);
-    NewValue->Val = (union AnyValue *)((char *)NewValue + sizeof(struct Value));
+    struct Value *NewValue = VariableAlloc(Parser, MEM_ALIGN(sizeof(struct Value)) + DataSize, OnHeap);
+    NewValue->Val = (union AnyValue *)((char *)NewValue + MEM_ALIGN(sizeof(struct Value)));
     NewValue->ValOnHeap = OnHeap;
     NewValue->ValOnStack = !OnHeap;
     NewValue->IsLValue = IsLValue;

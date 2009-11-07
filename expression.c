@@ -1192,9 +1192,10 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
         if (FuncValue->Val->FuncDef.Intrinsic == NULL)
         { 
             /* run a user-defined function */
-            struct ParseState FuncParser = FuncValue->Val->FuncDef.Body;
+            struct ParseState FuncParser;
             int Count;
             
+            memcpy((void *)&FuncParser, (void *)&FuncValue->Val->FuncDef.Body, sizeof(struct ParseState));
             VariableStackFrameAdd(Parser, FuncValue->Val->FuncDef.Intrinsic ? FuncValue->Val->FuncDef.NumParams : 0);
             TopStackFrame->NumParams = ArgCount;
             TopStackFrame->ReturnValue = ReturnValue;
