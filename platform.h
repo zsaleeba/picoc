@@ -50,10 +50,15 @@
 # include <stdarg.h>
 # include <setjmp.h>
 # ifndef NO_FP
-# include <math.h>
-# define PICOC_MATH_LIBRARY
-# define NEED_MATH_LIBRARY
-#endif
+#  include <math.h>
+#  define PICOC_MATH_LIBRARY
+#  define NEED_MATH_LIBRARY
+#  if defined(__powerpc__) || defined(__hppa__)
+#   define BIG_ENDIAN
+#  else
+#   undef BIG_ENDIAN
+#  endif
+# endif
 
 extern jmp_buf ExitBuf;
 

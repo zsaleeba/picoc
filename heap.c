@@ -40,7 +40,7 @@ void HeapInit()
     int Count;
     int AlignOffset = 0;
     
-    while (((unsigned int)&HeapMemory[AlignOffset] & (sizeof(ALIGN_TYPE)-1)) != 0)
+    while (((unsigned long)&HeapMemory[AlignOffset] & (sizeof(ALIGN_TYPE)-1)) != 0)
         AlignOffset++;
         
     StackFrame = &HeapMemory[AlignOffset];
