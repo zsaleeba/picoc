@@ -66,7 +66,7 @@ void PrintRepeatedChar(char ShowChar, int Length, struct OutputStream *Stream)
 }
 
 /* print an unsigned integer to a stream without using printf/sprintf */
-void PrintUnsigned(unsigned int Num, unsigned int Base, int FieldWidth, int ZeroPad, int LeftJustify, struct OutputStream *Stream)
+void PrintUnsigned(unsigned long Num, unsigned int Base, int FieldWidth, int ZeroPad, int LeftJustify, struct OutputStream *Stream)
 {
     char Result[33];
     int ResPos = sizeof(Result);
@@ -77,8 +77,8 @@ void PrintUnsigned(unsigned int Num, unsigned int Base, int FieldWidth, int Zero
     Result[--ResPos] = '\0';
     while (Num > 0)
     {
-        unsigned int NextNum = Num / Base;
-        unsigned int Digit = Num - NextNum * Base;
+        unsigned long NextNum = Num / Base;
+        unsigned long Digit = Num - NextNum * Base;
         if (Digit < 10)
             Result[--ResPos] = '0' + Digit;
         else
@@ -97,7 +97,7 @@ void PrintUnsigned(unsigned int Num, unsigned int Base, int FieldWidth, int Zero
 }
 
 /* print an integer to a stream without using printf/sprintf */
-void PrintInt(int Num, int FieldWidth, int ZeroPad, int LeftJustify, struct OutputStream *Stream)
+void PrintInt(long Num, int FieldWidth, int ZeroPad, int LeftJustify, struct OutputStream *Stream)
 {
     if (Num < 0)
     {
@@ -107,7 +107,7 @@ void PrintInt(int Num, int FieldWidth, int ZeroPad, int LeftJustify, struct Outp
             FieldWidth--;
     }
     
-    PrintUnsigned((unsigned int)Num, 10, FieldWidth, ZeroPad, LeftJustify, Stream);
+    PrintUnsigned((unsigned long)Num, 10, FieldWidth, ZeroPad, LeftJustify, Stream);
 }
 
 #ifndef NO_FP
@@ -129,13 +129,13 @@ void PrintFP(double Num, struct OutputStream *Stream)
         Exponent = math_log10(Num) - 0.999999999;
     
     Num /= math_pow(10.0, Exponent);    
-    PrintInt((int)Num, 0, FALSE, FALSE, Stream);
+    PrintInt((long)Num, 0, FALSE, FALSE, Stream);
     PrintCh('.', Stream);
-    Num = (Num - (int)Num) * 10;
+    Num = (Num - (long)Num) * 10;
     if (math_abs(Num) >= 1e-7)
     {
-        for (MaxDecimal = 6; MaxDecimal > 0 && math_abs(Num) >= 1e-7; Num = (Num - (int)(Num + 1e-7)) * 10, MaxDecimal--)
-            PrintCh('0' + (int)(Num + 1e-7), Stream);
+        for (MaxDecimal = 6; MaxDecimal > 0 && math_abs(Num) >= 1e-7; Num = (Num - (long)(Num + 1e-7)) * 10, MaxDecimal--)
+            PrintCh('0' + (long)(Num + 1e-7), Stream);
     }
     else
         PrintCh('0', Stream);
@@ -256,10 +256,10 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
                                 break;
                             }
                             case 'd': PrintInt(ExpressionCoerceInteger(NextArg), FieldWidth, ZeroPad, LeftJustify, Stream); break;
-                            case 'u': PrintUnsigned((unsigned int)ExpressionCoerceInteger(NextArg), 10, FieldWidth, ZeroPad, LeftJustify, Stream); break;
-                            case 'x': PrintUnsigned((unsigned int)ExpressionCoerceInteger(NextArg), 16, FieldWidth, ZeroPad, LeftJustify, Stream); break;
-                            case 'b': PrintUnsigned((unsigned int)ExpressionCoerceInteger(NextArg), 2, FieldWidth, ZeroPad, LeftJustify, Stream); break;
-                            case 'c': PrintCh(ExpressionCoerceInteger(NextArg), Stream); break;
+                            case 'u': PrintUnsigned(ExpressionCoerceUnsignedInteger(NextArg), 10, FieldWidth, ZeroPad, LeftJustify, Stream); break;
+                            case 'x': PrintUnsigned(ExpressionCoerceUnsignedInteger(NextArg), 16, FieldWidth, ZeroPad, LeftJustify, Stream); break;
+                            case 'b': PrintUnsigned(ExpressionCoerceUnsignedInteger(NextArg), 2, FieldWidth, ZeroPad, LeftJustify, Stream); break;
+                            case 'c': PrintCh(ExpressionCoerceUnsignedInteger(NextArg), Stream); break;
 #ifndef NO_FP
                             case 'f': PrintFP(ExpressionCoerceFP(NextArg), Stream); break;
 #endif

@@ -375,7 +375,7 @@ void *VariableDereferencePointer(struct ParseState *Parser, struct Value *Pointe
 void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct LibraryFunction (*FuncList)[]);
 void CLibraryInit();
 void PrintCh(char OutCh, struct OutputStream *Stream);
-void PrintInt(int Num, int FieldWidth, int ZeroPad, int LeftJustify, struct OutputStream *Stream);
+void PrintInt(long Num, int FieldWidth, int ZeroPad, int LeftJustify, struct OutputStream *Stream);
 void PrintStr(const char *Str, struct OutputStream *Stream);
 void PrintFP(double Num, struct OutputStream *Stream);
 void PrintType(struct ValueType *Typ, struct OutputStream *Stream);
