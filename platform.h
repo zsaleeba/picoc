@@ -54,7 +54,7 @@
 #  define PICOC_MATH_LIBRARY
 #  define NEED_MATH_LIBRARY
 #  undef BIG_ENDIAN
-#  if defined(__powerpc__) || defined(__hppa__)
+#  if defined(__powerpc__) || defined(__hppa__) || defined(__sparc__)
 #   define BIG_ENDIAN
 #  endif
 # endif
