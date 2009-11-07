@@ -16,7 +16,6 @@ static unsigned char HeapMemory[HEAP_SIZE];         /* all memory - stack and he
 static void *HeapBottom = &HeapMemory[HEAP_SIZE];   /* the bottom of the (downward-growing) heap */
 static void *StackFrame = &HeapMemory[0];           /* the current stack frame */
 void *HeapStackTop = &HeapMemory[0];                /* the top of the stack */
-void *HeapMemStart = &HeapMemory[0];
 #endif
 
 static struct AllocNode *FreeListBucket[FREELIST_BUCKETS];      /* we keep a pool of freelist buckets to reduce fragmentation */
@@ -39,11 +38,15 @@ void ShowBigList()
 void HeapInit()
 {
     int Count;
+    int AlignOffset = 0;
     
-    StackFrame = &HeapMemory[0];
-    HeapStackTop = &HeapMemory[0];
+    while (((unsigned int)&HeapMemory[AlignOffset] & (sizeof(ALIGN_TYPE)-1)) != 0)
+        AlignOffset++;
+        
+    StackFrame = &HeapMemory[AlignOffset];
+    HeapStackTop = &HeapMemory[AlignOffset];
     *(void **)StackFrame = NULL;
-    HeapBottom = &HeapMemory[HEAP_SIZE];
+    HeapBottom = &HeapMemory[HEAP_SIZE-sizeof(ALIGN_TYPE)+AlignOffset];
     FreeListBig = NULL;
     for (Count = 0; Count < FREELIST_BUCKETS; Count++)
         FreeListBucket[Count] = NULL;

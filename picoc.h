@@ -17,7 +17,7 @@
 #define min(x,y) (((x)<(y))?(x):(y))
 #endif
 
-#define MEM_ALIGN(x) (((x) + ARCH_ALIGN_WORDSIZE - 1) & ~(ARCH_ALIGN_WORDSIZE-1))
+#define MEM_ALIGN(x) (((x) + sizeof(ALIGN_TYPE) - 1) & ~(sizeof(ALIGN_TYPE)-1))
 
 #define GETS_BUF_MAX 256
 
@@ -260,7 +260,6 @@ enum ParseResult { ParseResultEOF, ParseResultError, ParseResultOk };
 
 /* globals */
 extern void *HeapStackTop;
-extern void *HeapMemStart;
 extern struct Table GlobalTable;
 extern struct StackFrame *TopStackFrame;
 extern struct ValueType UberType;

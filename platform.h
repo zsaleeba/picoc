@@ -11,8 +11,11 @@
  */
 
 #define LARGE_INT_POWER_OF_TEN 1000000000   /* the largest power of ten which fits in an int on this architecture */
+#ifdef __hppa__
+#define ALIGN_TYPE double                   /* the data type to use for alignment */
+#else
 #define ALIGN_TYPE void *                   /* the data type to use for alignment */
-#define ARCH_ALIGN_WORDSIZE sizeof(ALIGN_TYPE)  /* memory alignment boundary on this architecture */
+#endif
 
 #define GLOBAL_TABLE_SIZE 97                /* global variable table */
 #define STRING_TABLE_SIZE 97                /* shared string table size */
@@ -50,7 +53,6 @@
 # include <math.h>
 # define PICOC_MATH_LIBRARY
 # define NEED_MATH_LIBRARY
-# undef BIG_ENDIAN
 #endif
 
 extern jmp_buf ExitBuf;
