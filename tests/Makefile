@@ -27,7 +27,8 @@ TESTS=	00_assignment.test \
 	26_character_constants.test \
 	28_strings.test \
 	29_array_address.test \
-        34_array_assignment.test
+        34_array_assignment.test \
+	35_sizeof.test
 
 %.test: %.expect %.c
 	@echo Test: $*...
