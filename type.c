@@ -5,8 +5,10 @@ struct ValueType UberType;
 struct ValueType IntType;
 struct ValueType ShortType;
 struct ValueType CharType;
+struct ValueType LongType;
 struct ValueType UnsignedIntType;
 struct ValueType UnsignedShortType;
+struct ValueType UnsignedLongType;
 #ifndef NO_FP
 struct ValueType FPType;
 #endif
@@ -72,7 +74,7 @@ int TypeStackSizeValue(struct Value *Val)
 /* memory used by a value */
 int TypeSizeValue(struct Value *Val)
 {
-    if (Val->Typ->Base == TypeChar || Val->Typ->Base == TypeShort)
+    if (IS_INTEGER_NUMERIC(Val))
         return sizeof(ALIGN_TYPE);     /* allow some extra room for type extension */
     else if (Val->Typ->Base != TypeArray)
         return Val->Typ->Sizeof;
@@ -83,7 +85,7 @@ int TypeSizeValue(struct Value *Val)
 /* memory used by a variable given its type and array size */
 int TypeSize(struct ValueType *Typ, int ArraySize, int Compact)
 {
-    if ( (Typ->Base == TypeChar || Typ->Base == TypeShort) && !Compact)
+    if (IS_INTEGER_NUMERIC_TYPE(Typ) && !Compact)
         return sizeof(ALIGN_TYPE);     /* allow some extra room for type extension */
     else if (Typ->Base != TypeArray)
         return Typ->Sizeof;
@@ -122,8 +124,10 @@ void TypeInit()
     TypeAddBaseType(&IntType, TypeInt, sizeof(int));
     TypeAddBaseType(&ShortType, TypeShort, sizeof(short));
     TypeAddBaseType(&CharType, TypeChar, sizeof(unsigned char));
+    TypeAddBaseType(&LongType, TypeLong, sizeof(long));
     TypeAddBaseType(&UnsignedIntType, TypeUnsignedInt, sizeof(unsigned int));
     TypeAddBaseType(&UnsignedShortType, TypeUnsignedShort, sizeof(unsigned short));
+    TypeAddBaseType(&UnsignedLongType, TypeUnsignedLong, sizeof(unsigned long));
     TypeAddBaseType(&VoidType, TypeVoid, 0);
     TypeAddBaseType(&FunctionType, TypeFunction, sizeof(int));
     TypeAddBaseType(&MacroType, TypeMacro, sizeof(int));
@@ -320,9 +324,10 @@ int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ)
     
     switch (Token)
     {
-        case TokenIntType: case TokenLongType: *Typ = Unsigned ? &UnsignedIntType : &IntType; break;
+        case TokenIntType: *Typ = Unsigned ? &UnsignedIntType : &IntType; break;
         case TokenShortType: *Typ = Unsigned ? &UnsignedShortType : &ShortType; break;
         case TokenCharType: *Typ = &CharType; break;
+        case TokenLongType: *Typ = Unsigned ? &UnsignedLongType : &LongType; break;
 #ifndef NO_FP
         case TokenFloatType: case TokenDoubleType: *Typ = &FPType; break;
 #endif

@@ -33,7 +33,8 @@
 #define IS_POINTER_COERCIBLE(v, ap) ((ap) ? ((v)->Typ->Base == TypePointer) : 0)
 #define POINTER_COERCE(v) ((int)(v)->Val->NativePointer)
 
-#define IS_INTEGER_NUMERIC(v) ((v)->Typ->Base == TypeInt || (v)->Typ->Base == TypeChar || (v)->Typ->Base == TypeShort)
+#define IS_INTEGER_NUMERIC_TYPE(t) ((t)->Base >= TypeInt && (t)->Base <= TypeUnsignedLong)
+#define IS_INTEGER_NUMERIC(v) IS_INTEGER_NUMERIC_TYPE((v)->Typ)
 #define IS_NUMERIC_COERCIBLE(v) (IS_INTEGER_NUMERIC(v) || IS_FP(v))
 #define IS_NUMERIC_COERCIBLE_PLUS_POINTERS(v,ap) (IS_NUMERIC_COERCIBLE(v) || IS_POINTER_COERCIBLE(v,ap))
 
@@ -110,8 +111,10 @@ enum BaseType
     TypeInt,                    /* integer */
     TypeShort,                  /* short integer */
     TypeChar,                   /* a single character (unsigned) */
+    TypeLong,                   /* long integer */
     TypeUnsignedInt,            /* unsigned integer */
     TypeUnsignedShort,          /* unsigned short integer */
+    TypeUnsignedLong,           /* unsigned long integer */
 #ifndef NO_FP
     TypeFP,                     /* floating point */
 #endif
@@ -157,8 +160,10 @@ union AnyValue
     unsigned char Character;
     short ShortInteger;
     int Integer;
+    long LongInteger;
     unsigned short UnsignedShortInteger;
     unsigned int UnsignedInteger;
+    unsigned long UnsignedLongInteger;
     char *Identifier;
     char ArrayMem[2];               /* placeholder for where the data starts, doesn't point to it */
     struct ParseState Parser;
@@ -264,7 +269,6 @@ extern struct Table GlobalTable;
 extern struct StackFrame *TopStackFrame;
 extern struct ValueType UberType;
 extern struct ValueType IntType;
-extern struct ValueType ShortType;
 extern struct ValueType CharType;
 #ifndef NO_FP
 extern struct ValueType FPType;
@@ -315,10 +319,10 @@ void ParserCopyPos(struct ParseState *To, struct ParseState *From);
 
 /* expression.c */
 int ExpressionParse(struct ParseState *Parser, struct Value **Result);
-int ExpressionParseInt(struct ParseState *Parser);
+long ExpressionParseInt(struct ParseState *Parser);
 void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct Value *SourceValue, int Force, const char *FuncName, int ParamNo, int AllowPointerCoercion);
-int ExpressionCoerceInteger(struct Value *Val);
-unsigned int ExpressionCoerceUnsignedInteger(struct Value *Val);
+long ExpressionCoerceInteger(struct Value *Val);
+unsigned long ExpressionCoerceUnsignedInteger(struct Value *Val);
 #ifndef NO_FP
 double ExpressionCoerceFP(struct Value *Val);
 #endif

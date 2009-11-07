@@ -401,6 +401,7 @@ enum ParseResult ParseStatement(struct ParseState *Parser)
         case TokenIntType:
         case TokenShortType:
         case TokenCharType:
+        case TokenLongType:
         case TokenFloatType:
         case TokenDoubleType:
         case TokenVoidType:
