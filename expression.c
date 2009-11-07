@@ -4,7 +4,7 @@
 /* whether evaluation is left to right for a given precedence level */
 #define IS_LEFT_TO_RIGHT(p) ((p) != 2 && (p) != 3 && (p) != 14)
 #define BRACKET_PRECEDENCE 20
-#define IS_TYPE_TOKEN(t) ((t) >= TokenIntType && (t) <= TokenEnumType)
+#define IS_TYPE_TOKEN(t) ((t) >= TokenIntType && (t) <= TokenUnsignedType)
 
 #ifdef DEBUG_EXPRESSIONS
 #define debugf printf
@@ -461,7 +461,7 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
                 /* pointer prefix arithmetic */
                 int Size = TypeSize(TopValue->Typ->FromType, 0, TRUE);
                 struct Value *StackValue;
-		void *ResultPtr;
+                void *ResultPtr;
 
                 if (TopValue->Val->NativePointer == NULL)
                     ProgramFail(Parser, "invalid use of a NULL pointer");
@@ -476,7 +476,7 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
                     default:                ProgramFail(Parser, "invalid operation"); break;
                 }
 
-		ResultPtr = TopValue->Val->NativePointer;
+                ResultPtr = TopValue->Val->NativePointer;
                 StackValue = ExpressionStackPushValueByType(Parser, StackTop, TopValue->Typ);
                 StackValue->Val->NativePointer = ResultPtr;
             }
@@ -924,7 +924,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                 { 
                     /* it's either a new bracket level or a cast */
                     enum LexToken BracketToken = LexGetToken(Parser, &LexValue, FALSE);
-                    if (IS_TYPE_TOKEN(BracketToken))
+                    if (IS_TYPE_TOKEN(BracketToken) && StackTop != NULL && StackTop->Op != TokenSizeof)
                     {
                         /* it's a cast - get the new type */
                         struct ValueType *CastType;
