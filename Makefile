@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-Wall -pedantic -g -DUNIX_HOST
-LIBS=#-lm
+LIBS=-lm
 
 TARGET	= picoc
 SRCS	= picoc.c table.c lex.c parse.c expression.c heap.c type.c variable.c clibrary.c library_unix.c platform.c platform_unix.c math_library.c
