@@ -442,60 +442,136 @@ void LibFree(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
 
 void LibStrcpy(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    strcpy(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer);
+    char *To = (char *)Param[0]->Val->NativePointer;
+    char *From = (char *)Param[1]->Val->NativePointer;
+    
+    while (*From != '\0')
+        *To++ = *From++;
+    
+    *To = '\0';
 }
 
 void LibStrncpy(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    strncpy(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
+    char *To = (char *)Param[0]->Val->NativePointer;
+    char *From = (char *)Param[1]->Val->NativePointer;
+    int Len = Param[2]->Val->Integer;
+    
+    for (; *From != '\0' && Len > 0; Len--)
+        *To++ = *From++;
+    
+    if (Len > 0)
+        *To = '\0';
 }
 
 void LibStrcmp(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    int Result = strcmp(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer);
-    ReturnValue->Val->Integer = (Result > 0) ? 1 : ((Result < 0) ? -1 : 0);
+    char *Str1 = (char *)Param[0]->Val->NativePointer;
+    char *Str2 = (char *)Param[1]->Val->NativePointer;
+    int StrEnded;
+    
+    for (StrEnded = FALSE; !StrEnded; StrEnded = (*Str1 == '\0' || *Str2 == '\0'), Str1++, Str2++)
+    {
+         if (*Str1 < *Str2) { ReturnValue->Val->Integer = -1; return; } 
+         else if (*Str1 > *Str2) { ReturnValue->Val->Integer = 1; return; }
+    }
+    
+    ReturnValue->Val->Integer = 0;
 }
 
 void LibStrncmp(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    int Result = strncmp(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
-    ReturnValue->Val->Integer = (Result > 0) ? 1 : ((Result < 0) ? -1 : 0);
+    char *Str1 = (char *)Param[0]->Val->NativePointer;
+    char *Str2 = (char *)Param[1]->Val->NativePointer;
+    int Len = Param[2]->Val->Integer;
+    int StrEnded;
+    
+    for (StrEnded = FALSE; !StrEnded && Len > 0; StrEnded = (*Str1 == '\0' || *Str2 == '\0'), Str1++, Str2++, Len--)
+    {
+         if (*Str1 < *Str2) { ReturnValue->Val->Integer = -1; return; } 
+         else if (*Str1 > *Str2) { ReturnValue->Val->Integer = 1; return; }
+    }
+    
+    ReturnValue->Val->Integer = 0;
 }
 
 void LibStrcat(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    strcat(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer);
+    char *To = (char *)Param[0]->Val->NativePointer;
+    char *From = (char *)Param[1]->Val->NativePointer;
+    
+    while (*To != '\0')
+        To++;
+    
+    while (*From != '\0')
+        *To++ = *From++;
+    
+    *To = '\0';
 }
 
 void LibIndex(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = index(Param[0]->Val->NativePointer, Param[1]->Val->Integer);
+    char *Pos = (char *)Param[0]->Val->NativePointer;
+    int SearchChar = Param[1]->Val->Integer;
+
+    while (*Pos != '\0' && *Pos != SearchChar)
+        Pos++;
+    
+    if (*Pos != SearchChar)
+        ReturnValue->Val->NativePointer = NULL;
+    else
+        ReturnValue->Val->NativePointer = Pos;
 }
 
 void LibRindex(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = rindex(Param[0]->Val->NativePointer, Param[1]->Val->Integer);
+    char *Pos = (char *)Param[0]->Val->NativePointer;
+    int SearchChar = Param[1]->Val->Integer;
+
+    ReturnValue->Val->NativePointer = NULL;
+    for (; *Pos != '\0'; Pos++)
+    {
+        if (*Pos == SearchChar)
+            ReturnValue->Val->NativePointer = Pos;
+    }
 }
 
 void LibStrlen(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = strlen(Param[0]->Val->NativePointer);
+    char *Pos = (char *)Param[0]->Val->NativePointer;
+    int Len;
+    
+    for (Len = 0; *Pos != '\0'; Pos++)
+        Len++;
+    
+    ReturnValue->Val->Integer = Len;
 }
 
 void LibMemset(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
+    /* we can use the system memset() */
     memset(Param[0]->Val->NativePointer, Param[1]->Val->Integer, Param[2]->Val->Integer);
 }
 
 void LibMemcpy(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
+    /* we can use the system memcpy() */
     memcpy(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
 }
 
 void LibMemcmp(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    int Result = memcmp(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
-    ReturnValue->Val->Integer = (Result > 0) ? 1 : ((Result < 0) ? -1 : 0);
+    unsigned char *Mem1 = (unsigned char *)Param[0]->Val->NativePointer;
+    unsigned char *Mem2 = (unsigned char *)Param[1]->Val->NativePointer;
+    int Len = Param[2]->Val->Integer;
+    
+    for (; Len > 0; Mem1++, Mem2++, Len--)
+    {
+         if (*Mem1 < *Mem2) { ReturnValue->Val->Integer = -1; return; } 
+         else if (*Mem1 > *Mem2) { ReturnValue->Val->Integer = 1; return; }
+    }
+    
+    ReturnValue->Val->Integer = 0;
 }
 #endif
 
