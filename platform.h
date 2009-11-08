@@ -93,12 +93,16 @@ extern jmp_buf ExitBuf;
 #   include "../gps.h"
 #   include "../i2c.h"
 #   include "../jpeg.h"
+#   include "../malloc.h"
 #   define assert(x)
 #   undef INTERACTIVE_PROMPT_STATEMENT
 #   undef INTERACTIVE_PROMPT_LINE
 #   define INTERACTIVE_PROMPT_STATEMENT "> "
 #   define INTERACTIVE_PROMPT_LINE "- "
 #   undef BIG_ENDIAN
+#   define NO_CALLOC
+#   define NO_REALLOC
+#   define BROKEN_FLOAT_CASTS
 #  else
 #   ifdef UMON_HOST
 #    define HEAP_SIZE (128*1024)               /* space for the heap and the stack */

@@ -65,7 +65,7 @@ void *HeapAllocStack(int Size)
         return NULL;
         
     HeapStackTop = (void *)NewTop;
-    memset(NewMem, '\0', Size);
+    memset((void *)NewMem, '\0', Size);
     return NewMem;
 }
 

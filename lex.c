@@ -482,7 +482,7 @@ void *LexTokenise(struct LexState *Lexer, int *TokenLen)
         if (ValueSize > 0)
         { 
             /* store a value as well */
-            memcpy(TokenPos, (void *)GotValue->Val, ValueSize);
+            memcpy((void *)TokenPos, (void *)GotValue->Val, ValueSize);
             TokenPos += ValueSize;
             MemUsed += ValueSize;
         }

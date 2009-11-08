@@ -425,15 +425,19 @@ void LibMalloc(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
     ReturnValue->Val->NativePointer = malloc(Param[0]->Val->Integer);
 }
 
+#ifndef NO_CALLOC
 void LibCalloc(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     ReturnValue->Val->NativePointer = calloc(Param[0]->Val->Integer, Param[1]->Val->Integer);
 }
+#endif
 
+#ifndef NO_REALLOC
 void LibRealloc(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     ReturnValue->Val->NativePointer = realloc(Param[0]->Val->NativePointer, Param[1]->Val->Integer);
 }
+#endif
 
 void LibFree(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
@@ -603,11 +607,15 @@ struct LibraryFunction CLibrary[] =
     { LibCeil,          "float ceil(float)" },
     { LibFloor,         "float floor(float)" },
 #endif
-#ifndef NO_STRING_FUNCTIONS
     { LibMalloc,        "void *malloc(int)" },
+#ifndef NO_CALLOC
     { LibCalloc,        "void *calloc(int,int)" },
-    { LibCalloc,        "void *realloc(void *,int)" },
+#endif
+#ifndef NO_REALLOC
+    { LibRealloc,       "void *realloc(void *,int)" },
+#endif
     { LibFree,          "void free(void *)" },
+#ifndef NO_STRING_FUNCTIONS
     { LibStrcpy,        "void strcpy(char *,char *)" },
     { LibStrncpy,       "void strncpy(char *,char *,int)" },
     { LibStrcmp,        "int strcmp(char *,char *)" },

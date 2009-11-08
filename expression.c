@@ -171,8 +171,26 @@ unsigned long ExpressionCoerceUnsignedInteger(struct Value *Val)
     }
 }
 
+#ifndef NO_FP
 double ExpressionCoerceFP(struct Value *Val)
 {
+#ifndef BROKEN_FLOAT_CASTS
+    int IntVal;
+    unsigned UnsignedVal;
+    
+    switch (Val->Typ->Base)
+    {
+        case TypeInt:             IntVal = Val->Val->Integer; return (double)IntVal;
+        case TypeChar:            IntVal = Val->Val->Character; return (double)IntVal;
+        case TypeShort:           IntVal = Val->Val->ShortInteger; return (double)IntVal;
+        case TypeLong:            IntVal = Val->Val->LongInteger; return (double)IntVal;
+        case TypeUnsignedInt:     UnsignedVal = Val->Val->UnsignedInteger; return (double)UnsignedVal;
+        case TypeUnsignedShort:   UnsignedVal = Val->Val->UnsignedShortInteger; return (double)UnsignedVal;
+        case TypeUnsignedLong:    UnsignedVal = Val->Val->UnsignedLongInteger; return (double)UnsignedVal;
+        case TypeFP:              return Val->Val->FP;
+        default:                  return 0.0;
+    }
+#else
     switch (Val->Typ->Base)
     {
         case TypeInt:             return (double)Val->Val->Integer;
@@ -182,12 +200,12 @@ double ExpressionCoerceFP(struct Value *Val)
         case TypeUnsignedInt:     return (double)Val->Val->UnsignedInteger;
         case TypeUnsignedShort:   return (double)Val->Val->UnsignedShortInteger;
         case TypeUnsignedLong:    return (double)Val->Val->UnsignedLongInteger;
-#ifndef NO_FP
         case TypeFP:              return (double)Val->Val->FP;
-#endif
-        default:                  return 0;
+        default:                  return 0.0;
     }
+#endif
 }
+#endif
 
 /* assign an integer value */
 long ExpressionAssignInt(struct ParseState *Parser, struct Value *DestValue, long FromInt, int After)
@@ -574,7 +592,7 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
     { 
         /* array index */
         int ArrayIndex;
-        struct Value *Result;
+        struct Value *Result = NULL;
         
         if (!IS_NUMERIC_COERCIBLE(TopValue))
             ProgramFail(Parser, "array index must be an integer");

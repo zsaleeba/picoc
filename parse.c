@@ -123,7 +123,7 @@ void ParseDeclarationAssignment(struct ParseState *Parser, struct Value *NewVari
         
         for (ArrayIndex = 0; ArrayIndex < NewVariable->Typ->ArraySize; ArrayIndex++)
         {
-            struct Value *ArrayElement;
+            struct Value *ArrayElement = NULL;
             
             if (Token != TokenComma)
                 ProgramFail(Parser, "comma expected");
@@ -170,7 +170,7 @@ int ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
     char *Identifier;
     struct ValueType *BasicType;
     struct ValueType *Typ;
-    struct Value *NewVariable;
+    struct Value *NewVariable = NULL;
 
     TypeParseFront(Parser, &BasicType);
     do
