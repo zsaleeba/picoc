@@ -63,7 +63,7 @@ void main()
     array[14] = 74;
     array[15] = 55;
 
-   for (i = 0; i < 16; i++)
+    for (i = 0; i < 16; i++)
         printf("%d ", array[i]);
 
     printf("\n");

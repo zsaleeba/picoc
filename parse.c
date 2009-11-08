@@ -109,13 +109,67 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
     return FuncValue;
 }
 
+/* assign an initial value to a variable */
+void ParseDeclarationAssignment(struct ParseState *Parser, struct Value *NewVariable)
+{
+    struct Value *CValue;
+    int ArrayIndex;
+    enum LexToken Token = TokenComma;
+
+    if (LexGetToken(Parser, NULL, FALSE) == TokenLeftBrace)
+    {
+        /* this is an array initialiser */
+        LexGetToken(Parser, NULL, TRUE);
+        
+        for (ArrayIndex = 0; ArrayIndex < NewVariable->Typ->ArraySize; ArrayIndex++)
+        {
+            struct Value *ArrayElement;
+            
+            if (Token != TokenComma)
+                ProgramFail(Parser, "comma expected");
+                
+            if (Parser->Mode == RunModeRun)
+                ArrayElement = VariableAllocValueFromExistingData(Parser, NewVariable->Typ->FromType, (union AnyValue *)(&NewVariable->Val->ArrayMem[0] + TypeSize(NewVariable->Typ->FromType, 0, TRUE) * ArrayIndex), TRUE, NewVariable);
+                
+            if (!ExpressionParse(Parser, &CValue))
+                ProgramFail(Parser, "expression expected");
+                
+            if (Parser->Mode == RunModeRun)
+            {
+                ExpressionAssign(Parser, ArrayElement, CValue, FALSE, NULL, 0, FALSE);
+                VariableStackPop(Parser, CValue);
+                VariableStackPop(Parser, ArrayElement);
+            }
+            
+            Token = LexGetToken(Parser, NULL, TRUE);
+        }
+        
+        if (Token == TokenComma)
+            Token = LexGetToken(Parser, NULL, TRUE);
+
+        if (Token != TokenRightBrace)
+            ProgramFail(Parser, "'}' expected");
+    }
+    else
+    {
+        /* this is a normal expression initialiser */
+        if (!ExpressionParse(Parser, &CValue))
+            ProgramFail(Parser, "expression expected");
+            
+        if (Parser->Mode == RunModeRun)
+        {
+            ExpressionAssign(Parser, NewVariable, CValue, FALSE, NULL, 0, FALSE);
+            VariableStackPop(Parser, CValue);
+        }
+    }
+}
+
 /* declare a variable or function */
 int ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
 {
     char *Identifier;
     struct ValueType *BasicType;
     struct ValueType *Typ;
-    struct Value *CValue;
     struct Value *NewVariable;
 
     TypeParseFront(Parser, &BasicType);
@@ -145,14 +199,7 @@ int ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
                 {
                     /* we're assigning an initial value */
                     LexGetToken(Parser, NULL, TRUE);
-                    if (!ExpressionParse(Parser, &CValue))
-                        ProgramFail(Parser, "expression expected");
-                        
-                    if (Parser->Mode == RunModeRun)
-                    {
-                        ExpressionAssign(Parser, NewVariable, CValue, FALSE, NULL, 0, FALSE);
-                        VariableStackPop(Parser, CValue);
-                    }
+                    ParseDeclarationAssignment(Parser, NewVariable);
                 }
             }
         }
