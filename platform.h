@@ -115,6 +115,10 @@ extern jmp_buf ExitBuf;
 #    include <math.h>
 #    include "monlib.h"
 #    define assert(x)
+#	 define malloc mon_malloc
+#	 define calloc(a,b) mon_malloc(a*b)
+#	 define realloc mon_realloc
+#	 define free mon_free
 #    undef PlatformSetExitPoint
 #    define PlatformSetExitPoint()
 #   endif
