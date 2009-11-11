@@ -121,7 +121,7 @@ void ParseDeclarationAssignment(struct ParseState *Parser, struct Value *NewVari
         /* this is an array initialiser */
         LexGetToken(Parser, NULL, TRUE);
         
-        for (ArrayIndex = 0; ArrayIndex < NewVariable->Typ->ArraySize; ArrayIndex++)
+        for (ArrayIndex = 0; (Parser->Mode != RunModeRun && Token == TokenComma) || (Parser->Mode == RunModeRun && ArrayIndex < NewVariable->Typ->ArraySize); ArrayIndex++)
         {
             struct Value *ArrayElement = NULL;
             
