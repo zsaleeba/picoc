@@ -288,15 +288,11 @@ void LibPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
 void LibSPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     struct OutputStream StrStream;
-    struct Value *DerefVal;
-    int DerefOffset;
-    StrStream.i.Str.WritePos = VariableDereferencePointer(StrStream.i.Str.Parser, Param[0], &DerefVal, &DerefOffset, NULL, NULL);
-
-    if (DerefVal->Typ->Base != TypeArray)
-        ProgramFail(Parser, "can only print to arrays of char");
-        
+    
     StrStream.Putch = &SPutc;
     StrStream.i.Str.Parser = Parser;
+    StrStream.i.Str.WritePos = Param[0]->Val->NativePointer;
+
     GenericPrintf(Parser, ReturnValue, Param+1, NumArgs-1, &StrStream);
     PrintCh(0, &StrStream);
     ReturnValue->Val->NativePointer = *Param;
