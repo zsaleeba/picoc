@@ -600,7 +600,9 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
                     /* start a new list */
                     InteractiveHead = LineNode;
                     Parser->Line = 1;
+#ifdef FANCY_ERROR_REPORTING
                     Parser->CharacterPos = 0;
+#endif
                 }
                 else
                     InteractiveTail->Next = LineNode;
