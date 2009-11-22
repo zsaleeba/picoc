@@ -457,7 +457,8 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
             if (TopValue->Typ == &FPType)
             {
                 /* floating point prefix arithmetic */
-                double ResultFP;
+                double ResultFP = 0.0;
+                
                 switch (Op)
                 {
                     case TokenPlus:         ResultFP = TopValue->Val->FP; break;
@@ -1233,7 +1234,7 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
             for (Count = 0; Count < FuncValue->Val->FuncDef.NumParams; Count++)
                 VariableDefine(Parser, FuncValue->Val->FuncDef.ParamName[Count], ParamArray[Count], NULL, TRUE);
                 
-            if (ParseStatement(&FuncParser) != ParseResultOk)
+            if (ParseStatement(&FuncParser, TRUE) != ParseResultOk)
                 ProgramFail(&FuncParser, "function body expected");
         
             if (FuncValue->Val->FuncDef.ReturnType != &VoidType && FuncParser.Mode == RunModeRun)

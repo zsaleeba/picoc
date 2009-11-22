@@ -310,7 +310,7 @@ void LexInteractiveCompleted(struct ParseState *Parser);
 void LexInteractiveStatementPrompt();
 
 /* parse.c */
-enum ParseResult ParseStatement(struct ParseState *Parser);
+enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemicolon);
 struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *ReturnType, char *Identifier, int IsProtoType);
 void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt);
 void ParseInteractive();
