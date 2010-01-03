@@ -187,8 +187,7 @@ void VariableDefinePlatformVar(struct ParseState *Parser, char *Ident, struct Va
 {
     struct Value *SomeValue = VariableAllocValueAndData(NULL, 0, IsWritable, NULL, TRUE);
     SomeValue->Typ = Typ;
-    if (Typ->Base != TypeArray)
-        SomeValue->Val = FromValue;
+    SomeValue->Val = FromValue;
     
     if (!TableSet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, TableStrRegister(Ident), SomeValue))
         ProgramFail(Parser, "'%s' is already defined", Ident);
