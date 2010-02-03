@@ -42,18 +42,23 @@ void PrintSourceTextErrorLine(const char *FileName, const char *SourceText, int 
 }
 #endif
 
-/* exit with a message */
-void ProgramFail(struct ParseState *Parser, const char *Message, ...)
+/* display the source line and line number to identify an error */
+void PlatformErrorPrefix(struct ParseState *Parser)
 {
-    va_list Args;
-
     if (Parser != NULL)
 #ifdef FANCY_ERROR_REPORTING
         PrintSourceTextErrorLine(Parser->FileName, Parser->SourceText, Parser->Line, Parser->CharacterPos);
 #else
         PlatformPrintf("%s:%d: ", Parser->FileName, Parser->Line);   
 #endif
-        
+}
+
+/* exit with a message */
+void ProgramFail(struct ParseState *Parser, const char *Message, ...)
+{
+    va_list Args;
+
+    PlatformErrorPrefix(Parser);
     va_start(Args, Message);
     PlatformVPrintf(Message, Args);
     va_end(Args);
@@ -64,13 +69,7 @@ void ProgramFail(struct ParseState *Parser, const char *Message, ...)
 /* like ProgramFail() but gives descriptive error messages for assignment */
 void AssignFail(struct ParseState *Parser, const char *Format, struct ValueType *Type1, struct ValueType *Type2, int Num1, int Num2, const char *FuncName, int ParamNo)
 {
-    if (Parser != NULL)
-#ifdef FANCY_ERROR_REPORTING
-        PrintSourceTextErrorLine(Parser->FileName, Parser->SourceText, Parser->Line, Parser->CharacterPos);
-#else
-        PlatformPrintf("%s:%d: ", Parser->FileName, Parser->Line);   
-#endif
-        
+    PlatformErrorPrefix(Parser);
     PlatformPrintf("can't %s ", (FuncName == NULL) ? "assign" : "set");   
         
     if (Type1 != NULL)

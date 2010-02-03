@@ -379,6 +379,7 @@ void PrintInt(long Num, int FieldWidth, int ZeroPad, int LeftJustify, struct Out
 void PrintStr(const char *Str, struct OutputStream *Stream);
 void PrintFP(double Num, struct OutputStream *Stream);
 void PrintType(struct ValueType *Typ, struct OutputStream *Stream);
+void LibPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs);
 
 /* platform.c */
 void ProgramFail(struct ParseState *Parser, const char *Message, ...);
@@ -389,6 +390,7 @@ void PlatformScanFile(const char *FileName);
 char *PlatformGetLine(char *Buf, int MaxLen);
 int PlatformGetCharacter();
 void PlatformPutc(unsigned char OutCh, union OutputStreamInfo *);
+void PlatformErrorPrefix(struct ParseState *Parser);
 void PlatformPrintf(const char *Format, ...);
 void PlatformVPrintf(const char *Format, va_list Args);
 void PlatformExit();
