@@ -71,10 +71,10 @@ void PrintUnsigned(unsigned long Num, unsigned int Base, int FieldWidth, int Zer
     char Result[33];
     int ResPos = sizeof(Result);
 
-    if (Num == 0)
-        PrintCh('0', Stream);
-            
     Result[--ResPos] = '\0';
+    if (Num == 0)
+        Result[--ResPos] = '0';
+            
     while (Num > 0)
     {
         unsigned long NextNum = Num / Base;
