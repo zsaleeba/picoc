@@ -307,7 +307,7 @@ enum RunMode ParseBlock(struct ParseState *Parser, int AbsorbOpenBrace, int Cond
     if (AbsorbOpenBrace && LexGetToken(Parser, NULL, TRUE) != TokenLeftBrace)
         ProgramFail(Parser, "'{' expected");
     
-    if (Parser->Mode != RunModeSkip && !Condition)
+    if (Parser->Mode == RunModeSkip || !Condition)
     { 
         /* condition failed - skip this block instead */
         enum RunMode OldMode = Parser->Mode;
@@ -494,7 +494,7 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
                 Parser->Mode = RunModeCaseSearch;
                 Parser->SearchLabel = Condition;
                 
-                ParseBlock(Parser, TRUE, TRUE);
+                ParseBlock(Parser, TRUE, OldMode != RunModeSkip);
                 
                 Parser->Mode = OldMode;
                 Parser->SearchLabel = OldSearchLabel;
