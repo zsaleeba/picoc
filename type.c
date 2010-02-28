@@ -183,9 +183,6 @@ void TypeParseStruct(struct ParseState *Parser, struct ValueType **Typ, int IsSt
     enum LexToken Token;
     int AlignBoundary;
     
-    if (TopStackFrame != NULL)
-        ProgramFail(Parser, "struct/union definitions can only be globals");
-        
     if (LexGetToken(Parser, &LexValue, TRUE) != TokenIdentifier)
         ProgramFail(Parser, "struct/union name required");
     
@@ -193,13 +190,17 @@ void TypeParseStruct(struct ParseState *Parser, struct ValueType **Typ, int IsSt
 
     Token = LexGetToken(Parser, NULL, FALSE);
     if (Token != TokenLeftBrace)
-    { /* use the already defined structure */
+    { 
+        /* use the already defined structure */
         if ((*Typ)->Members == NULL)
             ProgramFail(Parser, "structure '%s' isn't defined", LexValue->Val->Identifier);
             
         return;
     }
     
+    if (TopStackFrame != NULL)
+        ProgramFail(Parser, "struct/union definitions can only be globals");
+        
     LexGetToken(Parser, NULL, TRUE);    
     (*Typ)->Members = VariableAlloc(Parser, sizeof(struct Table) + STRUCT_TABLE_SIZE * sizeof(struct TableEntry), TRUE);
     (*Typ)->Members->HashTable = (struct TableEntry **)((char *)(*Typ)->Members + sizeof(struct Table));
@@ -251,9 +252,6 @@ void TypeParseEnum(struct ParseState *Parser, struct ValueType **Typ)
     int EnumValue = 0;
     char *EnumIdentifier;
     
-    if (TopStackFrame != NULL)
-        ProgramFail(Parser, "enum definitions can only be globals");
-        
     if (LexGetToken(Parser, &LexValue, TRUE) != TokenIdentifier)
         ProgramFail(Parser, "enum name required");
     
@@ -261,13 +259,17 @@ void TypeParseEnum(struct ParseState *Parser, struct ValueType **Typ)
     EnumType = TypeGetMatching(Parser, &UberType, TypeEnum, 0, LexValue->Val->Identifier);
     Token = LexGetToken(Parser, NULL, FALSE);
     if (Token != TokenLeftBrace)
-    { /* use the already defined enum */
+    { 
+        /* use the already defined enum */
         if ((*Typ)->Members == NULL)
             ProgramFail(Parser, "enum '%s' isn't defined", LexValue->Val->Identifier);
             
         return;
     }
     
+    if (TopStackFrame != NULL)
+        ProgramFail(Parser, "enum definitions can only be globals");
+        
     LexGetToken(Parser, NULL, TRUE);    
     (*Typ)->Members = &GlobalTable;
     memset((void *)&InitValue, '\0', sizeof(struct Value));
@@ -401,7 +403,8 @@ void TypeParseIdentPart(struct ParseState *Parser, struct ValueType *BasicTyp, s
         ProgramFail(Parser, "bad type declaration");
 
     if (*Identifier != StrEmpty)
-    { /* parse stuff after the identifier */
+    { 
+        /* parse stuff after the identifier */
         Done = FALSE;
         while (!Done)
         {
