@@ -345,6 +345,9 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
             
         case TokenIdentifier: 
         case TokenAsterisk: 
+        case TokenAmpersand: 
+        case TokenIncrement: 
+        case TokenDecrement: 
             *Parser = PreState;
             ExpressionParse(Parser, &CValue);
             if (Parser->Mode == RunModeRun) 
