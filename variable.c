@@ -26,7 +26,7 @@ void VariableFree(struct Value *Val)
     if (Val->ValOnHeap)
     {
         /* free function bodies */
-        if (Val->Typ == &FunctionType && Val->Val->FuncDef.Intrinsic == NULL)
+        if (Val->Typ == &FunctionType && Val->Val->FuncDef.Intrinsic == NULL && Val->Val->FuncDef.Body.Pos != NULL)
             HeapFreeMem((void *)Val->Val->FuncDef.Body.Pos);
 
         /* free macro bodies */

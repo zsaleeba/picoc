@@ -1227,6 +1227,9 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
             struct ParseState FuncParser;
             int Count;
             
+            if (FuncValue->Val->FuncDef.Body.Pos == NULL)
+                ProgramFail(Parser, "'%s' is undefined", FuncName);
+            
             memcpy((void *)&FuncParser, (void *)&FuncValue->Val->FuncDef.Body, sizeof(struct ParseState));
             VariableStackFrameAdd(Parser, FuncValue->Val->FuncDef.Intrinsic ? FuncValue->Val->FuncDef.NumParams : 0);
             TopStackFrame->NumParams = ArgCount;

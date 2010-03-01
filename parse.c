@@ -27,12 +27,13 @@ enum ParseResult ParseStatementMaybeRun(struct ParseState *Parser, int Condition
 }
 
 /* parse a function definition and store it for later */
-struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *ReturnType, char *Identifier, int IsPrototype)
+struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *ReturnType, char *Identifier)
 {
     struct ValueType *ParamType;
     char *ParamIdentifier;
     enum LexToken Token;
     struct Value *FuncValue;
+    struct Value *OldFuncValue;
     struct ParseState ParamParser;
     struct ParseState FuncBody;
     int ParamCount = 0;
@@ -90,9 +91,14 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
     if (FuncValue->Val->FuncDef.NumParams != 0 && Token != TokenCloseBracket && Token != TokenComma && Token != TokenEllipsis)
         ProgramFail(&ParamParser, "bad parameter");
     
-    if (!IsPrototype)
+    /* look for a function body */
+    Token = LexGetToken(Parser, NULL, FALSE);
+    if (Token == TokenSemicolon)
+        LexGetToken(Parser, NULL, TRUE);    /* it's a prototype, absorb the trailing semicolon */
+    else
     {
-        if (LexGetToken(Parser, NULL, FALSE) != TokenLeftBrace)
+        /* it's a full function definition with a body */
+        if (Token != TokenLeftBrace)
             ProgramFail(Parser, "bad function definition");
         
         FuncBody = *Parser;
@@ -101,11 +107,20 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
 
         FuncValue->Val->FuncDef.Body = FuncBody;
         FuncValue->Val->FuncDef.Body.Pos = LexCopyTokens(&FuncBody, Parser);
+
+        /* is this function already in the global table? */
+        if (TableGet(&GlobalTable, Identifier, &OldFuncValue))
+        {
+            if (OldFuncValue->Val->FuncDef.Body.Pos == NULL)
+                TableDelete(&GlobalTable, Identifier);   /* override an old function prototype */
+            else
+                ProgramFail(Parser, "'%s' is already defined", Identifier);
+        }
     }
-        
+
     if (!TableSet(&GlobalTable, Identifier, FuncValue))
         ProgramFail(Parser, "'%s' is already defined", Identifier);
-    
+        
     return FuncValue;
 }
 
@@ -184,7 +199,7 @@ int ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
             /* handle function definitions */
             if (LexGetToken(Parser, NULL, FALSE) == TokenOpenBracket)
             {
-                ParseFunctionDefinition(Parser, Typ, Identifier, FALSE);
+                ParseFunctionDefinition(Parser, Typ, Identifier);
                 return FALSE;
             }
             else

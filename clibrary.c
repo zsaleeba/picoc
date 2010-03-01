@@ -23,7 +23,7 @@ void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct Libr
         Tokens = LexAnalyse(IntrinsicName, (*FuncList)[Count].Prototype, strlen((char *)(*FuncList)[Count].Prototype), NULL);
         LexInitParser(&Parser, (*FuncList)[Count].Prototype, Tokens, IntrinsicName, TRUE);
         TypeParse(&Parser, &ReturnType, &Identifier);
-        NewValue = ParseFunctionDefinition(&Parser, ReturnType, Identifier, TRUE);
+        NewValue = ParseFunctionDefinition(&Parser, ReturnType, Identifier);
         NewValue->Val->FuncDef.Intrinsic = (*FuncList)[Count].Func;
         HeapFreeMem(Tokens);
     }
@@ -578,51 +578,51 @@ void LibMemcmp(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
 /* list of all library functions and their prototypes */
 struct LibraryFunction CLibrary[] =
 {
-    { LibPrintf,        "void printf(char *, ...)" },
-    { LibSPrintf,       "char *sprintf(char *, char *, ...)" },
-    { LibGets,          "void gets(char *, int)" },
-    { LibGetc,          "int getchar()" },
-    { LibExit,          "void exit()" },
+    { LibPrintf,        "void printf(char *, ...);" },
+    { LibSPrintf,       "char *sprintf(char *, char *, ...);" },
+    { LibGets,          "void gets(char *, int);" },
+    { LibGetc,          "int getchar();" },
+    { LibExit,          "void exit();" },
 #ifdef PICOC_MATH_LIBRARY
-    { LibSin,           "float sin(float)" },
-    { LibCos,           "float cos(float)" },
-    { LibTan,           "float tan(float)" },
-    { LibAsin,          "float asin(float)" },
-    { LibAcos,          "float acos(float)" },
-    { LibAtan,          "float atan(float)" },
-    { LibSinh,          "float sinh(float)" },
-    { LibCosh,          "float cosh(float)" },
-    { LibTanh,          "float tanh(float)" },
-    { LibExp,           "float exp(float)" },
-    { LibFabs,          "float fabs(float)" },
-    { LibLog,           "float log(float)" },
-    { LibLog10,         "float log10(float)" },
-    { LibPow,           "float pow(float,float)" },
-    { LibSqrt,          "float sqrt(float)" },
-    { LibRound,         "float round(float)" },
-    { LibCeil,          "float ceil(float)" },
-    { LibFloor,         "float floor(float)" },
+    { LibSin,           "float sin(float);" },
+    { LibCos,           "float cos(float);" },
+    { LibTan,           "float tan(float);" },
+    { LibAsin,          "float asin(float);" },
+    { LibAcos,          "float acos(float);" },
+    { LibAtan,          "float atan(float);" },
+    { LibSinh,          "float sinh(float);" },
+    { LibCosh,          "float cosh(float);" },
+    { LibTanh,          "float tanh(float);" },
+    { LibExp,           "float exp(float);" },
+    { LibFabs,          "float fabs(float);" },
+    { LibLog,           "float log(float);" },
+    { LibLog10,         "float log10(float);" },
+    { LibPow,           "float pow(float,float);" },
+    { LibSqrt,          "float sqrt(float);" },
+    { LibRound,         "float round(float);" },
+    { LibCeil,          "float ceil(float);" },
+    { LibFloor,         "float floor(float);" },
 #endif
-    { LibMalloc,        "void *malloc(int)" },
+    { LibMalloc,        "void *malloc(int);" },
 #ifndef NO_CALLOC
-    { LibCalloc,        "void *calloc(int,int)" },
+    { LibCalloc,        "void *calloc(int,int);" },
 #endif
 #ifndef NO_REALLOC
-    { LibRealloc,       "void *realloc(void *,int)" },
+    { LibRealloc,       "void *realloc(void *,int);" },
 #endif
-    { LibFree,          "void free(void *)" },
+    { LibFree,          "void free(void *);" },
 #ifndef NO_STRING_FUNCTIONS
-    { LibStrcpy,        "void strcpy(char *,char *)" },
-    { LibStrncpy,       "void strncpy(char *,char *,int)" },
-    { LibStrcmp,        "int strcmp(char *,char *)" },
-    { LibStrncmp,       "int strncmp(char *,char *,int)" },
-    { LibStrcat,        "void strcat(char *,char *)" },
-    { LibIndex,         "char *index(char *,int)" },
-    { LibRindex,        "char *rindex(char *,int)" },
-    { LibStrlen,        "int strlen(char *)" },
-    { LibMemset,        "void memset(void *,int,int)" },
-    { LibMemcpy,        "void memcpy(void *,void *,int)" },
-    { LibMemcmp,        "int memcmp(void *,void *,int)" },
+    { LibStrcpy,        "void strcpy(char *,char *);" },
+    { LibStrncpy,       "void strncpy(char *,char *,int);" },
+    { LibStrcmp,        "int strcmp(char *,char *);" },
+    { LibStrncmp,       "int strncmp(char *,char *,int);" },
+    { LibStrcat,        "void strcat(char *,char *);" },
+    { LibIndex,         "char *index(char *,int);" },
+    { LibRindex,        "char *rindex(char *,int);" },
+    { LibStrlen,        "int strlen(char *);" },
+    { LibMemset,        "void memset(void *,int,int);" },
+    { LibMemcpy,        "void memcpy(void *,void *,int);" },
+    { LibMemcmp,        "int memcmp(void *,void *,int);" },
 #endif
     { NULL,             NULL }
 };
