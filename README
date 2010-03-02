@@ -1,17 +1,21 @@
 picoc
 -----
 
-PicoC is a very small C interpreter. It's intended for use as a script 
-language for embedded systems. It was originally written to be the
-script language for a UAV on-board flight system and is very suitable 
-for other robotic, embedded and also non-embedded applications.
+PicoC is a very small C interpreter for scripting. It was originally written 
+for scripting a UAV's on-board flight system and it's also very suitable for 
+other robotic, embedded and non-embedded applications too.
 
-The core C source code is less than 3000 lines of code. When compiled 
-it only takes a few k of code space and is also very sparing of data 
-space. This means it can work well in small embedded devices. It's also 
-a fun example of how to create a very small language implementation 
-while still keeping the code readable.
+The core C source code is around 3500 lines of code. It's not intended to be 
+a complete implementation of ISO C but it has all the essentials. When 
+compiled it only takes a few k of code space and is also very sparing of 
+data space. This means it can work well in small embedded devices. It's also 
+a fun example of how to create a very small language implementation while 
+still keeping the code readable.
 
+picoc is now feature frozen. Since it's important that it remain small it's 
+intended that no more major features will be added from now on. It's been 
+tested on x86-32, x86-64, powerpc, arm, ultrasparc, HP-PA and blackfin 
+processors and is easy to port to new targets. 
 
 
 Compiling picoc
@@ -28,17 +32,17 @@ Porting picoc
 platform.h is where you select your platform type and specify the includes 
 etc. for your platform.
 
-platform_support.c contains support functions so the compiler can work on 
+platform_XXX.c contains support functions so the compiler can work on 
 your platform, such as how to write characters to the console etc..
 
 platform_library.c contains your library of functions you want to make 
 available to user programs.
 
-There's also a new clibrary.c which contains user library functions like 
+There's also a clibrary.c which contains user library functions like 
 printf() which are platform-independent.
 
 Porting the system will involve setting up suitable includes and defines 
-in platform.h, writing some I/O routines in platform_support.c, putting 
+in platform.h, writing some I/O routines in platform_XXX.c, putting 
 whatever user functions you want in platform_library.c and then changing 
 the main program in picoc.c to whatever you need to do to get programs 
 into the system.
