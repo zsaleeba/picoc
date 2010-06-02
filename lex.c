@@ -151,7 +151,7 @@ enum LexToken LexGetNumber(struct LexState *Lexer, struct Value *Value)
     for (; Lexer->Pos != Lexer->End && IS_BASE_DIGIT(*Lexer->Pos, Base); LEXER_INC(Lexer))
         Result = Result * Base + GET_BASE_DIGIT(*Lexer->Pos);
     
-    if (Result <= MAX_CHAR_VALUE)
+    if (Result >= 0 && Result <= MAX_CHAR_VALUE)
     {
         Value->Typ = &CharType;
         Value->Val->Character = Result;
