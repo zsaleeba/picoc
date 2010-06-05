@@ -30,7 +30,8 @@ TESTS=	00_assignment.test \
         34_array_assignment.test \
 	35_sizeof.test \
 	36_array_initialisers.test \
-        37_sprintf.test
+        37_sprintf.test \
+	38_multiple_array_index.test
 
 %.test: %.expect %.c
 	@echo Test: $*...
