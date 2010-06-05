@@ -227,6 +227,7 @@ struct LexState
     const char *End;
     const char *FileName;
     int Line;
+    int ScanningHashInclude;
 #ifdef FANCY_ERROR_REPORTING
     int CharacterPos;
     const char *SourceText;
@@ -338,6 +339,7 @@ int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ);
 void TypeParseIdentPart(struct ParseState *Parser, struct ValueType *BasicTyp, struct ValueType **Typ, char **Identifier);
 void TypeParse(struct ParseState *Parser, struct ValueType **Typ, char **Identifier);
 struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *ParentType, enum BaseType Base, int ArraySize, const char *Identifier);
+struct ValueType *TypeCreateOpaqueStruct(struct ParseState *Parser, const char *StructName, int Size);
 
 /* heap.c */
 void HeapInit();
@@ -397,5 +399,13 @@ void PlatformExit();
 void PlatformLibraryInit();
 void Initialise();
 void Cleanup();
+
+/* include.c */
+void IncludeFile(char *Filename);
+
+/* library_stdio.c */
+extern const char StdioDefs[];
+extern struct LibraryFunction StdioFunctions[];
+void StdioSetupFunc(void);
 
 #endif /* PICOC_H */
