@@ -3,6 +3,8 @@
 
 #ifndef NO_HASH_INCLUDE
 
+static int EOFValue = EOF;
+
 void StdioFopen(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) 
 {
     ReturnValue->Val->NativePointer = fopen(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer);
@@ -53,6 +55,9 @@ void StdioSetupFunc(void)
 {
     /* make a "struct FILEStruct" which is the same size as a native FILE structure */
     TypeCreateOpaqueStruct(NULL, TableStrRegister("FILEStruct"), sizeof(FILE));
+    
+    /* define EOF equal to the system EOF */
+    VariableDefinePlatformVar(NULL, "EOF", &IntType, (union AnyValue *)&EOFValue, FALSE);
 }
 
 #endif /* NO_HASH_INCLUDE */
