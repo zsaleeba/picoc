@@ -344,21 +344,54 @@ enum RunMode ParseBlock(struct ParseState *Parser, int AbsorbOpenBrace, int Cond
     return Parser->Mode;
 }
 
+/* parse a typedef declaration */
+void ParseTypedef(struct ParseState *Parser)
+{
+    struct ValueType *Typ;
+    struct ValueType **TypPtr;
+    char *TypeName;
+    struct Value InitValue;
+    
+    TypeParse(Parser, &Typ, &TypeName);
+    
+    if (Parser->Mode == RunModeRun)
+    {
+        TypPtr = &Typ;
+        InitValue.Typ = &TypeType;
+        InitValue.Val = (union AnyValue *)TypPtr;
+        VariableDefine(Parser, TypeName, &InitValue, NULL, FALSE);
+    }
+}
+
 /* parse a statement */
 enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemicolon)
 {
     struct Value *CValue;
     struct Value *LexerValue;
+    struct Value *VarValue;
     int Condition;
     struct ParseState PreState = *Parser;
-    enum LexToken Token = LexGetToken(Parser, NULL, TRUE);
+    enum LexToken Token = LexGetToken(Parser, &LexerValue, TRUE);
     
     switch (Token)
     {
         case TokenEOF:
             return ParseResultEOF;
             
-        case TokenIdentifier: 
+        case TokenIdentifier:
+            /* might be a typedef-typed variable declaration or it might be an expression */
+            if (VariableDefined(LexerValue->Val->Identifier))
+            {
+                VariableGet(Parser, LexerValue->Val->Identifier, &VarValue);
+                if (VarValue->Typ->Base == Type_Type)
+                {
+                    *Parser = PreState;
+                    ParseDeclaration(Parser, Token);
+                    break;
+                }
+            }
+            /* else fallthrough to expression */
+            
         case TokenAsterisk: 
         case TokenAmpersand: 
         case TokenIncrement: 
@@ -582,7 +615,11 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
             else
                 ExpressionParse(Parser, &CValue);
             break;
-        
+
+        case TokenTypedef:
+            ParseTypedef(Parser);
+            break;
+                
         case TokenDelete:
         {
             /* try it as a function or variable name to delete */

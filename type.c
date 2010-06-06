@@ -315,14 +315,16 @@ void TypeParseEnum(struct ParseState *Parser, struct ValueType **Typ)
 int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ)
 {
     struct ParseState Before = *Parser;
-    enum LexToken Token = LexGetToken(Parser, NULL, TRUE);
+    struct Value *LexerValue;
+    enum LexToken Token = LexGetToken(Parser, &LexerValue, TRUE);
     int Unsigned = FALSE;
+    struct Value *VarValue;
     *Typ = NULL;
 
     /* handle signed/unsigned with no trailing type */
     if (Token == TokenSignedType || Token == TokenUnsignedType)
     {
-        enum LexToken FollowToken = LexGetToken(Parser, NULL, FALSE);
+        enum LexToken FollowToken = LexGetToken(Parser, &LexerValue, FALSE);
         Unsigned = (Token == TokenUnsignedType);
         
         if (FollowToken != TokenIntType && FollowToken != TokenLongType && FollowToken != TokenShortType && FollowToken != TokenCharType)
@@ -335,7 +337,7 @@ int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ)
             return TRUE;
         }
         
-        Token = LexGetToken(Parser, NULL, TRUE);
+        Token = LexGetToken(Parser, &LexerValue, TRUE);
     }
     
     switch (Token)
@@ -361,6 +363,12 @@ int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ)
                 ProgramFail(Parser, "bad type declaration");
                 
             TypeParseEnum(Parser, Typ);
+            break;
+        
+        case TokenIdentifier:
+            /* we already know it's a typedef-defined type because we got here */
+            VariableGet(Parser, LexerValue->Val->Identifier, &VarValue);
+            *Typ = VarValue->Val->Typ;
             break;
 
         default: *Parser = Before; return FALSE;
