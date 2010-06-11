@@ -40,7 +40,7 @@ void IncludeFile(char *FileName)
                 if (LInclude->SetupFunction != NULL)
                     (*LInclude->SetupFunction)();
                 
-                /* parse the setup C source code - may define types etc. */
+                /* run an extra startup function if there is one */
                 if (LInclude->SetupCSource != NULL)
                     Parse(FileName, LInclude->SetupCSource, strlen(LInclude->SetupCSource), TRUE);
                 

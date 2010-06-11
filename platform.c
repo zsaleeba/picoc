@@ -19,23 +19,23 @@ void PrintSourceTextErrorLine(const char *FileName, const char *SourceText, int 
         
         /* display the line */
         for (CPos = LinePos; *CPos != '\n' && *CPos != '\0'; CPos++)
-            PrintCh(*CPos, &CStdOut);
-        PrintCh('\n', &CStdOut);
+            PrintCh(*CPos, CStdOut);
+        PrintCh('\n', CStdOut);
         
         /* display the error position */
         for (CPos = LinePos, CCount = 0; *CPos != '\n' && *CPos != '\0' && (CCount < CharacterPos || *CPos == ' '); CPos++, CCount++)
         {
             if (*CPos == '\t')
-                PrintCh('\t', &CStdOut);
+                PrintCh('\t', CStdOut);
             else
-                PrintCh(' ', &CStdOut);
+                PrintCh(' ', CStdOut);
         }
     }
     else
     {
         /* assume we're in interactive mode - try to make the arrow match up with the input text */
         for (CCount = 0; CCount < CharacterPos + strlen(INTERACTIVE_PROMPT_STATEMENT); CCount++)
-            PrintCh(' ', &CStdOut);
+            PrintCh(' ', CStdOut);
     }
     PlatformPrintf("^\n%s:%d: ", FileName, Line, CharacterPos);
     
@@ -122,18 +122,18 @@ void PlatformVPrintf(const char *Format, va_list Args)
             FPos++;
             switch (*FPos)
             {
-            case 's': PrintStr(va_arg(Args, char *), &CStdOut); break;
-            case 'd': PrintInt(va_arg(Args, int), 0, FALSE, FALSE, &CStdOut); break;
-            case 'c': PrintCh(va_arg(Args, int), &CStdOut); break;
-            case 't': PrintType(va_arg(Args, struct ValueType *), &CStdOut); break;
+            case 's': PrintStr(va_arg(Args, char *), CStdOut); break;
+            case 'd': PrintSimpleInt(va_arg(Args, int), CStdOut); break;
+            case 'c': PrintCh(va_arg(Args, int), CStdOut); break;
+            case 't': PrintType(va_arg(Args, struct ValueType *), CStdOut); break;
 #ifndef NO_FP
-            case 'f': PrintFP(va_arg(Args, double), &CStdOut); break;
+            case 'f': PrintFP(va_arg(Args, double), CStdOut); break;
 #endif
-            case '%': PrintCh('%', &CStdOut); break;
+            case '%': PrintCh('%', CStdOut); break;
             case '\0': FPos--; break;
             }
         }
         else
-            PrintCh(*FPos, &CStdOut);
+            PrintCh(*FPos, CStdOut);
     }
 }

@@ -73,6 +73,7 @@ extern jmp_buf ExitBuf;
 #  include <setjmp.h>
 #  include <math.h>
 #  define assert(x)
+#  define BUILTIN_MINI_STDLIB
 #  undef BIG_ENDIAN
 #  undef FANCY_ERROR_REPORTING
 
@@ -103,10 +104,12 @@ extern jmp_buf ExitBuf;
 #   define NO_CALLOC
 #   define NO_REALLOC
 #   define BROKEN_FLOAT_CASTS
+#   define BUILTIN_MINI_STDLIB
 #  else
 #   ifdef UMON_HOST
 #    define HEAP_SIZE (128*1024)               /* space for the heap and the stack */
 #    define NO_FP
+#    define BUILTIN_MINI_STDLIB
 #    include <stdlib.h>
 #    include <string.h>
 #    include <ctype.h>

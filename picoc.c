@@ -3,13 +3,16 @@
 /* initialise everything */
 void Initialise()
 {
+    BasicIOInit();
     HeapInit();
     TableInit();
     VariableInit();
     LexInit();
     TypeInit();
+#ifdef BUILTIN_MINI_STDLIB
     LibraryInit(&GlobalTable, "c library", &CLibrary);
     CLibraryInit();
+#endif
     PlatformLibraryInit();
     LibraryInit(&GlobalTable, "platform library", &PlatformLibrary);
 }

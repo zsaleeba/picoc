@@ -1,10 +1,5 @@
 #include "picoc.h"
 
-struct OutputStream CStdOut;
-
-static int TRUEValue = 1;
-static int ZeroValue = 0;
-
 /* initialise a library */
 void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct LibraryFunction (*FuncList)[])
 {
@@ -16,8 +11,6 @@ void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct Libr
     void *Tokens;
     const char *IntrinsicName = TableStrRegister("c library");
     
-    CStdOut.Putch = &PlatformPutc;
-    
     for (Count = 0; (*FuncList)[Count].Prototype != NULL; Count++)
     {
         Tokens = LexAnalyse(IntrinsicName, (*FuncList)[Count].Prototype, strlen((char *)(*FuncList)[Count].Prototype), NULL);
@@ -27,6 +20,53 @@ void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct Libr
         NewValue->Val->FuncDef.Intrinsic = (*FuncList)[Count].Func;
         HeapFreeMem(Tokens);
     }
+}
+
+/* print a type to a stream without using printf/sprintf */
+void PrintType(struct ValueType *Typ, IOFILE *Stream)
+{
+    switch (Typ->Base)
+    {
+        case TypeVoid:          PrintStr("void", Stream); break;
+        case TypeInt:           PrintStr("int", Stream); break;
+        case TypeShort:         PrintStr("short", Stream); break;
+        case TypeChar:          PrintStr("char", Stream); break;
+        case TypeLong:          PrintStr("long", Stream); break;
+        case TypeUnsignedInt:   PrintStr("unsigned int", Stream); break;
+        case TypeUnsignedShort: PrintStr("unsigned short", Stream); break;
+        case TypeUnsignedLong:  PrintStr("unsigned long", Stream); break;
+#ifndef NO_FP
+        case TypeFP:            PrintStr("double", Stream); break;
+#endif
+        case TypeFunction:      PrintStr("function", Stream); break;
+        case TypeMacro:         PrintStr("macro", Stream); break;
+        case TypePointer:       if (Typ->FromType) PrintType(Typ->FromType, Stream); PrintCh('*', Stream); break;
+        case TypeArray:         PrintType(Typ->FromType, Stream); PrintCh('[', Stream); if (Typ->ArraySize != 0) PrintSimpleInt(Typ->ArraySize, Stream); PrintCh(']', Stream); break;
+        case TypeStruct:        PrintStr("struct ", Stream); PrintStr(Typ->Identifier, Stream); break;
+        case TypeUnion:         PrintStr("union ", Stream); PrintStr(Typ->Identifier, Stream); break;
+        case TypeEnum:          PrintStr("enum ", Stream); PrintStr(Typ->Identifier, Stream); break;
+        case Type_Type:         PrintStr("type ", Stream); break;
+    }
+}
+
+
+#ifdef BUILTIN_MINI_STDLIB
+
+/* 
+ * This is a simplified standard library for small embedded systems. It doesn't require
+ * a system stdio library to operate.
+ *
+ * A more complete standard library for larger computers is in the library_XXX.c files.
+ */
+ 
+struct OutputStream CStdOut;
+
+static int TRUEValue = 1;
+static int ZeroValue = 0;
+
+void BasicIOInit()
+{
+    CStdOut.Putch = &PlatformPutc;
 }
 
 /* initialise the C library */
@@ -147,33 +187,6 @@ void PrintFP(double Num, struct OutputStream *Stream)
     }
 }
 #endif
-
-/* print a type to a stream without using printf/sprintf */
-void PrintType(struct ValueType *Typ, struct OutputStream *Stream)
-{
-    switch (Typ->Base)
-    {
-        case TypeVoid:          PrintStr("void", Stream); break;
-        case TypeInt:           PrintStr("int", Stream); break;
-        case TypeShort:         PrintStr("short", Stream); break;
-        case TypeChar:          PrintStr("char", Stream); break;
-        case TypeLong:          PrintStr("long", Stream); break;
-        case TypeUnsignedInt:   PrintStr("unsigned int", Stream); break;
-        case TypeUnsignedShort: PrintStr("unsigned short", Stream); break;
-        case TypeUnsignedLong:  PrintStr("unsigned long", Stream); break;
-#ifndef NO_FP
-        case TypeFP:            PrintStr("double", Stream); break;
-#endif
-        case TypeFunction:      PrintStr("function", Stream); break;
-        case TypeMacro:         PrintStr("macro", Stream); break;
-        case TypePointer:       if (Typ->FromType) PrintType(Typ->FromType, Stream); PrintCh('*', Stream); break;
-        case TypeArray:         PrintType(Typ->FromType, Stream); PrintCh('[', Stream); if (Typ->ArraySize != 0) PrintInt(Typ->ArraySize, 0, FALSE, FALSE, Stream); PrintCh(']', Stream); break;
-        case TypeStruct:        PrintStr("struct ", Stream); PrintStr(Typ->Identifier, Stream); break;
-        case TypeUnion:         PrintStr("union ", Stream); PrintStr(Typ->Identifier, Stream); break;
-        case TypeEnum:          PrintStr("enum ", Stream); PrintStr(Typ->Identifier, Stream); break;
-        case Type_Type:         PrintStr("type ", Stream); break;
-    }
-}
 
 /* intrinsic functions made available to the language */
 void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs, struct OutputStream *Stream)
@@ -626,3 +639,5 @@ struct LibraryFunction CLibrary[] =
 #endif
     { NULL,             NULL }
 };
+
+#endif /* BUILTIN_MINI_STDLIB */

@@ -21,6 +21,13 @@
 
 #define GETS_BUF_MAX 256
 
+/* small processors use a simplified FILE * for stdio, otherwise use the system FILE * */
+#ifdef BUILTIN_MINI_STDLIB
+typedef struct OutputStream IOFILE;
+#else
+typedef FILE IOFILE;
+#endif
+
 /* coercion of numeric types to other numeric types */
 #ifndef NO_FP
 #define IS_FP(v) ((v)->Typ->Base == TypeFP)
@@ -270,6 +277,7 @@ extern struct Table GlobalTable;
 extern struct StackFrame *TopStackFrame;
 extern struct ValueType UberType;
 extern struct ValueType IntType;
+extern struct ValueType UnsignedIntType;
 extern struct ValueType CharType;
 #ifndef NO_FP
 extern struct ValueType FPType;
@@ -285,7 +293,7 @@ extern char *StrEmpty;
 extern struct PointerValue NULLPointer;
 extern struct LibraryFunction CLibrary[];
 extern struct LibraryFunction PlatformLibrary[];
-extern struct OutputStream CStdOut;
+extern IOFILE *CStdOut;
 
 /* table.c */
 void TableInit();
@@ -374,13 +382,15 @@ void VariableStringLiteralDefine(char *Ident, struct Value *Val);
 void *VariableDereferencePointer(struct ParseState *Parser, struct Value *PointerValue, struct Value **DerefVal, int *DerefOffset, struct ValueType **DerefType, int *DerefIsLValue);
 
 /* clibrary.c */
+void BasicIOInit();
 void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct LibraryFunction (*FuncList)[]);
 void CLibraryInit();
-void PrintCh(char OutCh, struct OutputStream *Stream);
-void PrintInt(long Num, int FieldWidth, int ZeroPad, int LeftJustify, struct OutputStream *Stream);
-void PrintStr(const char *Str, struct OutputStream *Stream);
-void PrintFP(double Num, struct OutputStream *Stream);
-void PrintType(struct ValueType *Typ, struct OutputStream *Stream);
+void PrintCh(char OutCh, IOFILE *Stream);
+void PrintSimpleInt(long Num, FILE *Stream);
+void PrintInt(long Num, int FieldWidth, int ZeroPad, int LeftJustify, IOFILE *Stream);
+void PrintStr(const char *Str, IOFILE *Stream);
+void PrintFP(double Num, IOFILE *Stream);
+void PrintType(struct ValueType *Typ, IOFILE *Stream);
 void LibPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs);
 
 /* platform.c */
