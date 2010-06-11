@@ -277,7 +277,6 @@ extern struct Table GlobalTable;
 extern struct StackFrame *TopStackFrame;
 extern struct ValueType UberType;
 extern struct ValueType IntType;
-extern struct ValueType UnsignedIntType;
 extern struct ValueType CharType;
 #ifndef NO_FP
 extern struct ValueType FPType;
