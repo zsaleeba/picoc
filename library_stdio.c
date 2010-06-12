@@ -1,4 +1,4 @@
-/* stdio.h library */
+/* stdio.h library for large systems - small embedded systems use clibrary.c instead */
 #include <errno.h>
 #include "picoc.h"
 
@@ -20,6 +20,14 @@ static int _IONBFValue = _IONBF;
 static int L_tmpnamValue = L_tmpnam;
 static int GETS_MAXValue = 255;     /* arbitrary maximum size of a gets() file */
 
+static FILE *stdinValue;
+static FILE *stdoutValue;
+static FILE *stderrValue;
+
+struct ValueType *FilePtrType = NULL;
+
+
+/* our own internal output stream which can output to FILE * or strings */
 typedef struct StdOutStreamStruct
 {
     FILE *FilePtr;
@@ -29,18 +37,23 @@ typedef struct StdOutStreamStruct
     
 } StdOutStream;
 
+/* our representation of varargs within picoc */
 struct StdVararg
 {
     struct Value **Param;
     int NumArgs;
 };
 
-
+/* initialises the I/O system so error reporting works */
 void BasicIOInit()
 {
     CStdOut = stdout;
+    stdinValue = stdin;
+    stdoutValue = stdout;
+    stderrValue = stderr;
 }
 
+/* output a single character to either a FILE * or a string */
 void StdioOutPutc(int OutCh, StdOutStream *Stream)
 {
     if (Stream->FilePtr != NULL)
@@ -62,12 +75,36 @@ void StdioOutPutc(int OutCh, StdOutStream *Stream)
     }
 }
 
+/* output a string to either a FILE * or a string */
 void StdioOutPuts(const char *Str, StdOutStream *Stream)
 {
-    while (*Str != '\0')
-        StdioOutPutc(*Str++, Stream);
+    if (Stream->FilePtr != NULL)
+    {
+        /* output to stdio stream */
+        fputs(Str, Stream->FilePtr);
+    }
+    else
+    {
+        /* output to a string */
+        while (*Str != '\0')
+        {
+            if (Stream->StrOutLen < 0 || Stream->StrOutLen > 1)
+            {
+                /* output to a string */
+                *Stream->StrOutPtr = *Str;
+                Str++;
+                Stream->StrOutPtr++;
+                
+                if (Stream->StrOutLen > 1)
+                    Stream->StrOutLen--;
+        
+                Stream->CharCount++;
+            }            
+        }
+    }
 }
 
+/* printf-style format of an int or other word-sized object */
 void StdioFprintfWord(StdOutStream *Stream, const char *Format, unsigned int Value)
 {
     if (Stream->FilePtr != NULL)
@@ -81,9 +118,14 @@ void StdioFprintfWord(StdOutStream *Stream, const char *Format, unsigned int Val
         Stream->CharCount += CCount;
     }
     else
-        Stream->CharCount += sprintf(Stream->StrOutPtr, Format, Value);
+    {
+        int CCount = sprintf(Stream->StrOutPtr, Format, Value);
+        Stream->CharCount += CCount;
+        Stream->StrOutPtr += CCount;
+    }
 }
 
+/* printf-style format of a floating point number */
 void StdioFprintfFP(StdOutStream *Stream, const char *Format, double Value)
 {
     if (Stream->FilePtr != NULL)
@@ -97,9 +139,14 @@ void StdioFprintfFP(StdOutStream *Stream, const char *Format, double Value)
         Stream->CharCount += CCount;
     }
     else
-        Stream->CharCount += sprintf(Stream->StrOutPtr, Format, Value);
+    {
+        int CCount = sprintf(Stream->StrOutPtr, Format, Value);
+        Stream->CharCount += CCount;
+        Stream->StrOutPtr += CCount;
+    }
 }
 
+/* printf-style format of a pointer */
 void StdioFprintfPointer(StdOutStream *Stream, const char *Format, void *Value)
 {
     if (Stream->FilePtr != NULL)
@@ -113,12 +160,17 @@ void StdioFprintfPointer(StdOutStream *Stream, const char *Format, void *Value)
         Stream->CharCount += CCount;
     }
     else
-        Stream->CharCount += sprintf(Stream->StrOutPtr, Format, Value);
+    {
+        int CCount = sprintf(Stream->StrOutPtr, Format, Value);
+        Stream->CharCount += CCount;
+        Stream->StrOutPtr += CCount;
+    }
 }
 
+/* internal do-anything v[s][n]printf() formatting system with output to strings or FILE * */
 int StdioBasePrintf(struct ParseState *Parser, FILE *Stream, char *StrOut, int StrOutLen, char *Format, struct StdVararg *Args)
 {
-    struct Value **ArgPos = Args->Param;
+    struct Value *ThisArg = Args->Param[0];
     int ArgCount = 0;
     char *FPos = Format;
     char OneFormatBuf[MAX_FORMAT+1];
@@ -138,7 +190,7 @@ int StdioBasePrintf(struct ParseState *Parser, FILE *Stream, char *StrOut, int S
             /* work out what type we're printing */
             FPos++;
             ShowType = NULL;
-            OneFormatBuf[OneFormatCount] = '%';
+            OneFormatBuf[0] = '%';
             OneFormatCount = 1;
             
             do
@@ -173,8 +225,9 @@ int StdioBasePrintf(struct ParseState *Parser, FILE *Stream, char *StrOut, int S
                         case '%':   StdioOutPutc(*FPos, &SOStream); break;
                         case '\0':  OneFormatBuf[OneFormatCount] = '\0'; StdioOutPutc(*FPos, &SOStream); break;
                         case 'n':   
-                            if ((*ArgPos)->Typ->Base == TypeArray && (*ArgPos)->Typ->FromType->Base == TypeInt)
-                                *(int *)(*ArgPos)->Val->Integer = SOStream.CharCount;
+                            ThisArg = (struct Value *)((char *)ThisArg + MEM_ALIGN(sizeof(struct Value) + TypeStackSizeValue(ThisArg)));
+                            if (ThisArg->Typ->Base == TypeArray && ThisArg->Typ->FromType->Base == TypeInt)
+                                *(int *)ThisArg->Val->Integer = SOStream.CharCount;
                             break;
                     }
                 }
@@ -192,46 +245,47 @@ int StdioBasePrintf(struct ParseState *Parser, FILE *Stream, char *StrOut, int S
                     /* null-terminate the buffer */
                     OneFormatBuf[OneFormatCount] = '\0';
     
+                    /* print this argument */
+                    ThisArg = (struct Value *)((char *)ThisArg + MEM_ALIGN(sizeof(struct Value) + TypeStackSizeValue(ThisArg)));
                     if (ShowType == &IntType)
                     {
                         /* show a signed integer */
-                        if (IS_INTEGER_NUMERIC(*ArgPos))
-                            StdioFprintfWord(&SOStream, OneFormatBuf, ExpressionCoerceUnsignedInteger(*ArgPos));
+                        if (IS_INTEGER_NUMERIC(ThisArg))
+                            StdioFprintfWord(&SOStream, OneFormatBuf, ExpressionCoerceUnsignedInteger(ThisArg));
                         else
                             StdioOutPuts("XXX", &SOStream);
                     }
                     else if (ShowType == &FPType)
                     {
                         /* show a floating point number */
-                        if (IS_FP(*ArgPos))
-                            StdioFprintfFP(&SOStream, OneFormatBuf, ExpressionCoerceFP(*ArgPos));
+                        if (IS_FP(ThisArg))
+                            StdioFprintfFP(&SOStream, OneFormatBuf, ExpressionCoerceFP(ThisArg));
                         else
                             StdioOutPuts("XXX", &SOStream);
                     }                    
                     else if (ShowType == CharPtrType)
                     {
-                        if ((*ArgPos)->Typ->Base == TypePointer)
-                            StdioFprintfPointer(&SOStream, OneFormatBuf, (*ArgPos)->Val->NativePointer);
+                        if (ThisArg->Typ->Base == TypePointer)
+                            StdioFprintfPointer(&SOStream, OneFormatBuf, ThisArg->Val->NativePointer);
                             
-                        else if ((*ArgPos)->Typ->Base == TypeArray && (*ArgPos)->Typ->FromType->Base == TypeChar)
-                            StdioFprintfPointer(&SOStream, OneFormatBuf, &(*ArgPos)->Val->ArrayMem[0]);
+                        else if (ThisArg->Typ->Base == TypeArray && ThisArg->Typ->FromType->Base == TypeChar)
+                            StdioFprintfPointer(&SOStream, OneFormatBuf, &ThisArg->Val->ArrayMem[0]);
                             
                         else
                             StdioOutPuts("XXX", &SOStream);
                     }
                     else if (ShowType == VoidPtrType)
                     {
-                        if ((*ArgPos)->Typ->Base == TypePointer)
-                            StdioFprintfPointer(&SOStream, OneFormatBuf, (*ArgPos)->Val->NativePointer);
+                        if (ThisArg->Typ->Base == TypePointer)
+                            StdioFprintfPointer(&SOStream, OneFormatBuf, ThisArg->Val->NativePointer);
                             
-                        else if ((*ArgPos)->Typ->Base == TypeArray)
-                            StdioFprintfPointer(&SOStream, OneFormatBuf, &(*ArgPos)->Val->ArrayMem[0]);
+                        else if (ThisArg->Typ->Base == TypeArray)
+                            StdioFprintfPointer(&SOStream, OneFormatBuf, &ThisArg->Val->ArrayMem[0]);
                             
                         else
                             StdioOutPuts("XXX", &SOStream);
                     }
                     
-                    ArgPos++;
                     ArgCount++;
                 }
             }
@@ -251,6 +305,7 @@ int StdioBasePrintf(struct ParseState *Parser, FILE *Stream, char *StrOut, int S
     return SOStream.CharCount;
 }
 
+/* stdio calls */
 void StdioFopen(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) 
 {
     ReturnValue->Val->NativePointer = fopen(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer);
@@ -410,8 +465,8 @@ void StdioPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Va
 {
     struct StdVararg PrintfArgs;
     
-    PrintfArgs.Param = Param+1;
-    PrintfArgs.NumArgs = NumArgs;
+    PrintfArgs.Param = Param;
+    PrintfArgs.NumArgs = NumArgs-1;
     ReturnValue->Val->Integer = StdioBasePrintf(Parser, stdout, NULL, 0, Param[0]->Val->NativePointer, &PrintfArgs);
 }
 
@@ -424,8 +479,8 @@ void StdioFprintf(struct ParseState *Parser, struct Value *ReturnValue, struct V
 {
     struct StdVararg PrintfArgs;
     
-    PrintfArgs.Param = Param+1;
-    PrintfArgs.NumArgs = NumArgs;
+    PrintfArgs.Param = Param + 1;
+    PrintfArgs.NumArgs = NumArgs-2;
     ReturnValue->Val->Integer = StdioBasePrintf(Parser, Param[0]->Val->NativePointer, NULL, 0, Param[1]->Val->NativePointer, &PrintfArgs);
 }
 
@@ -438,8 +493,8 @@ void StdioSprintf(struct ParseState *Parser, struct Value *ReturnValue, struct V
 {
     struct StdVararg PrintfArgs;
     
-    PrintfArgs.Param = Param+2;
-    PrintfArgs.NumArgs = NumArgs;
+    PrintfArgs.Param = Param + 1;
+    PrintfArgs.NumArgs = NumArgs-2;
     ReturnValue->Val->Integer = StdioBasePrintf(Parser, NULL, Param[0]->Val->NativePointer, -1, Param[1]->Val->NativePointer, &PrintfArgs);
 }
 
@@ -447,8 +502,8 @@ void StdioSnprintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
 {
     struct StdVararg PrintfArgs;
     
-    PrintfArgs.Param = Param+3;
-    PrintfArgs.NumArgs = NumArgs;
+    PrintfArgs.Param = Param + 2;
+    PrintfArgs.NumArgs = NumArgs-3;
     ReturnValue->Val->Integer = StdioBasePrintf(Parser, NULL, Param[0]->Val->NativePointer, Param[1]->Val->Integer, Param[2]->Val->NativePointer, &PrintfArgs);
 }
 
@@ -463,11 +518,13 @@ void StdioVsnprintf(struct ParseState *Parser, struct Value *ReturnValue, struct
 }
 
 
+/* handy structure definitions */
 const char StdioDefs[] = "\
-typedef struct __FILEStruct FILE; \
 typedef struct __va_listStruct va_list; \
+typedef struct __FILEStruct FILE;\
 ";
 
+/* all stdio functions */
 struct LibraryFunction StdioFunctions[] =
 {
     { StdioFopen,   "FILE *fopen(char *, char *);" },
@@ -489,11 +546,10 @@ struct LibraryFunction StdioFunctions[] =
     { StdioFerror,  "int ferror(FILE *);" },
     { StdioFileno,  "int fileno(FILE *);" },
     { StdioFflush,  "int fflush(FILE *);" },
-    { StdioFgetpos, "int fgetpos(FILE *, int *pos);" },
-    { StdioFsetpos, "int fsetpos(FILE *, int *pos);" },
+    { StdioFgetpos, "int fgetpos(FILE *, int *);" },
+    { StdioFsetpos, "int fsetpos(FILE *, int *);" },
     { StdioFtell,   "int ftell(FILE *);" },
     { StdioFseek,   "int fseek(FILE *, int, int);" },
-    { StdioFsetpos, "int fsetpos(FILE *, int *);" },
     { StdioPerror,  "void perror(char *);" },
     { StdioPutc,    "int putc(char *, FILE *);" },
     { StdioPutchar, "int putchar(int);" },
@@ -502,25 +558,30 @@ struct LibraryFunction StdioFunctions[] =
     { StdioSetvbuf, "void setvbuf(FILE *, char *, int, int);" },
     { StdioUngetc,  "int ungetc(int, FILE *);" },
     { StdioPuts,    "int puts(char *);" },
-    { StdioPrintf,  "void printf(char *, ...);" },
-    { StdioSprintf, "char *sprintf(char *, char *, ...);" },
     { StdioGets,    "char *gets(char *);" },
     { StdioGetchar, "int getchar();" },
-    { StdioPrintf,  "int printf(char *format, ...);" },
-    { StdioFprintf, "int fprintf(FILE *stream, char *format, ...);" },
-    { StdioSprintf, "int sprintf(char *str, char *format, ...);" },
-    { StdioSnprintf,"int snprintf(char *str, size_t size, char *format, ...);" },
-    { StdioVprintf, "int vprintf(const char *format, va_list ap);" },
-    { StdioVfprintf,"int vfprintf(FILE *stream, char *format, va_list ap);" },
-    { StdioVsprintf,"int vsprintf(char *str, char *format, va_list ap);" },
-    { StdioVsnprintf,"int vsnprintf(char *str, size_t size, char *format, va_list ap);" },
+    { StdioPrintf,  "int printf(char *, ...);" },
+    { StdioFprintf, "int fprintf(FILE *, char *, ...);" },
+    { StdioSprintf, "int sprintf(char *, char *, ...);" },
+    { StdioSnprintf,"int snprintf(char *, int, char *, ...);" },
+    { StdioVprintf, "int vprintf(char *, va_list);" },
+    { StdioVfprintf,"int vfprintf(FILE *, char *, va_list);" },
+    { StdioVsprintf,"int vsprintf(char *, char *, va_list);" },
+    { StdioVsnprintf,"int vsnprintf(char *, int, char *, va_list);" },
     { NULL,         NULL }
 };
 
+/* creates various system-dependent definitions */
 void StdioSetupFunc(void)
 {
+    struct ValueType *StructFileType;
+    struct ValueType *FilePtrType;
+
     /* make a "struct __FILEStruct" which is the same size as a native FILE structure */
-    TypeCreateOpaqueStruct(NULL, TableStrRegister("__FILEStruct"), sizeof(FILE));
+    StructFileType = TypeCreateOpaqueStruct(NULL, TableStrRegister("__FILEStruct"), sizeof(FILE));
+    
+    /* get a FILE * type */
+    FilePtrType = TypeGetMatching(NULL, StructFileType, TypePointer, 0, StrEmpty);
 
     /* make a "struct __va_listStruct" which is the same size as our struct StdVararg */
     TypeCreateOpaqueStruct(NULL, TableStrRegister("__va_listStruct"), sizeof(FILE));
@@ -537,8 +598,14 @@ void StdioSetupFunc(void)
     VariableDefinePlatformVar(NULL, "_IONBF", &IntType, (union AnyValue *)&_IONBFValue, FALSE);
     VariableDefinePlatformVar(NULL, "L_tmpnam", &IntType, (union AnyValue *)&L_tmpnamValue, FALSE);
     VariableDefinePlatformVar(NULL, "GETS_MAX", &IntType, (union AnyValue *)&GETS_MAXValue, FALSE);
+    
+    /* define stdin, stdout and stderr */
+    VariableDefinePlatformVar(NULL, "stdin", FilePtrType, (union AnyValue *)&stdinValue, FALSE);
+    VariableDefinePlatformVar(NULL, "stdout", FilePtrType, (union AnyValue *)&stdoutValue, FALSE);
+    VariableDefinePlatformVar(NULL, "stderr", FilePtrType, (union AnyValue *)&stderrValue, FALSE);
 }
 
+/* portability-related I/O calls */
 void PrintCh(char OutCh, FILE *Stream)
 {
     putc(OutCh, Stream);

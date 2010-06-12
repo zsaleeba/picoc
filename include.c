@@ -36,11 +36,11 @@ void IncludeFile(char *FileName)
             {
                 VariableDefine(NULL, FileName, NULL, &VoidType, FALSE);
                 
-                /* parse the setup C source code - may define types etc. */
+                /* run an extra startup function if there is one */
                 if (LInclude->SetupFunction != NULL)
                     (*LInclude->SetupFunction)();
                 
-                /* run an extra startup function if there is one */
+                /* parse the setup C source code - may define types etc. */
                 if (LInclude->SetupCSource != NULL)
                     Parse(FileName, LInclude->SetupCSource, strlen(LInclude->SetupCSource), TRUE);
                 

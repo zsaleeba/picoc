@@ -8,7 +8,7 @@ void PlatformLibraryInit()
 {
     struct ValueType *IntArrayType;
     
-    IntArrayType = TypeGetMatching(NULL, &IntType, TypeArray, 16, NULL);
+    IntArrayType = TypeGetMatching(NULL, &IntType, TypeArray, 16, StrEmpty);
     VariableDefinePlatformVar(NULL, "scanvect", IntArrayType, (union AnyValue *)&ScanVect, FALSE);
     VariableDefinePlatformVar(NULL, "neuron", IntArrayType, (union AnyValue *)&NNVect, FALSE);
     VariableDefinePlatformVar(NULL, "blobcnt", &IntType, (union AnyValue *)&Blobcnt, FALSE);
