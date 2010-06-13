@@ -38,7 +38,8 @@
 
 /* host platform includes */
 #ifdef UNIX_HOST
-# define HEAP_SIZE (128*1024)               /* space for the heap and the stack */
+# define HEAP_SIZE (128*1024)               /* space for the the stack */
+# define USE_MALLOC_HEAP                    /* heap is allocated using malloc() */
 # include <stdio.h>
 # include <stdlib.h>
 # include <ctype.h>

@@ -216,7 +216,7 @@ void *HeapAllocMem(int Size)
 void HeapFreeMem(void *Mem)
 {
 #ifdef USE_MALLOC_HEAP
-    return free(Mem);
+    free(Mem);
 #else
     struct AllocNode *MemNode = (struct AllocNode *)((char *)Mem - MEM_ALIGN(sizeof(MemNode->Size)));
     int Bucket = MemNode->Size >> 2;
