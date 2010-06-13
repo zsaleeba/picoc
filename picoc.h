@@ -425,4 +425,8 @@ void MathSetupFunc(void);
 extern struct LibraryFunction StringFunctions[];
 void StringSetupFunc(void);
 
+/* stdlib.c */
+extern struct LibraryFunction StdlibFunctions[];
+void StdlibSetupFunc(void);
+
 #endif /* PICOC_H */

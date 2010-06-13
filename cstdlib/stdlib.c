@@ -4,6 +4,7 @@
 #ifndef BUILTIN_MINI_STDLIB
 
 static int ZeroValue = 0;
+static int TRUEValue = 1;
 
 void StdlibMalloc(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
@@ -38,9 +39,15 @@ struct LibraryFunction StdlibFunctions[] =
 /* creates various system-dependent definitions */
 void StdlibSetupFunc(void)
 {
-    /* define NULL */
+    /* define NULL, TRUE and FALSE */
     if (!VariableDefined(TableStrRegister("NULL")))
         VariableDefinePlatformVar(NULL, "NULL", &IntType, (union AnyValue *)&ZeroValue, FALSE);
+        
+    if (!VariableDefined(TableStrRegister("TRUE")))
+    {
+        VariableDefinePlatformVar(NULL, "TRUE", &IntType, (union AnyValue *)&TRUEValue, FALSE);
+        VariableDefinePlatformVar(NULL, "FALSE", &IntType, (union AnyValue *)&ZeroValue, FALSE);
+    }
 }
 
 #endif /* !BUILTIN_MINI_STDLIB */
