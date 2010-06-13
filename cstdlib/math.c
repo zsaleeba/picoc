@@ -85,7 +85,7 @@ void MathFmod(struct ParseState *Parser, struct Value *ReturnValue, struct Value
 
 void MathFrexp(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = frexp(Param[0]->Val->FP, Param[1]->Val->NativePointer);
+    ReturnValue->Val->FP = frexp(Param[0]->Val->FP, Param[1]->Val->Pointer);
 }
 
 void MathLdexp(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -105,7 +105,7 @@ void MathLog10(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
 
 void MathModf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = modf(Param[0]->Val->FP, Param[0]->Val->NativePointer);
+    ReturnValue->Val->FP = modf(Param[0]->Val->FP, Param[0]->Val->Pointer);
 }
 
 void MathPow(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)

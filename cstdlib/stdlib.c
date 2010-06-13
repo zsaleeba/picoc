@@ -8,52 +8,52 @@ static int TRUEValue = 1;
 
 void StdlibAtof(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = atof(Param[0]->Val->NativePointer);
+    ReturnValue->Val->FP = atof(Param[0]->Val->Pointer);
 }
 
 void StdlibAtoi(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = atoi(Param[0]->Val->NativePointer);
+    ReturnValue->Val->Integer = atoi(Param[0]->Val->Pointer);
 }
 
 void StdlibAtol(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = atol(Param[0]->Val->NativePointer);
+    ReturnValue->Val->Integer = atol(Param[0]->Val->Pointer);
 }
 
 void StdlibStrtod(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = strtod(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer);
+    ReturnValue->Val->FP = strtod(Param[0]->Val->Pointer, Param[1]->Val->Pointer);
 }
 
 void StdlibStrtol(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = strtol(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
+    ReturnValue->Val->Integer = strtol(Param[0]->Val->Pointer, Param[1]->Val->Pointer, Param[2]->Val->Integer);
 }
 
 void StdlibStrtoul(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = strtoul(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
+    ReturnValue->Val->Integer = strtoul(Param[0]->Val->Pointer, Param[1]->Val->Pointer, Param[2]->Val->Integer);
 }
 
 void StdlibMalloc(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = malloc(Param[0]->Val->Integer);
+    ReturnValue->Val->Pointer = malloc(Param[0]->Val->Integer);
 }
 
 void StdlibCalloc(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = calloc(Param[0]->Val->Integer, Param[1]->Val->Integer);
+    ReturnValue->Val->Pointer = calloc(Param[0]->Val->Integer, Param[1]->Val->Integer);
 }
 
 void StdlibRealloc(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = realloc(Param[0]->Val->NativePointer, Param[1]->Val->Integer);
+    ReturnValue->Val->Pointer = realloc(Param[0]->Val->Pointer, Param[1]->Val->Integer);
 }
 
 void StdlibFree(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    free(Param[0]->Val->NativePointer);
+    free(Param[0]->Val->Pointer);
 }
 
 void StdlibRand(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -78,12 +78,12 @@ void StdlibExit(struct ParseState *Parser, struct Value *ReturnValue, struct Val
 
 void StdlibGetenv(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = getenv(Param[0]->Val->NativePointer);
+    ReturnValue->Val->Pointer = getenv(Param[0]->Val->Pointer);
 }
 
 void StdlibSystem(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = system(Param[0]->Val->NativePointer);
+    ReturnValue->Val->Integer = system(Param[0]->Val->Pointer);
 }
 
 /* all stdlib.h functions */

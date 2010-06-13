@@ -7,132 +7,132 @@ static int ZeroValue = 0;
 
 void StringStrcpy(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = strcpy(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer);
+    ReturnValue->Val->Pointer = strcpy(Param[0]->Val->Pointer, Param[1]->Val->Pointer);
 }
 
 void StringStrncpy(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = strncpy(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
+    ReturnValue->Val->Pointer = strncpy(Param[0]->Val->Pointer, Param[1]->Val->Pointer, Param[2]->Val->Integer);
 }
 
 void StringStrcmp(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = strcmp(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer);
+    ReturnValue->Val->Integer = strcmp(Param[0]->Val->Pointer, Param[1]->Val->Pointer);
 }
 
 void StringStrncmp(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = strncmp(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
+    ReturnValue->Val->Integer = strncmp(Param[0]->Val->Pointer, Param[1]->Val->Pointer, Param[2]->Val->Integer);
 }
 
 void StringStrcat(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = strcat(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer);
+    ReturnValue->Val->Pointer = strcat(Param[0]->Val->Pointer, Param[1]->Val->Pointer);
 }
 
 void StringStrncat(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = strncat(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
+    ReturnValue->Val->Pointer = strncat(Param[0]->Val->Pointer, Param[1]->Val->Pointer, Param[2]->Val->Integer);
 }
 
 void StringIndex(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = index(Param[0]->Val->NativePointer, Param[1]->Val->Integer);
+    ReturnValue->Val->Pointer = index(Param[0]->Val->Pointer, Param[1]->Val->Integer);
 }
 
 void StringRindex(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = rindex(Param[0]->Val->NativePointer, Param[1]->Val->Integer);
+    ReturnValue->Val->Pointer = rindex(Param[0]->Val->Pointer, Param[1]->Val->Integer);
 }
 
 void StringStrlen(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = strlen(Param[0]->Val->NativePointer);
+    ReturnValue->Val->Integer = strlen(Param[0]->Val->Pointer);
 }
 
 void StringMemset(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = memset(Param[0]->Val->NativePointer, Param[1]->Val->Integer, Param[2]->Val->Integer);
+    ReturnValue->Val->Pointer = memset(Param[0]->Val->Pointer, Param[1]->Val->Integer, Param[2]->Val->Integer);
 }
 
 void StringMemcpy(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = memcpy(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
+    ReturnValue->Val->Pointer = memcpy(Param[0]->Val->Pointer, Param[1]->Val->Pointer, Param[2]->Val->Integer);
 }
 
 void StringMemcmp(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = memcmp(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
+    ReturnValue->Val->Integer = memcmp(Param[0]->Val->Pointer, Param[1]->Val->Pointer, Param[2]->Val->Integer);
 }
 
 void StringMemmove(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = memmove(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
+    ReturnValue->Val->Pointer = memmove(Param[0]->Val->Pointer, Param[1]->Val->Pointer, Param[2]->Val->Integer);
 }
 
 void StringMemchr(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = memchr(Param[0]->Val->NativePointer, Param[1]->Val->Integer, Param[2]->Val->Integer);
+    ReturnValue->Val->Pointer = memchr(Param[0]->Val->Pointer, Param[1]->Val->Integer, Param[2]->Val->Integer);
 }
 
 void StringStrchr(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = strchr(Param[0]->Val->NativePointer, Param[1]->Val->Integer);
+    ReturnValue->Val->Pointer = strchr(Param[0]->Val->Pointer, Param[1]->Val->Integer);
 }
 
 void StringStrrchr(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = strrchr(Param[0]->Val->NativePointer, Param[1]->Val->Integer);
+    ReturnValue->Val->Pointer = strrchr(Param[0]->Val->Pointer, Param[1]->Val->Integer);
 }
 
 void StringStrcoll(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = strcoll(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer);
+    ReturnValue->Val->Integer = strcoll(Param[0]->Val->Pointer, Param[1]->Val->Pointer);
 }
 
 void StringStrerror(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = strerror(Param[0]->Val->Integer);
+    ReturnValue->Val->Pointer = strerror(Param[0]->Val->Integer);
 }
 
 void StringStrspn(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = strspn(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer);
+    ReturnValue->Val->Integer = strspn(Param[0]->Val->Pointer, Param[1]->Val->Pointer);
 }
 
 void StringStrcspn(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = strcspn(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer);
+    ReturnValue->Val->Integer = strcspn(Param[0]->Val->Pointer, Param[1]->Val->Pointer);
 }
 
 void StringStrpbrk(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = strpbrk(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer);
+    ReturnValue->Val->Pointer = strpbrk(Param[0]->Val->Pointer, Param[1]->Val->Pointer);
 }
 
 void StringStrstr(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = strstr(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer);
+    ReturnValue->Val->Pointer = strstr(Param[0]->Val->Pointer, Param[1]->Val->Pointer);
 }
 
 void StringStrtok(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = strtok(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer);
+    ReturnValue->Val->Pointer = strtok(Param[0]->Val->Pointer, Param[1]->Val->Pointer);
 }
 
 void StringStrxfrm(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = strxfrm(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->Integer);
+    ReturnValue->Val->Integer = strxfrm(Param[0]->Val->Pointer, Param[1]->Val->Pointer, Param[2]->Val->Integer);
 }
 
 void StringStrdup(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = strdup(Param[0]->Val->NativePointer);
+    ReturnValue->Val->Pointer = strdup(Param[0]->Val->Pointer);
 }
 
 void StringStrtok_r(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->NativePointer = strtok_r(Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->NativePointer);
+    ReturnValue->Val->Pointer = strtok_r(Param[0]->Val->Pointer, Param[1]->Val->Pointer, Param[2]->Val->Pointer);
 }
 
 /* all string.h functions */

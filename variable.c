@@ -279,6 +279,6 @@ void *VariableDereferencePointer(struct ParseState *Parser, struct Value *Pointe
     if (DerefIsLValue != NULL)
         *DerefIsLValue = TRUE;
 
-    return PointerValue->Val->NativePointer;
+    return PointerValue->Val->Pointer;
 }
 

@@ -317,7 +317,7 @@ enum LexToken LexGetStringConstant(struct LexState *Lexer, struct Value *Value, 
 
     /* create the the pointer for this char* */
     Value->Typ = CharPtrType;
-    Value->Val->NativePointer = RegString;
+    Value->Val->Pointer = RegString;
     if (*Lexer->Pos == EndChar)
         LEXER_INC(Lexer);
     

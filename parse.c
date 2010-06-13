@@ -521,7 +521,7 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
             if (LexGetToken(Parser, &LexerValue, TRUE) != TokenStringConstant)
                 ProgramFail(Parser, "\"filename.h\" expected");
             
-            IncludeFile((char *)LexerValue->Val->NativePointer);
+            IncludeFile((char *)LexerValue->Val->Pointer);
             CheckTrailingSemicolon = FALSE;
             break;
 #endif

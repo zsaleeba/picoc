@@ -38,7 +38,7 @@ typedef FILE IOFILE;
 #endif
 
 #define IS_POINTER_COERCIBLE(v, ap) ((ap) ? ((v)->Typ->Base == TypePointer) : 0)
-#define POINTER_COERCE(v) ((int)(v)->Val->NativePointer)
+#define POINTER_COERCE(v) ((int)(v)->Val->Pointer)
 
 #define IS_INTEGER_NUMERIC_TYPE(t) ((t)->Base >= TypeInt && (t)->Base <= TypeUnsignedLong)
 #define IS_INTEGER_NUMERIC(v) IS_INTEGER_NUMERIC_TYPE((v)->Typ)
@@ -179,7 +179,7 @@ union AnyValue
 #ifndef NO_FP
     double FP;
 #endif
-    void *NativePointer;            /* unsafe native pointers */
+    void *Pointer;            /* unsafe native pointers */
 };
 
 struct Value
