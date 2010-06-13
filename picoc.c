@@ -9,18 +9,19 @@ void Initialise()
     VariableInit();
     LexInit();
     TypeInit();
+    IncludeInit();
 #ifdef BUILTIN_MINI_STDLIB
     LibraryInit(&GlobalTable, "c library", &CLibrary);
     CLibraryInit();
 #endif
     PlatformLibraryInit();
-    LibraryInit(&GlobalTable, "platform library", &PlatformLibrary);
 }
 
 /* free memory */
 void Cleanup()
 {
     PlatformCleanup();
+    IncludeCleanup();
     ParseCleanup();
     LexCleanup();
     VariableCleanup();

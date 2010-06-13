@@ -1,7 +1,7 @@
 #include "../picoc.h"
 
-void PlatformLibraryInit()
-{
+void UnixSetupFunc()
+{    
 }
 
 void Ctest (struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) 
@@ -16,10 +16,14 @@ void Clineno (struct ParseState *Parser, struct Value *ReturnValue, struct Value
 }
 
 /* list of all library functions and their prototypes */
-struct LibraryFunction PlatformLibrary[] =
+struct LibraryFunction UnixFunctions[] =
 {
     { Ctest,        "void test(int);" },
     { Clineno,      "int lineno();" },
     { NULL,         NULL }
 };
 
+void PlatformLibraryInit()
+{
+    IncludeRegister("picoc_unix.h", &UnixSetupFunc, &UnixFunctions, NULL);
+}

@@ -9,28 +9,46 @@ struct IncludeLibrary
     void (*SetupFunction)(void);
     struct LibraryFunction (*FuncList)[];
     const char *SetupCSource;
+    struct IncludeLibrary *NextLib;
 };
 
-struct IncludeLibrary IncludeLibInfo[] =
+struct IncludeLibrary *IncludeLibList = NULL;
+
+
+/* initialise the built-in include libraries */
+void IncludeInit()
 {
-    { "stdio.h", 
-        &StdioSetupFunc, 
-        &StdioFunctions, 
-        StdioDefs },
-    { "math.h", 
-        &MathSetupFunc, 
-        &MathFunctions, 
-        NULL },
-    { "string.h", 
-        &StringSetupFunc, 
-        &StringFunctions, 
-        NULL },
-    { "stdlib.h", 
-        &StdlibSetupFunc, 
-        &StdlibFunctions, 
-        NULL },
-    { NULL, NULL, NULL, NULL }
-};
+    IncludeRegister("stdio.h", &StdioSetupFunc, &StdioFunctions, StdioDefs);
+    IncludeRegister("math.h", &MathSetupFunc, &MathFunctions, NULL);
+    IncludeRegister("string.h", &StringSetupFunc, &StringFunctions, NULL);
+    IncludeRegister("stdlib.h", &StdlibSetupFunc, &StdlibFunctions, NULL);
+}
+
+/* clean up space used by the include system */
+void IncludeCleanup()
+{
+    struct IncludeLibrary *ThisInclude = IncludeLibList;
+    struct IncludeLibrary *NextInclude;
+    
+    while (ThisInclude != NULL)
+    {
+        NextInclude = ThisInclude->NextLib;
+        HeapFreeMem(ThisInclude);
+        ThisInclude = NextInclude;
+    }
+}
+
+/* register a new build-in include file */
+void IncludeRegister(const char *IncludeName, void (*SetupFunction)(void), struct LibraryFunction (*FuncList)[], const char *SetupCSource)
+{
+    struct IncludeLibrary *NewLib = HeapAllocMem(sizeof(struct IncludeLibrary));
+    NewLib->IncludeName = TableStrRegister(IncludeName);
+    NewLib->SetupFunction = SetupFunction;
+    NewLib->FuncList = FuncList;
+    NewLib->SetupCSource = SetupCSource;
+    NewLib->NextLib = IncludeLibList;
+    IncludeLibList = NewLib;
+}
 
 
 /* include one of a number of predefined libraries, or perhaps an actual file */
@@ -39,7 +57,7 @@ void IncludeFile(char *FileName)
     struct IncludeLibrary *LInclude;
     
     /* scan for the include file name to see if it's in our list of predefined includes */
-    for (LInclude = &IncludeLibInfo[0]; LInclude->IncludeName != NULL; LInclude++)
+    for (LInclude = IncludeLibList; LInclude != NULL; LInclude = LInclude->NextLib)
     {
         if (strcmp(LInclude->IncludeName, FileName) == 0)
         {

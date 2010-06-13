@@ -4,10 +4,11 @@ static int Blobcnt, Blobx1, Blobx2, Bloby1, Bloby2, Iy1, Iy2, Iu1, Iu2, Iv1, Iv2
 static int GPSlat, GPSlon, GPSalt, GPSfix, GPSsat, GPSutc, Elcount, Ercount;
 static int ScanVect[16], NNVect[NUM_OUTPUT];
 
-void PlatformLibraryInit()
-{
-    struct ValueType *IntArrayType;
-    
+struct ValueType *IntArrayType;
+ 
+
+void SRV1SetupFunc()
+{    
     IntArrayType = TypeGetMatching(NULL, &IntType, TypeArray, 16, StrEmpty);
     VariableDefinePlatformVar(NULL, "scanvect", IntArrayType, (union AnyValue *)&ScanVect, FALSE);
     VariableDefinePlatformVar(NULL, "neuron", IntArrayType, (union AnyValue *)&NNVect, FALSE);
@@ -733,8 +734,14 @@ void Cerrormsg (struct ParseState *Parser, struct Value *ReturnValue, struct Val
     LibPrintf(Parser, ReturnValue, Param, NumArgs);
 }
 
-/* list of all library functions and their prototypes */
+/* nothing here because we don't add any functions until srv1.h is #included */
 struct LibraryFunction PlatformLibrary[] =
+{
+    { NULL,         NULL }
+};
+
+/* list of all library functions included with srv1.h */
+struct LibraryFunction SRV1Functions[] =
 {
     { Csignal,      "int signal();" },
     { Cinput,       "int input();" },
@@ -796,3 +803,7 @@ struct LibraryFunction PlatformLibrary[] =
     { NULL,         NULL }
 };
 
+void PlatformLibraryInit()
+{
+    IncludeRegister("srv1.h", &SRV1SetupFunc, &SRV1Functions, NULL);
+}

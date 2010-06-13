@@ -291,7 +291,6 @@ extern struct ValueType *VoidPtrType;
 extern char *StrEmpty;
 extern struct PointerValue NULLPointer;
 extern struct LibraryFunction CLibrary[];
-extern struct LibraryFunction PlatformLibrary[];
 extern IOFILE *CStdOut;
 
 /* table.c */
@@ -410,6 +409,9 @@ void Initialise();
 void Cleanup();
 
 /* include.c */
+void IncludeInit();
+void IncludeCleanup();
+void IncludeRegister(const char *IncludeName, void (*SetupFunction)(void), struct LibraryFunction (*FuncList)[], const char *SetupCSource);
 void IncludeFile(char *Filename);
 
 /* stdio.c */
