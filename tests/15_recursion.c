@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 int factorial(int i) 
 {
     if (i < 2)

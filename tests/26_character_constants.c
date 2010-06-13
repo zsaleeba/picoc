@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 printf("%d\n", '\1');
 printf("%d\n", '\10');
 printf("%d\n", '\100');

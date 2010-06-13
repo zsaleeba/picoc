@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 char a;
 short b;
 

@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <math.h>
+
 printf("%f\n", sin(0.12));
 printf("%f\n", cos(0.12));
 printf("%f\n", tan(0.12));

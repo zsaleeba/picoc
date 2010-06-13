@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 printf("Hello\n");
 printf("Hello\n"); /* this is a comment */ printf("Hello\n");
 printf("Hello\n");

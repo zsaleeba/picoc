@@ -9,6 +9,8 @@
 
 FILE *CStdOut;
 
+static int ZeroValue = 0;
+static int TRUEValue = 1;
 static int EOFValue = EOF;
 static int SEEK_SETValue = SEEK_SET;
 static int SEEK_CURValue = SEEK_CUR;
@@ -251,7 +253,7 @@ int StdioBasePrintf(struct ParseState *Parser, FILE *Stream, char *StrOut, int S
                     if (ShowType == &IntType)
                     {
                         /* show a signed integer */
-                        if (IS_INTEGER_NUMERIC(ThisArg))
+                        if (IS_NUMERIC_COERCIBLE(ThisArg))
                             StdioFprintfWord(&SOStream, OneFormatBuf, ExpressionCoerceUnsignedInteger(ThisArg));
                         else
                             StdioOutPuts("XXX", &SOStream);
@@ -259,7 +261,7 @@ int StdioBasePrintf(struct ParseState *Parser, FILE *Stream, char *StrOut, int S
                     else if (ShowType == &FPType)
                     {
                         /* show a floating point number */
-                        if (IS_FP(ThisArg))
+                        if (IS_NUMERIC_COERCIBLE(ThisArg))
                             StdioFprintfFP(&SOStream, OneFormatBuf, ExpressionCoerceFP(ThisArg));
                         else
                             StdioOutPuts("XXX", &SOStream);
@@ -681,6 +683,11 @@ void StdioSetupFunc(void)
     VariableDefinePlatformVar(NULL, "stdin", FilePtrType, (union AnyValue *)&stdinValue, FALSE);
     VariableDefinePlatformVar(NULL, "stdout", FilePtrType, (union AnyValue *)&stdoutValue, FALSE);
     VariableDefinePlatformVar(NULL, "stderr", FilePtrType, (union AnyValue *)&stderrValue, FALSE);
+
+    /* define NULL, TRUE and FALSE */
+    VariableDefinePlatformVar(NULL, "NULL", &IntType, (union AnyValue *)&ZeroValue, FALSE);
+    VariableDefinePlatformVar(NULL, "TRUE", &IntType, (union AnyValue *)&TRUEValue, FALSE);
+    VariableDefinePlatformVar(NULL, "FALSE", &IntType, (union AnyValue *)&ZeroValue, FALSE);
 }
 
 /* portability-related I/O calls */

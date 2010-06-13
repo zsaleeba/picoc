@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 int x = 'a';
 char y = x;
 

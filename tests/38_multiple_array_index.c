@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 int a[4][4];
 int b = 0;
 int x;

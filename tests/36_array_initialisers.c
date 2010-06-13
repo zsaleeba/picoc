@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 int Count;
 
 int Array[10] = { 12, 34, 56, 78, 90, 123, 456, 789, 8642, 9753 };

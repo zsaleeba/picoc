@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 int a;
 int p;
 int t;

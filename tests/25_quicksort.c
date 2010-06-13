@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 int array[16];
 
 //Swap integer values by array indexes

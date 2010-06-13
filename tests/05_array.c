@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 int Count;
 int Array[10];
 

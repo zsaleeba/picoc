@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #define FRED 12
 #define BLOGGS(x) (12*(x))
 

@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 char a[10];
 
 strcpy(a, "hello");

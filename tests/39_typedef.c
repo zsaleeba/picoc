@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 typedef int MyInt;
 
 MyInt a = 1;

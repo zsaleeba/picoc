@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 int a;
 a = 42;
 printf("%d\n", a);

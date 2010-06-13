@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 int x, y, z;
 
 for (x = 0; x < 2; x++)

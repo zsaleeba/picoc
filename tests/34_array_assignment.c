@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 int a[4];
 
 a[0] = 12;

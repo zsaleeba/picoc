@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 int myfunc(int x)
 {
     return x * x;

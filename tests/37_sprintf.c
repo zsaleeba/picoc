@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 char Buf[100];
 int Count;
 

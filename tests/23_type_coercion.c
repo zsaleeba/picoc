@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 void charfunc(char a)
 {
     printf("char: %c\n", a);

@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 int a = 24680;
 int b = 01234567;
 int c = 0x2468ac;
