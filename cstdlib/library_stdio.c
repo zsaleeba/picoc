@@ -5,6 +5,7 @@
 #ifndef BUILTIN_MINI_STDLIB
 
 #define MAX_FORMAT 80
+#define MAX_SCANF_ARGS 10
 
 FILE *CStdOut;
 
@@ -305,187 +306,35 @@ int StdioBasePrintf(struct ParseState *Parser, FILE *Stream, char *StrOut, int S
     return SOStream.CharCount;
 }
 
-#if 0
-/* scanf-style reading of an int or other word-sized object */
-void StdioScanfWord(StdOutStream *Stream, const char *Format, unsigned int *Value)
-{
-    if (Stream->FilePtr != NULL)
-        Stream->CharCount += fprintf(Stream->FilePtr, Format, Value);
-    
-    else if (Stream->StrOutLen >= 0)
-    {
-        int CCount = snprintf(Stream->StrOutPtr, Stream->StrOutLen, Format, Value);
-        Stream->StrOutPtr += CCount;
-        Stream->StrOutLen -= CCount;
-        Stream->CharCount += CCount;
-    }
-    else
-    {
-        int CCount = sprintf(Stream->StrOutPtr, Format, Value);
-        Stream->CharCount += CCount;
-        Stream->StrOutPtr += CCount;
-    }
-}
-
 /* internal do-anything v[s][n]scanf() formatting system with input from strings or FILE * */
-int StdioBaseScanf(struct ParseState *Parser, FILE *Stream, char *StrOut, int StrOutLen, char *Format, struct StdVararg *Args)
+int StdioBaseScanf(struct ParseState *Parser, FILE *Stream, char *StrIn, char *Format, struct StdVararg *Args)
 {
     struct Value *ThisArg = Args->Param[0];
     int ArgCount = 0;
-    char *FPos = Format;
-    char OneFormatBuf[MAX_FORMAT+1];
-    int OneFormatCount;
-    struct ValueType *ShowType;
-    StdOutStream SOStream;
-    int BadArg;
+    void *ScanfArg[MAX_SCANF_ARGS];
     
-    SOStream.FilePtr = Stream;
-    SOStream.StrPtr = Str;
-    SOStream.StrLen = StrLen;
-    SOStream.CharCount = 0;
+    if (Args->NumArgs > MAX_SCANF_ARGS)
+        ProgramFail(Parser, "too many arguments to scanf() - %d max", MAX_SCANF_ARGS);
     
-    while (*FPos != '\0')
+    for (ArgCount = 0; ArgCount < Args->NumArgs; ArgCount++)
     {
-        if (*FPos == '%')
-        {
-            /* work out what type we're scanning */
-            FPos++;
-            ShowType = NULL;
-            OneFormatBuf[0] = '%';
-            OneFormatCount = 1;
-            
-            do
-            {
-                switch (*FPos)
-                {
-                    case 'd': case 'D': case 'i':   ShowType = &IntType; break;     /* integer decimal */
-                    case 'o': case 'u': case 'x': case 'X': ShowType = &IntType; break; /* integer base conversions */
-                    case 'e': case 'E':             ShowType = &FPType; break;      /* double, exponent form */
-                    case 'f': case 'F':             ShowType = &FPType; break;      /* double, fixed-point */
-                    case 'g': case 'G': case 'a':   ShowType = &FPType; break;      /* double, flexible format */
-                    case 'c':                       ShowType = &IntType; break;     /* character */
-                    case 's':                       ShowType = CharPtrType; break;  /* string */
-                    case 'p':                       ShowType = VoidPtrType; break;  /* pointer */
-                    case ']':                       ShowType = &VoidType; break;    /* match an expression */
-                    case 'n':                       ShowType = &VoidType; break;    /* number of characters written */
-                    case '%':                       ShowType = &VoidType; break;    /* just a '%' character */
-                    case '\0':                      ShowType = &VoidType; break;    /* end of format string */
-                }
-                
-                /* copy one character of format across to the OneFormatBuf */
-                OneFormatBuf[OneFormatCount] = *FPos;
-                OneFormatCount++;
-
-                /* do special actions depending on the conversion type */
-                if (ShowType == &VoidType)
-                {
-                    switch (*FPos)
-                    {
-                        case '%':
-                            /* match a '%' character */
-                            if (StdioPeekChar(&SOStream) == '%')
-                                StdioReadChar(&SOStream);
-                            else
-                                return ArgCount;
-                                
-                            break;
-                            
-                        case '\0':  
-                            break;
-                            
-                        case ']':
-                            /* match a sortof-regex expression (third param is a dummy) */
-                            StdioScanfWord(&SOStream, OneFormatBuf, &OneFormatCount);
-                            break;
-                            
-                        case 'n':   
-                            ThisArg = (struct Value *)((char *)ThisArg + MEM_ALIGN(sizeof(struct Value) + TypeStackSizeValue(ThisArg)));
-                            if (ThisArg->Typ->Base == TypeArray && ThisArg->Typ->FromType->Base == TypeInt)
-                                *(int *)ThisArg->Val->Integer = SOStream.CharCount;
-                            break;
-                    }
-                }
-                
-                FPos++;
-                
-            } while (ShowType == NULL && OneFormatCount < MAX_FORMAT);
-            
-            BadArg = FALSE;
-            if (ShowType != &VoidType)
-            {
-                if (ArgCount < Args->NumArgs)
-                {
-                    /* null-terminate the buffer */
-                    OneFormatBuf[OneFormatCount] = '\0';
-    
-                    /* print this argument */
-                    ThisArg = (struct Value *)((char *)ThisArg + MEM_ALIGN(sizeof(struct Value) + TypeStackSizeValue(ThisArg)));
-                    if (ShowType == &IntType && IS_INTEGER_NUMERIC(ThisArg))
-                        StdioScanfWord(&SOStream, OneFormatBuf, ExpressionCoerceUnsignedInteger(ThisArg));
-                    
-                    else if (ShowType == &FPType && IS_FP(ThisArg))
-                        StdioScanfFP(&SOStream, OneFormatBuf, ExpressionCoerceFP(ThisArg));
-
-                    else if (ShowType == CharPtrType)
-                    {
-                        if (ThisArg->Typ->Base == TypePointer)
-                            StdioScanfPointer(&SOStream, OneFormatBuf, ThisArg->Val->NativePointer);
-                            
-                        else if (ThisArg->Typ->Base == TypeArray && ThisArg->Typ->FromType->Base == TypeChar)
-                            StdioScanfPointer(&SOStream, OneFormatBuf, &ThisArg->Val->ArrayMem[0]);
-                        
-                        else
-                            BadArg = TRUE;
-                    }
-                    else if (ShowType == VoidPtrType)
-                    {
-                        if (ThisArg->Typ->Base == TypePointer)
-                            StdioScanfPointer(&SOStream, OneFormatBuf, ThisArg->Val->NativePointer);
-                            
-                        else if (ThisArg->Typ->Base == TypeArray)
-                            StdioScanfPointer(&SOStream, OneFormatBuf, &ThisArg->Val->ArrayMem[0]);
-
-                        else
-                            BadArg = TRUE;
-                    }
-                    else
-                        BadArg = TRUE;
-                    
-                    if (BadArg)
-                    {
-                        /* XXX - should set errno = invalid argument here */
-                        return EOF;
-                    }
-                        
-                    ArgCount++;
-                }
-            }
-        }
+        ThisArg = (struct Value *)((char *)ThisArg + MEM_ALIGN(sizeof(struct Value) + TypeStackSizeValue(ThisArg)));
+        
+        if (ThisArg->Typ->Base == TypePointer) 
+            ScanfArg[ArgCount] = ThisArg->Val->NativePointer;
+        
+        else if (ThisArg->Typ->Base == TypeArray)
+            ScanfArg[ArgCount] = &ThisArg->Val->ArrayMem[0];
+        
         else
-        {
-            /* a plain character, not a format specifier */
-            if (isspace(*FPos))
-            {
-                /* get whitespace */
-                while (isspace(StdioPeekChar(&SOStream)))
-                    StdioReadChar(&SOStream);
-            }
-            else
-            {
-                /* match a character */
-                if (StdioPeekChar(&SOStream) == *FPos)
-                    StdioReadChar(&SOStream);
-                else
-                    return ArgCount;
-            }
-            
-            FPos++;
-        }
+            ProgramFail(Parser, "non-pointer argument to scanf() - argument %d after format", ArgCount+1);
     }
     
-    return SOStream.CharCount;
+    if (Stream != NULL)
+        return fscanf(Stream, Format, ScanfArg[0], ScanfArg[1], ScanfArg[2], ScanfArg[3], ScanfArg[4], ScanfArg[5], ScanfArg[6], ScanfArg[7], ScanfArg[8], ScanfArg[9]);
+    else
+        return sscanf(StrIn, Format, ScanfArg[0], ScanfArg[1], ScanfArg[2], ScanfArg[3], ScanfArg[4], ScanfArg[5], ScanfArg[6], ScanfArg[7], ScanfArg[8], ScanfArg[9]);
 }
-#endif
 
 /* stdio calls */
 void StdioFopen(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) 
@@ -684,21 +533,37 @@ void StdioSnprintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
 {
     struct StdVararg PrintfArgs;
     
-    PrintfArgs.Param = Param + 2;
+    PrintfArgs.Param = Param+2;
     PrintfArgs.NumArgs = NumArgs-3;
     ReturnValue->Val->Integer = StdioBasePrintf(Parser, NULL, Param[0]->Val->NativePointer, Param[1]->Val->Integer, Param[2]->Val->NativePointer, &PrintfArgs);
 }
 
-#if 0
 void StdioScanf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     struct StdVararg ScanfArgs;
     
-    PrintfArgs.Param = Param;
-    PrintfArgs.NumArgs = NumArgs-1;
-    ReturnValue->Val->Integer = StdioBaseScanf(Parser, stdin, NULL, 0, Param[0]->Val->NativePointer, &ScanfArgs);
+    ScanfArgs.Param = Param;
+    ScanfArgs.NumArgs = NumArgs-1;
+    ReturnValue->Val->Integer = StdioBaseScanf(Parser, stdin, NULL, Param[0]->Val->NativePointer, &ScanfArgs);
 }
-#endif
+
+void StdioFscanf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    struct StdVararg ScanfArgs;
+    
+    ScanfArgs.Param = Param+1;
+    ScanfArgs.NumArgs = NumArgs-2;
+    ReturnValue->Val->Integer = StdioBaseScanf(Parser, Param[0]->Val->NativePointer, NULL, Param[1]->Val->NativePointer, &ScanfArgs);
+}
+
+void StdioSscanf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    struct StdVararg ScanfArgs;
+    
+    ScanfArgs.Param = Param+1;
+    ScanfArgs.NumArgs = NumArgs-2;
+    ReturnValue->Val->Integer = StdioBaseScanf(Parser, NULL, Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, &ScanfArgs);
+}
 
 void StdioVsprintf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
@@ -710,6 +575,20 @@ void StdioVsnprintf(struct ParseState *Parser, struct Value *ReturnValue, struct
     ReturnValue->Val->Integer = StdioBasePrintf(Parser, NULL, Param[0]->Val->NativePointer, Param[1]->Val->Integer, Param[2]->Val->NativePointer, Param[3]->Val->NativePointer);
 }
 
+void StdioVscanf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = StdioBaseScanf(Parser, stdin, NULL, Param[0]->Val->NativePointer, Param[1]->Val->NativePointer);
+}
+
+void StdioVfscanf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = StdioBaseScanf(Parser, Param[0]->Val->NativePointer, NULL, Param[1]->Val->NativePointer, Param[2]->Val->NativePointer);
+}
+
+void StdioVsscanf(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    ReturnValue->Val->Integer = StdioBaseScanf(Parser, NULL, Param[0]->Val->NativePointer, Param[1]->Val->NativePointer, Param[2]->Val->NativePointer);
+}
 
 /* handy structure definitions */
 const char StdioDefs[] = "\
@@ -757,20 +636,16 @@ struct LibraryFunction StdioFunctions[] =
     { StdioFprintf, "int fprintf(FILE *, char *, ...);" },
     { StdioSprintf, "int sprintf(char *, char *, ...);" },
     { StdioSnprintf,"int snprintf(char *, int, char *, ...);" },
-#if 0
     { StdioScanf,   "int scanf(char *, ...);" },
     { StdioFscanf,  "int fscanf(FILE *, char *, ...);" },
     { StdioSscanf,  "int sscanf(char *, char *, ...);" },
-#endif
     { StdioVprintf, "int vprintf(char *, va_list);" },
     { StdioVfprintf,"int vfprintf(FILE *, char *, va_list);" },
     { StdioVsprintf,"int vsprintf(char *, char *, va_list);" },
     { StdioVsnprintf,"int vsnprintf(char *, int, char *, va_list);" },
-#if 0
     { StdioVscanf,   "int vscanf(char *, va_list);" },
     { StdioVfscanf,  "int vfscanf(FILE *, char *, va_list);" },
     { StdioVsscanf,  "int vsscanf(char *, char *, va_list);" },
-#endif
     { NULL,         NULL }
 };
 
