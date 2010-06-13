@@ -17,6 +17,10 @@ struct IncludeLibrary IncludeLibInfo[] =
         &StdioSetupFunc, 
         &StdioFunctions, 
         StdioDefs },
+    { "math.h", 
+        &MathSetupFunc, 
+        &MathFunctions, 
+        NULL },
     { NULL, NULL, NULL, NULL }
 };
 

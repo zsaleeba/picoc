@@ -705,10 +705,3 @@ void PrintFP(double Num, FILE *Stream)
 }
 
 #endif /* !BUILTIN_MINI_STDLIB */
-
-/*
- TODO:
-scanf, vscanf 	used to input from the standard input stream
-fscanf, vfscanf 	used to input from a file
-sscanf, vsscanf 	used to input from a char array (e.g., a C string)
-*/

@@ -412,9 +412,13 @@ void Cleanup();
 /* include.c */
 void IncludeFile(char *Filename);
 
-/* library_stdio.c */
+/* stdio.c */
 extern const char StdioDefs[];
 extern struct LibraryFunction StdioFunctions[];
 void StdioSetupFunc(void);
+
+/* math.c */
+extern struct LibraryFunction MathFunctions[];
+void MathSetupFunc(void);
 
 #endif /* PICOC_H */
