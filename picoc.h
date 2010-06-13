@@ -421,4 +421,8 @@ void StdioSetupFunc(void);
 extern struct LibraryFunction MathFunctions[];
 void MathSetupFunc(void);
 
+/* string.c */
+extern struct LibraryFunction StringFunctions[];
+void StringSetupFunc(void);
+
 #endif /* PICOC_H */

@@ -1,14 +1,10 @@
 #include <stdio.h>
+#include <string.h>
 
 char a[10];
 
 strcpy(a, "hello");
 printf("%s\n", a);
-
-/*
-strcpy(&a, "there");
-printf("%s\n", a);
-*/
 
 strncpy(a, "gosh", 2);
 printf("%s\n", a);
@@ -29,7 +25,7 @@ printf("%d\n", strncmp(a, "zebra", 2));
 
 printf("%s\n", index(a, 'o'));
 printf("%s\n", rindex(a, 'l'));
-printf("%s\n", rindex(a, 'x'));
+printf("%d\n", rindex(a, 'x') == NULL);
 
 memset(&a[1], 'r', 4);
 printf("%s\n", a);
