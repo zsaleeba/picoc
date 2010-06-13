@@ -84,5 +84,32 @@ int picoc(char *SourceStr)
     Cleanup();
     return 0;
 }
+# else
+#  ifdef SRV1_UNIX_HOST
+/*
+ * Howard - this was my guess at what might suit you.
+ * Please feel free to change this to whatever type of main function suits you best 
+ */
+int picoc(char *SourceFile, int Interactive)
+{    
+    Initialise();
+    
+    if (Interactive)
+        ParseInteractive();
+    else
+    {
+        if (PlatformSetExitPoint())
+        {
+            Cleanup();
+            return 1;
+        }
+        
+        PlatformScanFile(SourceFile);
+    }
+    
+    Cleanup();
+    return 0;
+}
+#  endif
 # endif
 #endif

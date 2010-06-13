@@ -7,6 +7,7 @@
  * #define  UNIX_HOST
  * #define  FLYINGFOX_HOST
  * #define  SURVEYOR_HOST
+ * #define  SRV1_UNIX_HOST
  * #define  UMON_HOST
  */
 
@@ -63,74 +64,94 @@
 extern jmp_buf ExitBuf;
 
 #else
-# ifdef FLYINGFOX_HOST
-#  define HEAP_SIZE (16*1024)               /* space for the heap and the stack */
-#  define NO_HASH_INCLUDE
+# ifdef SRV1_UNIX_HOST
+#  define HEAP_SIZE (128*1024)               /* space for the the stack */
+#  define USE_MALLOC_HEAP                    /* heap is allocated using malloc() */
+#  include <stdio.h>
 #  include <stdlib.h>
 #  include <ctype.h>
 #  include <string.h>
+#  include <assert.h>
 #  include <sys/types.h>
+#  include <sys/stat.h>
+#  include <unistd.h>
 #  include <stdarg.h>
 #  include <setjmp.h>
 #  include <math.h>
-#  define assert(x)
-#  define BUILTIN_MINI_STDLIB
-#  undef BIG_ENDIAN
-#  undef FANCY_ERROR_REPORTING
+
+extern jmp_buf ExitBuf;
 
 # else
-#  ifdef SURVEYOR_HOST
-#   define NO_FP
-#   define NO_CTYPE
+#  ifdef FLYINGFOX_HOST
+#   define HEAP_SIZE (16*1024)               /* space for the heap and the stack */
 #   define NO_HASH_INCLUDE
-#   define NO_MODULUS
-#   include <cdefBF537.h>
-#   include "../string.h"
-#   include "../print.h"
-#   include "../srv.h"
-#   include "../setjmp.h"
-#   include "../stdarg.h"
-#   include "../colors.h"
-#   include "../neural.h"
-#   include "../gps.h"
-#   include "../i2c.h"
-#   include "../jpeg.h"
-#   include "../malloc.h"
+#   include <stdlib.h>
+#   include <ctype.h>
+#   include <string.h>
+#   include <sys/types.h>
+#   include <stdarg.h>
+#   include <setjmp.h>
+#   include <math.h>
 #   define assert(x)
-#   undef INTERACTIVE_PROMPT_STATEMENT
-#   undef INTERACTIVE_PROMPT_LINE
-#   define INTERACTIVE_PROMPT_STATEMENT "> "
-#   define INTERACTIVE_PROMPT_LINE "- "
-#   undef BIG_ENDIAN
-#   define NO_CALLOC
-#   define NO_REALLOC
-#   define BROKEN_FLOAT_CASTS
 #   define BUILTIN_MINI_STDLIB
+#   undef BIG_ENDIAN
+#   undef FANCY_ERROR_REPORTING
+
 #  else
-#   ifdef UMON_HOST
-#    define HEAP_SIZE (128*1024)               /* space for the heap and the stack */
+#   ifdef SURVEYOR_HOST
 #    define NO_FP
-#    define BUILTIN_MINI_STDLIB
-#    include <stdlib.h>
-#    include <string.h>
-#    include <ctype.h>
-#    include <sys/types.h>
-#    include <stdarg.h>
-#    include <math.h>
-#    include "monlib.h"
+#    define NO_CTYPE
+#    define NO_HASH_INCLUDE
+#    define NO_MODULUS
+#    include <cdefBF537.h>
+#    include "../string.h"
+#    include "../print.h"
+#    include "../srv.h"
+#    include "../setjmp.h"
+#    include "../stdarg.h"
+#    include "../colors.h"
+#    include "../neural.h"
+#    include "../gps.h"
+#    include "../i2c.h"
+#    include "../jpeg.h"
+#    include "../malloc.h"
 #    define assert(x)
-#	 define malloc mon_malloc
-#	 define calloc(a,b) mon_malloc(a*b)
-#	 define realloc mon_realloc
-#	 define free mon_free
-#    undef PlatformSetExitPoint
-#    define PlatformSetExitPoint()
+#    undef INTERACTIVE_PROMPT_STATEMENT
+#    undef INTERACTIVE_PROMPT_LINE
+#    define INTERACTIVE_PROMPT_STATEMENT "> "
+#    define INTERACTIVE_PROMPT_LINE "- "
+#    undef BIG_ENDIAN
+#    define NO_CALLOC
+#    define NO_REALLOC
+#    define BROKEN_FLOAT_CASTS
+#    define BUILTIN_MINI_STDLIB
+#   else
+#    ifdef UMON_HOST
+#     define HEAP_SIZE (128*1024)               /* space for the heap and the stack */
+#     define NO_FP
+#     define BUILTIN_MINI_STDLIB
+#     include <stdlib.h>
+#     include <string.h>
+#     include <ctype.h>
+#     include <sys/types.h>
+#     include <stdarg.h>
+#     include <math.h>
+#     include "monlib.h"
+#     define assert(x)
+#	  define malloc mon_malloc
+#	  define calloc(a,b) mon_malloc(a*b)
+#	  define realloc mon_realloc
+#	  define free mon_free
+#     undef PlatformSetExitPoint
+#     define PlatformSetExitPoint()
+
+#    endif
 #   endif
 #  endif
-# endif
 
 extern int ExitBuf[];
 
+# endif
 #endif
 
 #define math_abs(x) (((x) < 0) ? (-(x)) : (x))
