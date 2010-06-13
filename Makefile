@@ -4,8 +4,9 @@ LIBS=-lm
 
 TARGET	= picoc
 SRCS	= picoc.c table.c lex.c parse.c expression.c heap.c type.c \
-	variable.c clibrary.c library_unix.c platform.c platform_unix.c \
-	math_library.c include.c library_stdio.c
+	variable.c clibrary.c platform.c include.c \
+	platform/platform_unix.c platform/library_unix.c \
+	cstdlib/library_stdio.c
 OBJS	:= $(SRCS:%.c=%.o)
 
 all: depend $(TARGET)

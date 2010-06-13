@@ -1,4 +1,4 @@
-#include "picoc.h"
+#include "../picoc.h"
 
 /* deallocate any storage */
 void PlatformCleanup()

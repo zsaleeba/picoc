@@ -1,4 +1,4 @@
-#include "picoc.h"
+#include "../picoc.h"
 
 /* a source file we need to clean up */
 static char *CleanupText = NULL;
