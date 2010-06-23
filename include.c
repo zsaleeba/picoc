@@ -22,6 +22,7 @@ void IncludeInit()
     IncludeRegister("math.h", &MathSetupFunc, &MathFunctions, NULL);
     IncludeRegister("string.h", &StringSetupFunc, &StringFunctions, NULL);
     IncludeRegister("stdlib.h", &StdlibSetupFunc, &StdlibFunctions, NULL);
+    IncludeRegister("time.h", &StdTimeSetupFunc, &StdTimeFunctions, StdTimeDefs);
 }
 
 /* clean up space used by the include system */

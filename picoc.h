@@ -431,4 +431,9 @@ void StringSetupFunc(void);
 extern struct LibraryFunction StdlibFunctions[];
 void StdlibSetupFunc(void);
 
+/* time.c */
+extern const char StdTimeDefs[];
+extern struct LibraryFunction StdTimeFunctions[];
+void StdTimeSetupFunc(void);
+
 #endif /* PICOC_H */
