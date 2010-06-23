@@ -21,7 +21,7 @@ printf("%s\n", a);
 printf("%d\n", strncmp(a, "apple", 2));
 printf("%d\n", strncmp(a, "goere", 2));
 printf("%d\n", strncmp(a, "goerg", 2));
-printf("%d\n", strncmp(a, "zebra", 2));
+printf("%d\n", strncmp(a, "zebra", 2) < 0);
 
 printf("%s\n", index(a, 'o'));
 printf("%s\n", rindex(a, 'l'));
