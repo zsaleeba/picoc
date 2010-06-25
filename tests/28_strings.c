@@ -18,9 +18,9 @@ printf("%d\n", strlen(a));
 strcat(a, "!");
 printf("%s\n", a);
 
-printf("%d\n", strncmp(a, "apple", 2));
-printf("%d\n", strncmp(a, "goere", 2));
-printf("%d\n", strncmp(a, "goerg", 2));
+printf("%d\n", strncmp(a, "apple", 2) > 0);
+printf("%d\n", strncmp(a, "goere", 2) == 0);
+printf("%d\n", strncmp(a, "goerg", 2) == 0);
 printf("%d\n", strncmp(a, "zebra", 2) < 0);
 
 printf("%s\n", index(a, 'o'));
