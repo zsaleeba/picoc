@@ -18,6 +18,7 @@ struct IncludeLibrary *IncludeLibList = NULL;
 /* initialise the built-in include libraries */
 void IncludeInit()
 {
+    IncludeRegister("errno.h", &StdErrnoSetupFunc, NULL, NULL);
     IncludeRegister("stdio.h", &StdioSetupFunc, &StdioFunctions, StdioDefs);
     IncludeRegister("math.h", &MathSetupFunc, &MathFunctions, NULL);
     IncludeRegister("string.h", &StringSetupFunc, &StringFunctions, NULL);

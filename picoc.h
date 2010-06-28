@@ -436,4 +436,7 @@ extern const char StdTimeDefs[];
 extern struct LibraryFunction StdTimeFunctions[];
 void StdTimeSetupFunc(void);
 
+/* errno.c */
+void StdErrnoSetupFunc(void);
+
 #endif /* PICOC_H */
