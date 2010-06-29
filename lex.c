@@ -205,7 +205,7 @@ enum LexToken LexGetWord(struct LexState *Lexer, struct Value *Value)
     
     do {
         LEXER_INC(Lexer);
-    } while (Lexer->Pos != Lexer->End && isCident(*Lexer->Pos));
+    } while (Lexer->Pos != Lexer->End && isCident((int)*Lexer->Pos));
     
     Value->Typ = NULL;
     Value->Val->Identifier = TableStrRegister2(StartPos, Lexer->Pos - StartPos);
@@ -367,7 +367,7 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
     do
     {
         *Value = &LexValue;
-        while (Lexer->Pos != Lexer->End && isspace(*Lexer->Pos))
+        while (Lexer->Pos != Lexer->End && isspace((int)*Lexer->Pos))
         {
             if (*Lexer->Pos == '\n')
             {
@@ -387,10 +387,10 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
             return TokenEOF;
         
         ThisChar = *Lexer->Pos;
-        if (isCidstart(ThisChar))
+        if (isCidstart((int)ThisChar))
             return LexGetWord(Lexer, *Value);
         
-        if (isdigit(ThisChar))
+        if (isdigit((int)ThisChar))
             return LexGetNumber(Lexer, *Value);
         
         NextChar = (Lexer->Pos+1 != Lexer->End) ? *(Lexer->Pos+1) : 0;

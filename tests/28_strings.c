@@ -9,9 +9,9 @@ printf("%s\n", a);
 strncpy(a, "gosh", 2);
 printf("%s\n", a);
 
-printf("%d\n", strcmp(a, "apple"));
-printf("%d\n", strcmp(a, "goere"));
-printf("%d\n", strcmp(a, "zebra"));
+printf("%d\n", strcmp(a, "apple") > 0);
+printf("%d\n", strcmp(a, "goere") > 0);
+printf("%d\n", strcmp(a, "zebra") < 0);
 
 printf("%d\n", strlen(a));
 
@@ -33,7 +33,7 @@ printf("%s\n", a);
 memcpy(&a[2], a, 2);
 printf("%s\n", a);
 
-printf("%d\n", memcmp(a, "apple", 4));
-printf("%d\n", memcmp(a, "grgr", 4));
-printf("%d\n", memcmp(a, "zebra", 4));
+printf("%d\n", memcmp(a, "apple", 4) > 0);
+printf("%d\n", memcmp(a, "grgr", 4) == 0);
+printf("%d\n", memcmp(a, "zebra", 4) < 0);
 

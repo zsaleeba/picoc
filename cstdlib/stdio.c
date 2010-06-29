@@ -396,17 +396,17 @@ void StdioTmpfile(struct ParseState *Parser, struct Value *ReturnValue, struct V
 
 void StdioClearerr(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) 
 {
-    clearerr(Param[0]->Val->Pointer);
+    clearerr((FILE *)Param[0]->Val->Pointer);
 }
 
 void StdioFeof(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) 
 {
-    ReturnValue->Val->Integer = feof(Param[0]->Val->Pointer);
+    ReturnValue->Val->Integer = feof((FILE *)Param[0]->Val->Pointer);
 }
 
 void StdioFerror(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) 
 {
-    ReturnValue->Val->Integer = ferror(Param[0]->Val->Pointer);
+    ReturnValue->Val->Integer = ferror((FILE *)Param[0]->Val->Pointer);
 }
 
 void StdioFileno(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) 
