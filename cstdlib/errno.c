@@ -648,6 +648,8 @@ void StdErrnoSetupFunc(void)
 #ifdef EXDEV
     VariableDefinePlatformVar(NULL, "EXDEV", &IntType, (union AnyValue *)&EXDEVValue, FALSE);
 #endif
+
+    VariableDefinePlatformVar(NULL, "errno", &IntType, (union AnyValue *)&errno, TRUE);
 }
 
 #endif /* !BUILTIN_MINI_STDLIB */
