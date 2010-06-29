@@ -439,4 +439,7 @@ void StdTimeSetupFunc(void);
 /* errno.c */
 void StdErrnoSetupFunc(void);
 
+/* ctype.c */
+extern struct LibraryFunction StdCtypeFunctions[];
+
 #endif /* PICOC_H */
