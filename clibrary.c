@@ -1,7 +1,7 @@
 #include "picoc.h"
 
 /* initialise a library */
-void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct LibraryFunction (*FuncList)[])
+void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct LibraryFunction *FuncList)
 {
     struct ParseState Parser;
     int Count;
@@ -11,13 +11,13 @@ void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct Libr
     void *Tokens;
     const char *IntrinsicName = TableStrRegister("c library");
     
-    for (Count = 0; (*FuncList)[Count].Prototype != NULL; Count++)
+    for (Count = 0; FuncList[Count].Prototype != NULL; Count++)
     {
-        Tokens = LexAnalyse(IntrinsicName, (*FuncList)[Count].Prototype, strlen((char *)(*FuncList)[Count].Prototype), NULL);
-        LexInitParser(&Parser, (*FuncList)[Count].Prototype, Tokens, IntrinsicName, TRUE);
+        Tokens = LexAnalyse(IntrinsicName, FuncList[Count].Prototype, strlen((char *)FuncList[Count].Prototype), NULL);
+        LexInitParser(&Parser, FuncList[Count].Prototype, Tokens, IntrinsicName, TRUE);
         TypeParse(&Parser, &ReturnType, &Identifier);
         NewValue = ParseFunctionDefinition(&Parser, ReturnType, Identifier);
-        NewValue->Val->FuncDef.Intrinsic = (*FuncList)[Count].Func;
+        NewValue->Val->FuncDef.Intrinsic = FuncList[Count].Func;
         HeapFreeMem(Tokens);
     }
 }

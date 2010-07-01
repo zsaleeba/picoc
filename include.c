@@ -7,7 +7,7 @@ struct IncludeLibrary
 {
     const char *IncludeName;
     void (*SetupFunction)(void);
-    struct LibraryFunction (*FuncList)[];
+    struct LibraryFunction *FuncList;
     const char *SetupCSource;
     struct IncludeLibrary *NextLib;
 };
@@ -18,13 +18,13 @@ struct IncludeLibrary *IncludeLibList = NULL;
 /* initialise the built-in include libraries */
 void IncludeInit()
 {
-    IncludeRegister("ctype.h", NULL, &StdCtypeFunctions, NULL);
+    IncludeRegister("ctype.h", NULL, &StdCtypeFunctions[0], NULL);
     IncludeRegister("errno.h", &StdErrnoSetupFunc, NULL, NULL);
-    IncludeRegister("stdio.h", &StdioSetupFunc, &StdioFunctions, StdioDefs);
-    IncludeRegister("math.h", &MathSetupFunc, &MathFunctions, NULL);
-    IncludeRegister("string.h", &StringSetupFunc, &StringFunctions, NULL);
-    IncludeRegister("stdlib.h", &StdlibSetupFunc, &StdlibFunctions, NULL);
-    IncludeRegister("time.h", &StdTimeSetupFunc, &StdTimeFunctions, StdTimeDefs);
+    IncludeRegister("stdio.h", &StdioSetupFunc, &StdioFunctions[0], StdioDefs);
+    IncludeRegister("math.h", &MathSetupFunc, &MathFunctions[0], NULL);
+    IncludeRegister("string.h", &StringSetupFunc, &StringFunctions[0], NULL);
+    IncludeRegister("stdlib.h", &StdlibSetupFunc, &StdlibFunctions[0], NULL);
+    IncludeRegister("time.h", &StdTimeSetupFunc, &StdTimeFunctions[0], StdTimeDefs);
 }
 
 /* clean up space used by the include system */
@@ -42,7 +42,7 @@ void IncludeCleanup()
 }
 
 /* register a new build-in include file */
-void IncludeRegister(const char *IncludeName, void (*SetupFunction)(void), struct LibraryFunction (*FuncList)[], const char *SetupCSource)
+void IncludeRegister(const char *IncludeName, void (*SetupFunction)(void), struct LibraryFunction *FuncList, const char *SetupCSource)
 {
     struct IncludeLibrary *NewLib = HeapAllocMem(sizeof(struct IncludeLibrary));
     NewLib->IncludeName = TableStrRegister(IncludeName);

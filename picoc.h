@@ -381,7 +381,7 @@ void *VariableDereferencePointer(struct ParseState *Parser, struct Value *Pointe
 
 /* clibrary.c */
 void BasicIOInit();
-void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct LibraryFunction (*FuncList)[]);
+void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct LibraryFunction *FuncList);
 void CLibraryInit();
 void PrintCh(char OutCh, IOFILE *Stream);
 void PrintSimpleInt(long Num, FILE *Stream);
@@ -411,7 +411,7 @@ void Cleanup();
 /* include.c */
 void IncludeInit();
 void IncludeCleanup();
-void IncludeRegister(const char *IncludeName, void (*SetupFunction)(void), struct LibraryFunction (*FuncList)[], const char *SetupCSource);
+void IncludeRegister(const char *IncludeName, void (*SetupFunction)(void), struct LibraryFunction *FuncList, const char *SetupCSource);
 void IncludeFile(char *Filename);
 
 /* stdio.c */
