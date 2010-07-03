@@ -18,6 +18,7 @@ struct IncludeLibrary *IncludeLibList = NULL;
 /* initialise the built-in include libraries */
 void IncludeInit()
 {
+#ifndef BUILTIN_MINI_STDLIB
     IncludeRegister("ctype.h", NULL, &StdCtypeFunctions[0], NULL);
     IncludeRegister("errno.h", &StdErrnoSetupFunc, NULL, NULL);
     IncludeRegister("math.h", &MathSetupFunc, &MathFunctions[0], NULL);
@@ -26,6 +27,7 @@ void IncludeInit()
     IncludeRegister("stdlib.h", &StdlibSetupFunc, &StdlibFunctions[0], NULL);
     IncludeRegister("string.h", &StringSetupFunc, &StringFunctions[0], NULL);
     IncludeRegister("time.h", &StdTimeSetupFunc, &StdTimeFunctions[0], StdTimeDefs);
+#endif
 }
 
 /* clean up space used by the include system */

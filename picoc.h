@@ -385,7 +385,7 @@ void BasicIOInit();
 void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct LibraryFunction *FuncList);
 void CLibraryInit();
 void PrintCh(char OutCh, IOFILE *Stream);
-void PrintSimpleInt(long Num, FILE *Stream);
+void PrintSimpleInt(long Num, IOFILE *Stream);
 void PrintInt(long Num, int FieldWidth, int ZeroPad, int LeftJustify, IOFILE *Stream);
 void PrintStr(const char *Str, IOFILE *Stream);
 void PrintFP(double Num, IOFILE *Stream);

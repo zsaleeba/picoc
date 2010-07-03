@@ -59,14 +59,16 @@ void PrintType(struct ValueType *Typ, IOFILE *Stream)
  * A more complete standard library for larger computers is in the library_XXX.c files.
  */
  
-struct OutputStream CStdOut;
+IOFILE *CStdOut;
+IOFILE CStdOutBase;
 
 static int TRUEValue = 1;
 static int ZeroValue = 0;
 
 void BasicIOInit()
 {
-    CStdOut.Putch = &PlatformPutc;
+    CStdOutBase.Putch = &PlatformPutc;
+    CStdOut = &CStdOutBase;
 }
 
 /* initialise the C library */
@@ -134,6 +136,12 @@ void PrintUnsigned(unsigned long Num, unsigned int Base, int FieldWidth, int Zer
 
     if (FieldWidth > 0 && LeftJustify)
         PrintRepeatedChar(' ', FieldWidth - (sizeof(Result) - 1 - ResPos), Stream);
+}
+
+/* print an integer to a stream without using printf/sprintf */
+void PrintSimpleInt(long Num, struct OutputStream *Stream)
+{
+    PrintInt(Num, -1, FALSE, FALSE, Stream);
 }
 
 /* print an integer to a stream without using printf/sprintf */

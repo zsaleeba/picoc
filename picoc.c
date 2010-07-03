@@ -15,7 +15,7 @@ void Initialise()
     TypeInit();
     IncludeInit();
 #ifdef BUILTIN_MINI_STDLIB
-    LibraryInit(&GlobalTable, "c library", &CLibrary);
+    LibraryInit(&GlobalTable, "c library", &CLibrary[0]);
     CLibraryInit();
 #endif
     PlatformLibraryInit();
