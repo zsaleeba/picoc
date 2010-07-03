@@ -20,10 +20,11 @@ void IncludeInit()
 {
     IncludeRegister("ctype.h", NULL, &StdCtypeFunctions[0], NULL);
     IncludeRegister("errno.h", &StdErrnoSetupFunc, NULL, NULL);
-    IncludeRegister("stdio.h", &StdioSetupFunc, &StdioFunctions[0], StdioDefs);
     IncludeRegister("math.h", &MathSetupFunc, &MathFunctions[0], NULL);
-    IncludeRegister("string.h", &StringSetupFunc, &StringFunctions[0], NULL);
+    IncludeRegister("stdbool.h", &StdboolSetupFunc, NULL, StdboolDefs);
+    IncludeRegister("stdio.h", &StdioSetupFunc, &StdioFunctions[0], StdioDefs);
     IncludeRegister("stdlib.h", &StdlibSetupFunc, &StdlibFunctions[0], NULL);
+    IncludeRegister("string.h", &StringSetupFunc, &StringFunctions[0], NULL);
     IncludeRegister("time.h", &StdTimeSetupFunc, &StdTimeFunctions[0], StdTimeDefs);
 }
 

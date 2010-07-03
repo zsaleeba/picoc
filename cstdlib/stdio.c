@@ -10,7 +10,6 @@
 FILE *CStdOut;
 
 static int ZeroValue = 0;
-static int TRUEValue = 1;
 static int EOFValue = EOF;
 static int SEEK_SETValue = SEEK_SET;
 static int SEEK_CURValue = SEEK_CUR;
@@ -687,12 +686,6 @@ void StdioSetupFunc(void)
     /* define NULL, TRUE and FALSE */
     if (!VariableDefined(TableStrRegister("NULL")))
         VariableDefinePlatformVar(NULL, "NULL", &IntType, (union AnyValue *)&ZeroValue, FALSE);
-        
-    if (!VariableDefined(TableStrRegister("TRUE")))
-    {
-        VariableDefinePlatformVar(NULL, "TRUE", &IntType, (union AnyValue *)&TRUEValue, FALSE);
-        VariableDefinePlatformVar(NULL, "FALSE", &IntType, (union AnyValue *)&ZeroValue, FALSE);
-    }
 }
 
 /* portability-related I/O calls */

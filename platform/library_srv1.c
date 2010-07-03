@@ -805,5 +805,5 @@ struct LibraryFunction SRV1Functions[] =
 
 void PlatformLibraryInit()
 {
-    IncludeRegister("srv1.h", &SRV1SetupFunc, &SRV1Functions, NULL);
+    IncludeRegister("srv1.h", &SRV1SetupFunc, &SRV1Functions[0], NULL);
 }

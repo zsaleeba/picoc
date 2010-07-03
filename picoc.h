@@ -442,4 +442,8 @@ void StdErrnoSetupFunc(void);
 /* ctype.c */
 extern struct LibraryFunction StdCtypeFunctions[];
 
+/* stdbool.c */
+extern const char StdboolDefs[];
+void StdboolSetupFunc(void);
+
 #endif /* PICOC_H */

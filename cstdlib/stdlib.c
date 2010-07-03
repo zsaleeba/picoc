@@ -4,7 +4,6 @@
 #ifndef BUILTIN_MINI_STDLIB
 
 static int ZeroValue = 0;
-static int TRUEValue = 1;
 
 void StdlibAtof(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
@@ -164,12 +163,6 @@ void StdlibSetupFunc(void)
     /* define NULL, TRUE and FALSE */
     if (!VariableDefined(TableStrRegister("NULL")))
         VariableDefinePlatformVar(NULL, "NULL", &IntType, (union AnyValue *)&ZeroValue, FALSE);
-        
-    if (!VariableDefined(TableStrRegister("TRUE")))
-    {
-        VariableDefinePlatformVar(NULL, "TRUE", &IntType, (union AnyValue *)&TRUEValue, FALSE);
-        VariableDefinePlatformVar(NULL, "FALSE", &IntType, (union AnyValue *)&ZeroValue, FALSE);
-    }
 }
 
 #endif /* !BUILTIN_MINI_STDLIB */
