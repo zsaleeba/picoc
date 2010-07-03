@@ -286,6 +286,7 @@ extern struct ValueType TypeType;
 extern struct ValueType FunctionType;
 extern struct ValueType MacroType;
 extern struct ValueType *CharPtrType;
+extern struct ValueType *CharPtrPtrType;
 extern struct ValueType *CharArrayType;
 extern struct ValueType *VoidPtrType;
 extern char *StrEmpty;

@@ -1,6 +1,7 @@
 #include "picoc.h"
 
-#define CALL_MAIN "main();"
+#define CALL_MAIN_NO_ARGS "main();"
+#define CALL_MAIN_WITH_ARGS "main(__argc,__argv);"
 
 
 /* initialise everything */
@@ -34,6 +35,27 @@ void Cleanup()
 
 /* platform-dependent code for running programs is in this file */
 #ifdef UNIX_HOST
+void CallMain(int argc, char **argv)
+{
+    /* check if the program wants arguments */
+    struct Value *FuncValue;
+
+    VariableGet(NULL, TableStrRegister("main"), &FuncValue);
+    if (FuncValue->Typ->Base != TypeFunction)
+        ProgramFail(NULL, "main is not a function - can't call it");
+
+    if (FuncValue->Val->FuncDef.NumParams == 0)
+        Parse("", CALL_MAIN_NO_ARGS, strlen(CALL_MAIN_NO_ARGS), TRUE);
+    else
+    {
+        /* define the arguments */
+        VariableDefinePlatformVar(NULL, "__argc", &IntType, (union AnyValue *)&argc, FALSE);
+        VariableDefinePlatformVar(NULL, "__argv", CharPtrPtrType, (union AnyValue *)&argv, FALSE);
+
+        Parse("", CALL_MAIN_WITH_ARGS, strlen(CALL_MAIN_WITH_ARGS), TRUE);
+    }
+}
+
 int main(int argc, char **argv)
 {
     int ParamCount = 1;
@@ -41,9 +63,9 @@ int main(int argc, char **argv)
     
     if (argc < 2)
     {
-        printf("Format: picoc <csource1.c>...    - run a program (calls main to start it)\n"
+        printf("Format: picoc <csource1.c>...    - run a program (calls main() to start it)\n"
                "        picoc -i                 - interactive mode\n"
-               "        picoc -m <csource1.c>... - run a program without calling main\n");
+               "        picoc -m <csource1.c>... - run a program without calling main()\n");
         exit(1);
     }
     
@@ -65,11 +87,11 @@ int main(int argc, char **argv)
             return 1;
         }
         
-        for (; ParamCount < argc; ParamCount++)
+        for (; ParamCount < argc && strcmp(argv[ParamCount], "-") != 0; ParamCount++)
             PlatformScanFile(argv[ParamCount]);
         
         if (!DontRunMain)
-            Parse("startup", CALL_MAIN, strlen(CALL_MAIN), TRUE);
+            CallMain(argc - ParamCount, &argv[ParamCount]);
     }
     
     Cleanup();

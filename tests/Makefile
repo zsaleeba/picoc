@@ -28,6 +28,7 @@ TESTS=	00_assignment.test \
 	28_strings.test \
 	29_array_address.test \
 	30_hanoi.test \
+	31_args.test \
         34_array_assignment.test \
 	35_sizeof.test \
 	36_array_initialisers.test \
@@ -38,7 +39,12 @@ TESTS=	00_assignment.test \
 
 %.test: %.expect %.c
 	@echo Test: $*...
-	-@../picoc -m $*.c 2>&1 >$*.output
+	@if [ "x`echo $* | grep args`" != "x" ]; \
+	then \
+		../picoc $*.c - arg1 arg2 arg3 arg4 2>&1 >$*.output; \
+	else \
+		../picoc -m $*.c 2>&1 >$*.output; \
+	fi
 	@if [ "x`diff -qbu $*.expect $*.output`" != "x" ]; \
 	then \
         	echo "error in test $*"; \
