@@ -447,4 +447,9 @@ extern struct LibraryFunction StdCtypeFunctions[];
 extern const char StdboolDefs[];
 void StdboolSetupFunc(void);
 
+/* unistd.c */
+extern const char UnistdDefs[];
+extern struct LibraryFunction UnistdFunctions[];
+void UnistdSetupFunc(void);
+
 #endif /* PICOC_H */
