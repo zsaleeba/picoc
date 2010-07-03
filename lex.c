@@ -452,9 +452,9 @@ void *LexTokenise(struct LexState *Lexer, int *TokenLen)
     int MemUsed = 0;
     int ValueSize;
 #ifdef FANCY_ERROR_REPORTING
-    int ReserveSpace = (Lexer->End - Lexer->Pos) * 4 + 1; 
+    int ReserveSpace = (Lexer->End - Lexer->Pos) * 4 + 16; 
 #else
-    int ReserveSpace = (Lexer->End - Lexer->Pos) * 3 + 1; 
+    int ReserveSpace = (Lexer->End - Lexer->Pos) * 3 + 16; 
 #endif
     void *TokenSpace = HeapAllocStack(ReserveSpace);
     char *TokenPos = (char *)TokenSpace;
