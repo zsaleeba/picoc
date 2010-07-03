@@ -63,9 +63,9 @@ int main(int argc, char **argv)
     
     if (argc < 2)
     {
-        printf("Format: picoc <csource1.c>...    - run a program (calls main() to start it)\n"
-               "        picoc -i                 - interactive mode\n"
-               "        picoc -m <csource1.c>... - run a program without calling main()\n");
+        printf("Format: picoc <csource1.c>... [- <arg1>...]    : run a program (calls main() to start it)\n"
+               "        picoc -m <csource1.c>... [- <arg1>...] : run a program without calling main()\n"
+               "        picoc -i                               : interactive mode\n");
         exit(1);
     }
     
