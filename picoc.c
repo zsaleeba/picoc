@@ -1,5 +1,8 @@
 #include "picoc.h"
 
+#define CALL_MAIN "main();"
+
+
 /* initialise everything */
 void Initialise()
 {
@@ -33,15 +36,26 @@ void Cleanup()
 #ifdef UNIX_HOST
 int main(int argc, char **argv)
 {
+    int ParamCount = 1;
+    int DontRunMain = FALSE;
+    
     if (argc < 2)
     {
-        printf("Format: picoc <program.c> - run a program\n        picoc -i          - interactive mode\n");
+        printf("Format: picoc <csource1.c>...    - run a program (calls main to start it)\n"
+               "        picoc -i                 - interactive mode\n"
+               "        picoc -m <csource1.c>... - run a program without calling main\n");
         exit(1);
     }
     
     Initialise();
     
-    if (strcmp(argv[1], "-i") == 0)
+    if (strcmp(argv[ParamCount], "-m") == 0)
+    {
+        DontRunMain = TRUE;
+        ParamCount++;
+    }
+        
+    if (strcmp(argv[ParamCount], "-i") == 0)
         ParseInteractive();
     else
     {
@@ -51,7 +65,11 @@ int main(int argc, char **argv)
             return 1;
         }
         
-        PlatformScanFile(argv[1]);
+        for (; ParamCount < argc; ParamCount++)
+            PlatformScanFile(argv[ParamCount]);
+        
+        if (!DontRunMain)
+            Parse("startup", CALL_MAIN, strlen(CALL_MAIN), TRUE);
     }
     
     Cleanup();

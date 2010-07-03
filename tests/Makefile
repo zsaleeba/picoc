@@ -27,6 +27,7 @@ TESTS=	00_assignment.test \
 	26_character_constants.test \
 	28_strings.test \
 	29_array_address.test \
+	30_hanoi.test \
         34_array_assignment.test \
 	35_sizeof.test \
 	36_array_initialisers.test \
@@ -37,7 +38,7 @@ TESTS=	00_assignment.test \
 
 %.test: %.expect %.c
 	@echo Test: $*...
-	-@../picoc $*.c 2>&1 >$*.output
+	-@../picoc -m $*.c 2>&1 >$*.output
 	@if [ "x`diff -qbu $*.expect $*.output`" != "x" ]; \
 	then \
         	echo "error in test $*"; \
