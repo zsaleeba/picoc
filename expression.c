@@ -2,7 +2,7 @@
 
 
 /* whether evaluation is left to right for a given precedence level */
-#define IS_LEFT_TO_RIGHT(p) ((p) != 2 && (p) != 3 && (p) != 14)
+#define IS_LEFT_TO_RIGHT(p) ((p) != 2 && (p) != 14)
 #define BRACKET_PRECEDENCE 20
 #define IS_TYPE_TOKEN(t) ((t) >= TokenIntType && (t) <= TokenUnsignedType)
 
@@ -403,6 +403,39 @@ void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct
     }
 }
 
+/* evaluate the first half of a ternary operator x ? y : z */
+void ExpressionQuestionMarkOperator(struct ParseState *Parser, struct ExpressionStack **StackTop, struct Value *BottomValue, struct Value *TopValue)
+{
+    if (!IS_NUMERIC_COERCIBLE(TopValue))
+        ProgramFail(Parser, "first argument to '?' should be a number");
+
+    if (ExpressionCoerceInteger(TopValue))
+    {
+        /* the condition's true, return the BottomValue */
+        ExpressionStackPushValue(Parser, StackTop, BottomValue);
+    }
+    else
+    {
+        /* the condition's false, return void */
+        ExpressionStackPushValueByType(Parser, StackTop, &VoidType);
+    }
+}
+
+/* evaluate the second half of a ternary operator x ? y : z */
+void ExpressionColonOperator(struct ParseState *Parser, struct ExpressionStack **StackTop, struct Value *BottomValue, struct Value *TopValue)
+{
+    if (TopValue->Typ->Base == TypeVoid)
+    {
+        /* invoke the "else" part - return the BottomValue */
+        ExpressionStackPushValue(Parser, StackTop, BottomValue);
+    }
+    else
+    {
+        /* it was a "then" - return the TopValue */
+        ExpressionStackPushValue(Parser, StackTop, TopValue);
+    }
+}
+
 /* evaluate a prefix operator */
 void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack **StackTop, enum LexToken Op, struct Value *TopValue)
 {
@@ -610,6 +643,12 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
         
         ExpressionStackPushValueNode(Parser, StackTop, Result);
     }
+    else if (Op == TokenQuestionMark)
+        ExpressionQuestionMarkOperator(Parser, StackTop, TopValue, BottomValue);
+    
+    else if (Op == TokenColon)
+        ExpressionColonOperator(Parser, StackTop, TopValue, BottomValue);
+        
 #ifndef NO_FP
     else if ( (TopValue->Typ == &FPType && BottomValue->Typ == &FPType) ||
               (TopValue->Typ == &FPType && IS_NUMERIC_COERCIBLE(BottomValue)) ||
@@ -667,8 +706,6 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
             case TokenArithmeticAndAssign:  ResultInt = ExpressionAssignInt(Parser, BottomValue, BottomInt & TopInt, FALSE); break;
             case TokenArithmeticOrAssign:   ResultInt = ExpressionAssignInt(Parser, BottomValue, BottomInt | TopInt, FALSE); break;
             case TokenArithmeticExorAssign: ResultInt = ExpressionAssignInt(Parser, BottomValue, BottomInt ^ TopInt, FALSE); break;
-            case TokenQuestionMark:         ProgramFail(Parser, "not supported"); break; /* XXX */
-            case TokenColon:                ProgramFail(Parser, "not supported"); break; /* XXX */
             case TokenLogicalOr:            ResultInt = BottomInt || TopInt; break;
             case TokenLogicalAnd:           ResultInt = BottomInt && TopInt; break;
             case TokenArithmeticOr:         ResultInt = BottomInt | TopInt; break;
@@ -939,8 +976,8 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
         struct ParseState PreState = *Parser;
         enum LexToken Token = LexGetToken(Parser, &LexValue, TRUE);
         if ( ( ( (int)Token > TokenComma && (int)Token <= (int)TokenOpenBracket) || 
-               (Token == TokenCloseBracket && BracketPrecedence != 0)) &&
-             (Token != TokenColon || TernaryDepth != 0) )
+               (Token == TokenCloseBracket && BracketPrecedence != 0)) && 
+               (Token != TokenColon || TernaryDepth > 0) )
         { 
             /* it's an operator with precedence */
             if (PrefixState)
@@ -1035,6 +1072,13 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
 
                         ExpressionStackPushOperator(Parser, &StackTop, OrderInfix, Token, Precedence);
                         PrefixState = TRUE;
+                        
+                        switch (Token)
+                        {
+                            case TokenQuestionMark: TernaryDepth++; break;
+                            case TokenColon: TernaryDepth--; break;
+                            default: break;
+                        }
                     }
 
                     /* treat an open square bracket as an infix array index operator followed by an open bracket */

@@ -1,5 +1,8 @@
 #include "picoc.h"
 
+/* maximum size of a value to temporarily copy while we create a variable */
+#define MAX_TMP_COPY_BUF 256
+
 /* the table of global definitions */
 struct Table GlobalTable;
 struct TableEntry *GlobalHashTable[GLOBAL_TABLE_SIZE];
@@ -109,13 +112,19 @@ struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct Value
     return NewValue;
 }
 
-/* allocate a value either on the heap or the stack and copy its value */
+/* allocate a value either on the heap or the stack and copy its value. handles overlapping data */
 struct Value *VariableAllocValueAndCopy(struct ParseState *Parser, struct Value *FromValue, int OnHeap)
 {
+    struct ValueType *DType = FromValue->Typ;
+    struct Value *NewValue;
+    char TmpBuf[MAX_TMP_COPY_BUF];
     int CopySize = TypeSizeValue(FromValue);
-    struct Value *NewValue = VariableAllocValueAndData(Parser, CopySize, FromValue->IsLValue, FromValue->LValueFrom, OnHeap);
-    NewValue->Typ = FromValue->Typ;
-    memcpy((void *)NewValue->Val, (void *)FromValue->Val, CopySize);
+
+    assert(CopySize <= MAX_TMP_COPY_BUF);
+    memcpy((void *)&TmpBuf[0], (void *)FromValue->Val, CopySize);
+    NewValue = VariableAllocValueAndData(Parser, CopySize, FromValue->IsLValue, FromValue->LValueFrom, OnHeap);
+    NewValue->Typ = DType;
+    memcpy((void *)NewValue->Val, (void *)&TmpBuf[0], CopySize);
     
     return NewValue;
 }

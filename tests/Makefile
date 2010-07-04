@@ -29,6 +29,7 @@ TESTS=	00_assignment.test \
 	29_array_address.test \
 	30_hanoi.test \
 	31_args.test \
+	33_ternary_op.test \
         34_array_assignment.test \
 	35_sizeof.test \
 	36_array_initialisers.test \
