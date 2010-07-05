@@ -327,7 +327,7 @@ void LibGets(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
     char *Result;
 
     ReturnValue->Val->Pointer = NULL;
-    Result = PlatformGetLine(ReadBuffer, GETS_BUF_MAX);
+    Result = PlatformGetLine(ReadBuffer, GETS_BUF_MAX, NULL);
     if (Result == NULL)
         return;
     

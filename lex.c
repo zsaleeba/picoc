@@ -556,6 +556,7 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
 {
     enum LexToken Token = TokenNone;
     int ValueSize;
+    char *Prompt = NULL;
     
     do
     { 
@@ -586,13 +587,13 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
                 /* get interactive input */
                 if (LexUseStatementPrompt)
                 {
-                    PlatformPrintf(INTERACTIVE_PROMPT_STATEMENT);
+                    Prompt = INTERACTIVE_PROMPT_STATEMENT;
                     LexUseStatementPrompt = FALSE;
                 }
                 else
-                    PlatformPrintf(INTERACTIVE_PROMPT_LINE);
+                    Prompt = INTERACTIVE_PROMPT_LINE;
                     
-                if (PlatformGetLine(&LineBuffer[0], LINEBUFFER_MAX) == NULL)
+                if (PlatformGetLine(&LineBuffer[0], LINEBUFFER_MAX, Prompt) == NULL)
                     return TokenEOF;
 
                 /* put the new line at the end of the linked list of interactive lines */        

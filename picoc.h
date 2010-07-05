@@ -398,7 +398,7 @@ void AssignFail(struct ParseState *Parser, const char *Format, struct ValueType 
 void LexFail(struct LexState *Lexer, const char *Message, ...);
 void PlatformCleanup();
 void PlatformScanFile(const char *FileName);
-char *PlatformGetLine(char *Buf, int MaxLen);
+char *PlatformGetLine(char *Buf, int MaxLen, const char *Prompt);
 int PlatformGetCharacter();
 void PlatformPutc(unsigned char OutCh, union OutputStreamInfo *);
 void PlatformErrorPrefix(struct ParseState *Parser);

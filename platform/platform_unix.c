@@ -1,5 +1,10 @@
 #include "../picoc.h"
 
+#ifdef USE_READLINE
+#include <readline/readline.h>
+#include <readline/history.h>
+#endif
+
 /* a source file we need to clean up */
 static char *CleanupText = NULL;
 
@@ -11,8 +16,31 @@ void PlatformCleanup()
 }
 
 /* get a line of interactive input */
-char *PlatformGetLine(char *Buf, int MaxLen)
+char *PlatformGetLine(char *Buf, int MaxLen, const char *Prompt)
 {
+#ifdef USE_READLINE
+    if (Prompt != NULL)
+    {
+        /* use GNU readline to read the line */
+        char *InLine = readline(Prompt);
+        if (InLine == NULL)
+            return NULL;
+    
+        Buf[MaxLen] = '\0';
+        strncpy(Buf, InLine, MaxLen-1);
+        strncat(Buf, "\n", MaxLen-1);
+        
+        if (InLine[0] != '\0')
+            add_history(InLine);
+            
+        free(InLine);
+        return Buf;
+    }
+#endif
+
+    if (Prompt != NULL)
+        printf("%s", Prompt);
+        
     fflush(stdout);
     return fgets(Buf, MaxLen, stdin);
 }
