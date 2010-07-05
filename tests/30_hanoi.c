@@ -121,6 +121,3 @@ main()
 	Hanoi(N,A,B,C);
 	return 0;
 }
-
-	
-main();

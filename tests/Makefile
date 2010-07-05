@@ -44,7 +44,7 @@ TESTS=	00_assignment.test \
 	then \
 		../picoc $*.c - arg1 arg2 arg3 arg4 2>&1 >$*.output; \
 	else \
-		../picoc -m $*.c 2>&1 >$*.output; \
+		../picoc $*.c 2>&1 >$*.output; \
 	fi
 	@if [ "x`diff -qbu $*.expect $*.output`" != "x" ]; \
 	then \

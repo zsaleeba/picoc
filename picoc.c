@@ -38,8 +38,11 @@ void Cleanup()
 void CallMain(int argc, char **argv)
 {
     /* check if the program wants arguments */
-    struct Value *FuncValue;
+    struct Value *FuncValue = NULL;
 
+    if (!VariableDefined(TableStrRegister("main")))
+        return;
+        
     VariableGet(NULL, TableStrRegister("main"), &FuncValue);
     if (FuncValue->Typ->Base != TypeFunction)
         ProgramFail(NULL, "main is not a function - can't call it");
