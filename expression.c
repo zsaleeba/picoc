@@ -1110,7 +1110,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                     if (VariableValue->Typ->Base == TypeMacro)
                     {
                         /* evaluate a macro as a kind of simple subroutine */
-                        struct ParseState MacroParser = VariableValue->Val->Parser;
+                        struct ParseState MacroParser = VariableValue->Val->MacroDef.Body;
                         struct Value *MacroResult;
                         
                         if (!ExpressionParse(&MacroParser, &MacroResult) || LexGetToken(&MacroParser, NULL, FALSE) != TokenEndOfFunction)

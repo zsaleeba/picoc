@@ -26,24 +26,12 @@ enum ParseResult ParseStatementMaybeRun(struct ParseState *Parser, int Condition
         return ParseStatement(Parser, CheckTrailingSemicolon);
 }
 
-/* parse a function definition and store it for later */
-struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *ReturnType, char *Identifier)
+/* count the number of parameters to a function or macro */
+int ParseCountParams(struct ParseState *Parser)
 {
-    struct ValueType *ParamType;
-    char *ParamIdentifier;
-    enum LexToken Token;
-    struct Value *FuncValue;
-    struct Value *OldFuncValue;
-    struct ParseState ParamParser;
-    struct ParseState FuncBody;
     int ParamCount = 0;
-
-    if (TopStackFrame != NULL)
-        ProgramFail(Parser, "nested function definitions are not allowed");
-        
-    LexGetToken(Parser, NULL, TRUE);  /* open bracket */
-    ParamParser = *Parser;
-    Token = LexGetToken(Parser, NULL, TRUE);
+    
+    enum LexToken Token = LexGetToken(Parser, NULL, TRUE);
     if (Token != TokenCloseBracket && Token != TokenEOF)
     { 
         /* count the number of parameters */
@@ -54,6 +42,28 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
                 ParamCount++;
         } 
     }
+    
+    return ParamCount;
+}
+
+/* parse a function definition and store it for later */
+struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *ReturnType, char *Identifier)
+{
+    struct ValueType *ParamType;
+    char *ParamIdentifier;
+    enum LexToken Token;
+    struct ParseState ParamParser;
+    struct Value *FuncValue;
+    struct Value *OldFuncValue;
+    struct ParseState FuncBody;
+    int ParamCount = 0;
+
+    if (TopStackFrame != NULL)
+        ProgramFail(Parser, "nested function definitions are not allowed");
+        
+    LexGetToken(Parser, NULL, TRUE);  /* open bracket */
+    ParamParser = *Parser;
+    ParamCount = ParseCountParams(Parser);
     if (ParamCount > PARAMETER_MAX)
         ProgramFail(Parser, "too many parameters");
     
@@ -232,15 +242,53 @@ int ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
 void ParseMacroDefinition(struct ParseState *Parser)
 {
     struct Value *MacroName;
-    struct Value *MacroValue = VariableAllocValueAndData(Parser, sizeof(struct ParseState), FALSE, NULL, TRUE);
+    struct Value *ParamName;
+    struct Value *MacroValue;
 
     if (LexGetToken(Parser, &MacroName, TRUE) != TokenIdentifier)
         ProgramFail(Parser, "identifier expected");
     
-    MacroValue->Val->Parser = *Parser;
+    if (LexGetToken(Parser, NULL, FALSE) == TokenOpenMacroBracket)
+    {
+        /* it's a parameterised macro, read the parameters */
+        enum LexToken Token = LexGetToken(Parser, NULL, TRUE);
+        struct ParseState ParamParser = *Parser;
+        int NumParams = ParseCountParams(&ParamParser);
+        int ParamCount = 0;
+        
+        MacroValue = VariableAllocValueAndData(Parser, sizeof(struct MacroDef) + sizeof(const char *) * NumParams, FALSE, NULL, TRUE);
+        MacroValue->Val->MacroDef.NumParams = NumParams;
+        Token = LexGetToken(Parser, &ParamName, TRUE);
+        
+        while (Token == TokenIdentifier)
+        {
+            /* store a parameter name */
+            MacroValue->Val->MacroDef.ParamName[ParamCount++] = ParamName->Val->Identifier;
+            
+            /* get the trailing comma */
+            Token = LexGetToken(Parser, NULL, TRUE);
+            if (Token == TokenComma)
+                Token = LexGetToken(Parser, &ParamName, TRUE);
+                
+            else if (Token != TokenCloseBracket)
+                ProgramFail(Parser, "comma expected");
+        }
+        
+        if (Token != TokenCloseBracket)
+            ProgramFail(Parser, "close bracket expected");
+    }
+    else
+    {
+        /* allocate a simple unparameterised macro */
+        MacroValue = VariableAllocValueAndData(Parser, sizeof(struct MacroDef), FALSE, NULL, TRUE);
+        MacroValue->Val->MacroDef.NumParams = 0;
+    }
+    
+    /* copy the body of the macro to execute later */
+    MacroValue->Val->MacroDef.Body = *Parser;
     MacroValue->Typ = &MacroType;
     LexToEndOfLine(Parser);
-    MacroValue->Val->Parser.Pos = LexCopyTokens(&MacroValue->Val->Parser, Parser);
+    MacroValue->Val->MacroDef.Body.Pos = LexCopyTokens(&MacroValue->Val->MacroDef.Body, Parser);
     
     if (!TableSet(&GlobalTable, MacroName->Val->Identifier, MacroValue))
         ProgramFail(Parser, "'%s' is already defined", &MacroName->Val->Identifier);

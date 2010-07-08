@@ -211,8 +211,12 @@ enum LexToken LexGetWord(struct LexState *Lexer, struct Value *Value)
     Value->Val->Identifier = TableStrRegister2(StartPos, Lexer->Pos - StartPos);
     
     Token = LexCheckReservedWord(Value->Val->Identifier);
-    if (Token == TokenHashInclude)
-        Lexer->ScanningHashInclude = TRUE;
+    switch (Token)
+    {
+        case TokenHashInclude: Lexer->Mode = LexModeHashInclude; break;
+        case TokenHashDefine: Lexer->Mode = LexModeHashDefine; break;
+        default: break;
+    }
         
     if (Token != TokenNone)
         return Token;
@@ -373,12 +377,14 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
             {
                 Lexer->Line++;
                 Lexer->Pos++;
-                Lexer->ScanningHashInclude = FALSE;
+                Lexer->Mode = LexModeNormal;
 #ifdef FANCY_ERROR_REPORTING
                 Lexer->CharacterPos = 0;
 #endif
                 return TokenEndOfLine;
             }
+            else if (Lexer->Mode == LexModeHashDefine)
+                Lexer->Mode = LexModeNormal;
     
             LEXER_INC(Lexer);
         }
@@ -399,7 +405,7 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
         {
             case '"': GotToken = LexGetStringConstant(Lexer, *Value, '"'); break;
             case '\'': GotToken = LexGetCharacterConstant(Lexer, *Value); break;
-            case '(': GotToken = TokenOpenBracket; break;
+            case '(': if (Lexer->Mode == LexModeHashDefine) { GotToken = TokenOpenMacroBracket; Lexer->Mode = LexModeNormal; } else GotToken = TokenOpenBracket; break;
             case ')': GotToken = TokenCloseBracket; break;
             case '=': NEXTIS('=', TokenEqual, TokenAssign); break;
             case '+': NEXTIS3('=', TokenAddAssign, '+', TokenIncrement, TokenPlus); break;
@@ -407,7 +413,7 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
             case '*': NEXTIS('=', TokenMultiplyAssign, TokenAsterisk); break;
             case '/': if (NextChar == '/' || NextChar == '*') LexSkipComment(Lexer, NextChar); else NEXTIS('=', TokenDivideAssign, TokenSlash); break;
             case '%': NEXTIS('=', TokenModulusAssign, TokenModulus); break;
-            case '<': if (Lexer->ScanningHashInclude) GotToken = LexGetStringConstant(Lexer, *Value, '>'); else { NEXTIS3PLUS('=', TokenLessEqual, '<', TokenShiftLeft, '=', TokenShiftLeftAssign, TokenLessThan); } break; 
+            case '<': if (Lexer->Mode == LexModeHashInclude) GotToken = LexGetStringConstant(Lexer, *Value, '>'); else { NEXTIS3PLUS('=', TokenLessEqual, '<', TokenShiftLeft, '=', TokenShiftLeftAssign, TokenLessThan); } break; 
             case '>': NEXTIS3PLUS('=', TokenGreaterEqual, '>', TokenShiftRight, '=', TokenShiftRightAssign, TokenGreaterThan); break;
             case ';': GotToken = TokenSemicolon; break;
             case '&': NEXTIS3('=', TokenArithmeticAndAssign, '&', TokenLogicalAnd, TokenAmpersand); break;
@@ -528,7 +534,7 @@ void *LexAnalyse(const char *FileName, const char *Source, int SourceLen, int *T
     Lexer.End = Source + SourceLen;
     Lexer.Line = 1;
     Lexer.FileName = FileName;
-    Lexer.ScanningHashInclude = FALSE;
+    Lexer.Mode = LexModeNormal;
 #ifdef FANCY_ERROR_REPORTING
     Lexer.CharacterPos = 1;
     Lexer.SourceText = Source;

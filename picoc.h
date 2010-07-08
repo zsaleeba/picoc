@@ -76,7 +76,8 @@ enum LexToken
     /* 0x3c */ TokenLongType, TokenSignedType, TokenShortType, TokenStructType, TokenUnionType, TokenUnsignedType, TokenTypedef,
     /* 0x43 */ TokenContinue, TokenDo, TokenElse, TokenFor, TokenIf, TokenWhile, TokenBreak, TokenSwitch, TokenCase, TokenDefault, TokenReturn,
     /* 0x4e */ TokenHashDefine, TokenHashInclude, TokenNew, TokenDelete,
-    /* 0x52 */ TokenEOF, TokenEndOfLine, TokenEndOfFunction
+    /* 0x52 */ TokenOpenMacroBracket,
+    /* 0x53 */ TokenEOF, TokenEndOfLine, TokenEndOfFunction
 };
 
 /* used in dynamic memory allocation */
@@ -161,6 +162,14 @@ struct FuncDef
     struct ParseState Body;         /* lexical tokens of the function body if not intrinsic */
 };
 
+/* macro definition */
+struct MacroDef
+{
+    int NumParams;                  /* the number of parameters */
+    char **ParamName;               /* array of parameter names */
+    struct ParseState Body;         /* lexical tokens of the function body if not intrinsic */
+};
+
 /* values */
 union AnyValue
 {
@@ -173,13 +182,14 @@ union AnyValue
     unsigned long UnsignedLongInteger;
     char *Identifier;
     char ArrayMem[2];               /* placeholder for where the data starts, doesn't point to it */
-    struct ParseState Parser;
+/*    struct ParseState Parser; */
     struct ValueType *Typ;
     struct FuncDef FuncDef;
+    struct MacroDef MacroDef;
 #ifndef NO_FP
     double FP;
 #endif
-    void *Pointer;            /* unsafe native pointers */
+    void *Pointer;                  /* unsafe native pointers */
 };
 
 struct Value
@@ -228,13 +238,20 @@ struct StackFrame
 };
 
 /* lexer state */
+enum LexMode
+{
+    LexModeNormal,
+    LexModeHashInclude,
+    LexModeHashDefine
+};
+
 struct LexState
 {
     const char *Pos;
     const char *End;
     const char *FileName;
     int Line;
-    int ScanningHashInclude;
+    enum LexMode Mode;
 #ifdef FANCY_ERROR_REPORTING
     int CharacterPos;
     const char *SourceText;

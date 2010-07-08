@@ -34,7 +34,7 @@ void VariableFree(struct Value *Val)
 
         /* free macro bodies */
         if (Val->Typ == &MacroType)
-            HeapFreeMem((void *)Val->Val->Parser.Pos);
+            HeapFreeMem((void *)Val->Val->MacroDef.Body.Pos);
 
         /* free the value */
         HeapFreeMem(Val);
