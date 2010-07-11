@@ -221,6 +221,9 @@ enum LexToken LexGetWord(struct LexState *Lexer, struct Value *Value)
     if (Token != TokenNone)
         return Token;
     
+    if (Lexer->Mode == LexModeHashDefineSpace)
+        Lexer->Mode = LexModeHashDefineSpaceIdent;
+    
     return TokenIdentifier;
 }
 
@@ -383,7 +386,10 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
 #endif
                 return TokenEndOfLine;
             }
-            else if (Lexer->Mode == LexModeHashDefine)
+            else if (Lexer->Mode == LexModeHashDefine || Lexer->Mode == LexModeHashDefineSpace)
+                Lexer->Mode = LexModeHashDefineSpace;
+            
+            else if (Lexer->Mode == LexModeHashDefineSpaceIdent)
                 Lexer->Mode = LexModeNormal;
     
             LEXER_INC(Lexer);
@@ -405,7 +411,7 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
         {
             case '"': GotToken = LexGetStringConstant(Lexer, *Value, '"'); break;
             case '\'': GotToken = LexGetCharacterConstant(Lexer, *Value); break;
-            case '(': if (Lexer->Mode == LexModeHashDefine) { GotToken = TokenOpenMacroBracket; Lexer->Mode = LexModeNormal; } else GotToken = TokenOpenBracket; break;
+            case '(': if (Lexer->Mode == LexModeHashDefineSpaceIdent) GotToken = TokenOpenMacroBracket; else GotToken = TokenOpenBracket; Lexer->Mode = LexModeNormal; break;
             case ')': GotToken = TokenCloseBracket; break;
             case '=': NEXTIS('=', TokenEqual, TokenAssign); break;
             case '+': NEXTIS3('=', TokenAddAssign, '+', TokenIncrement, TokenPlus); break;

@@ -242,7 +242,9 @@ enum LexMode
 {
     LexModeNormal,
     LexModeHashInclude,
-    LexModeHashDefine
+    LexModeHashDefine,
+    LexModeHashDefineSpace,
+    LexModeHashDefineSpaceIdent
 };
 
 struct LexState

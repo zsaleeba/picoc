@@ -242,11 +242,14 @@ int ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
 void ParseMacroDefinition(struct ParseState *Parser)
 {
     struct Value *MacroName;
+    char *MacroNameStr;
     struct Value *ParamName;
     struct Value *MacroValue;
 
     if (LexGetToken(Parser, &MacroName, TRUE) != TokenIdentifier)
         ProgramFail(Parser, "identifier expected");
+    
+    MacroNameStr = MacroName->Val->Identifier;
     
     if (LexGetToken(Parser, NULL, FALSE) == TokenOpenMacroBracket)
     {
@@ -258,6 +261,8 @@ void ParseMacroDefinition(struct ParseState *Parser)
         
         MacroValue = VariableAllocValueAndData(Parser, sizeof(struct MacroDef) + sizeof(const char *) * NumParams, FALSE, NULL, TRUE);
         MacroValue->Val->MacroDef.NumParams = NumParams;
+        MacroValue->Val->MacroDef.ParamName = (char **)((char *)MacroValue->Val + sizeof(struct MacroDef));
+
         Token = LexGetToken(Parser, &ParamName, TRUE);
         
         while (Token == TokenIdentifier)
@@ -290,8 +295,8 @@ void ParseMacroDefinition(struct ParseState *Parser)
     LexToEndOfLine(Parser);
     MacroValue->Val->MacroDef.Body.Pos = LexCopyTokens(&MacroValue->Val->MacroDef.Body, Parser);
     
-    if (!TableSet(&GlobalTable, MacroName->Val->Identifier, MacroValue))
-        ProgramFail(Parser, "'%s' is already defined", &MacroName->Val->Identifier);
+    if (!TableSet(&GlobalTable, MacroNameStr, MacroValue))
+        ProgramFail(Parser, "'%s' is already defined", MacroNameStr);
 }
 
 /* copy where we're at in the parsing */

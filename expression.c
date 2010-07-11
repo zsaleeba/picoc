@@ -1099,7 +1099,9 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                 ProgramFail(Parser, "identifier not expected here");
                 
             if (LexGetToken(Parser, NULL, FALSE) == TokenOpenBracket)
+            {
                 ExpressionParseFunctionCall(Parser, &StackTop, LexValue->Val->Identifier);
+            }
             else
             {
                 if (Parser->Mode == RunModeRun)
@@ -1113,6 +1115,9 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                         struct ParseState MacroParser = VariableValue->Val->MacroDef.Body;
                         struct Value *MacroResult;
                         
+                        if (VariableValue->Val->MacroDef.NumParams != 0)
+                            ProgramFail(&MacroParser, "macro arguments missing");
+                            
                         if (!ExpressionParse(&MacroParser, &MacroResult) || LexGetToken(&MacroParser, NULL, FALSE) != TokenEndOfFunction)
                             ProgramFail(&MacroParser, "expression expected");
                         
@@ -1195,6 +1200,83 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
 }
 
 
+/* do a parameterised macro call */
+void ExpressionParseMacroCall(struct ParseState *Parser, struct ExpressionStack **StackTop, const char *MacroName, struct MacroDef *MDef)
+{
+    struct Value *ReturnValue = NULL;
+    struct Value *Param;
+    struct Value **ParamArray = NULL;
+    int ArgCount;
+    enum LexToken Token;
+    
+    if (Parser->Mode == RunModeRun) 
+    { 
+        /* create a stack frame for this macro */
+        ExpressionStackPushValueByType(Parser, StackTop, &FPType);  /* largest return type there is */
+        ReturnValue = (*StackTop)->Val;
+        HeapPushStackFrame();
+        ParamArray = HeapAllocStack(sizeof(struct Value *) * MDef->NumParams);    
+        if (ParamArray == NULL)
+            ProgramFail(Parser, "out of memory");
+    }
+    else
+        ExpressionPushInt(Parser, StackTop, 0);
+        
+    /* parse arguments */
+    ArgCount = 0;
+    do {
+        if (ExpressionParse(Parser, &Param))
+        {
+            if (Parser->Mode == RunModeRun)
+            { 
+                if (ArgCount < MDef->NumParams)
+                    ParamArray[ArgCount] = Param;
+                else
+                    ProgramFail(Parser, "too many arguments to %s()", MacroName);
+            }
+            
+            ArgCount++;
+            Token = LexGetToken(Parser, NULL, TRUE);
+            if (Token != TokenComma && Token != TokenCloseBracket)
+                ProgramFail(Parser, "comma expected");
+        }
+        else
+        { 
+            /* end of argument list? */
+            Token = LexGetToken(Parser, NULL, TRUE);
+            if (!TokenCloseBracket)
+                ProgramFail(Parser, "bad argument");
+        }
+        
+    } while (Token != TokenCloseBracket);
+    
+    if (Parser->Mode == RunModeRun) 
+    { 
+        /* evaluate the macro */
+        struct ParseState MacroParser;
+        int Count;
+        struct Value *EvalValue;
+        
+        if (ArgCount < MDef->NumParams)
+            ProgramFail(Parser, "not enough arguments to '%s'", MacroName);
+        
+        if (MDef->Body.Pos == NULL)
+            ProgramFail(Parser, "'%s' is undefined", MacroName);
+        
+        memcpy((void *)&MacroParser, (void *)&MDef->Body, sizeof(struct ParseState));
+        VariableStackFrameAdd(Parser, 0);
+        TopStackFrame->NumParams = ArgCount;
+        TopStackFrame->ReturnValue = ReturnValue;
+        for (Count = 0; Count < MDef->NumParams; Count++)
+            VariableDefine(Parser, MDef->ParamName[Count], ParamArray[Count], NULL, TRUE);
+            
+        ExpressionParse(&MacroParser, &EvalValue);
+        ExpressionAssign(Parser, ReturnValue, EvalValue, TRUE, MacroName, 0, FALSE);
+        VariableStackFramePop(Parser);
+        HeapPopStackFrame();
+    }
+}
+
 /* do a function call */
 void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionStack **StackTop, const char *FuncName)
 {
@@ -1209,6 +1291,14 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
     { 
         /* get the function definition */
         VariableGet(Parser, FuncName, &FuncValue);
+        
+        if (FuncValue->Typ->Base == TypeMacro)
+        {
+            /* this is actually a macro, not a function */
+            ExpressionParseMacroCall(Parser, StackTop, FuncName, &FuncValue->Val->MacroDef);
+            return;
+        }
+        
         if (FuncValue->Typ->Base != TypeFunction)
             ProgramFail(Parser, "%t is not a function - can't call", FuncValue->Typ);
     
