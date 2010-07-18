@@ -74,6 +74,7 @@ static struct ReservedWord ReservedWords[] =
     { "short", TokenShortType, NULL },
     { "signed", TokenSignedType, NULL },
     { "sizeof", TokenSizeof, NULL },
+    { "static", TokenStaticType, NULL },
     { "struct", TokenStructType, NULL },
     { "switch", TokenSwitch, NULL },
     { "typedef", TokenTypedef, NULL },
@@ -168,6 +169,16 @@ enum LexToken LexGetNumber(struct LexState *Lexer, struct Value *Value)
         Value->Val->Integer = Result;
         ResultToken = TokenIntegerConstant;
     }
+    
+    if (Lexer->Pos == Lexer->End)
+        return ResultToken;
+        
+    if (*Lexer->Pos == 'l' || *Lexer->Pos == 'L')
+    {
+        LEXER_INC(Lexer);
+        return ResultToken;
+    }
+        
 #ifndef NO_FP
     if (Lexer->Pos == Lexer->End || *Lexer->Pos != '.')
         return ResultToken;
@@ -349,17 +360,29 @@ enum LexToken LexGetCharacterConstant(struct LexState *Lexer, struct Value *Valu
 }
 
 /* skip a comment - used while scanning */
-void LexSkipComment(struct LexState *Lexer, char NextChar)
+void LexSkipComment(struct LexState *Lexer, char NextChar, enum LexToken *ReturnToken)
 {
     LEXER_INC(Lexer);
     if (NextChar == '*')
     {   
         /* conventional C comment */
         while (Lexer->Pos != Lexer->End && (*(Lexer->Pos-1) != '*' || *Lexer->Pos != '/'))
-            LEXER_INC(Lexer);
+        {
+            if (*Lexer->Pos == '\n')
+            {
+                LEXER_INC(Lexer);
+                Lexer->Mode = LexModeMultiLineComment;
+                *ReturnToken = TokenEndOfLine;
+                return;
+            }
+            else
+                LEXER_INC(Lexer);
+        }
         
         if (Lexer->Pos != Lexer->End)
             LEXER_INC(Lexer);
+        
+        Lexer->Mode = LexModeNormal;
     }
     else
     {   
@@ -376,6 +399,15 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
     char NextChar;
     enum LexToken GotToken = TokenNone;
     
+    /* handle the end of multi-line comments */
+    if (Lexer->Mode == LexModeMultiLineComment)
+    {
+        LexSkipComment(Lexer, '*', &GotToken);
+        if (GotToken != TokenNone)
+            return GotToken;
+    }
+    
+    /* scan for a token */
     do
     {
         *Value = &LexValue;
@@ -422,7 +454,7 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
             case '+': NEXTIS3('=', TokenAddAssign, '+', TokenIncrement, TokenPlus); break;
             case '-': NEXTIS4('=', TokenSubtractAssign, '>', TokenArrow, '-', TokenDecrement, TokenMinus); break;
             case '*': NEXTIS('=', TokenMultiplyAssign, TokenAsterisk); break;
-            case '/': if (NextChar == '/' || NextChar == '*') LexSkipComment(Lexer, NextChar); else NEXTIS('=', TokenDivideAssign, TokenSlash); break;
+            case '/': if (NextChar == '/' || NextChar == '*') LexSkipComment(Lexer, NextChar, &GotToken); else NEXTIS('=', TokenDivideAssign, TokenSlash); break;
             case '%': NEXTIS('=', TokenModulusAssign, TokenModulus); break;
             case '<': if (Lexer->Mode == LexModeHashInclude) GotToken = LexGetStringConstant(Lexer, *Value, '>'); else { NEXTIS3PLUS('=', TokenLessEqual, '<', TokenShiftLeft, '=', TokenShiftLeftAssign, TokenLessThan); } break; 
             case '>': NEXTIS3PLUS('=', TokenGreaterEqual, '>', TokenShiftRight, '=', TokenShiftRightAssign, TokenGreaterThan); break;

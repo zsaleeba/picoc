@@ -73,7 +73,7 @@ enum LexToken
     /* 0x32 */ TokenSemicolon, TokenEllipsis,
     /* 0x34 */ TokenLeftBrace, TokenRightBrace,
     /* 0x36 */ TokenIntType, TokenCharType, TokenFloatType, TokenDoubleType, TokenVoidType, TokenEnumType,
-    /* 0x3c */ TokenLongType, TokenSignedType, TokenShortType, TokenStructType, TokenUnionType, TokenUnsignedType, TokenTypedef,
+    /* 0x3c */ TokenLongType, TokenSignedType, TokenShortType, TokenStaticType, TokenStructType, TokenUnionType, TokenUnsignedType, TokenTypedef,
     /* 0x43 */ TokenContinue, TokenDo, TokenElse, TokenFor, TokenIf, TokenWhile, TokenBreak, TokenSwitch, TokenCase, TokenDefault, TokenReturn,
     /* 0x4e */ TokenHashDefine, TokenHashInclude, TokenHashIf, TokenHashIfdef, TokenHashIfndef, TokenHashElse, TokenHashEndif,
     /* 0x55 */ TokenNew, TokenDelete,
@@ -185,7 +185,6 @@ union AnyValue
     unsigned long UnsignedLongInteger;
     char *Identifier;
     char ArrayMem[2];               /* placeholder for where the data starts, doesn't point to it */
-/*    struct ParseState Parser; */
     struct ValueType *Typ;
     struct FuncDef FuncDef;
     struct MacroDef MacroDef;
@@ -247,7 +246,8 @@ enum LexMode
     LexModeHashInclude,
     LexModeHashDefine,
     LexModeHashDefineSpace,
-    LexModeHashDefineSpaceIdent
+    LexModeHashDefineSpaceIdent,
+    LexModeMultiLineComment
 };
 
 struct LexState
