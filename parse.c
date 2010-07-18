@@ -89,8 +89,17 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
         { 
             /* add a parameter */
             TypeParse(&ParamParser, &ParamType, &ParamIdentifier);
-            FuncValue->Val->FuncDef.ParamType[ParamCount] = ParamType;
-            FuncValue->Val->FuncDef.ParamName[ParamCount] = ParamIdentifier;
+            if (ParamType->Base == TypeVoid)
+            {
+                /* this isn't a real parameter at all - delete it */
+                ParamCount--;
+                FuncValue->Val->FuncDef.NumParams--;
+            }
+            else
+            {
+                FuncValue->Val->FuncDef.ParamType[ParamCount] = ParamType;
+                FuncValue->Val->FuncDef.ParamName[ParamCount] = ParamIdentifier;
+            }
         }
         
         Token = LexGetToken(&ParamParser, NULL, TRUE);

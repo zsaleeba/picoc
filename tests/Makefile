@@ -37,7 +37,8 @@ TESTS=	00_assignment.test \
 	38_multiple_array_index.test \
 	39_typedef.test \
 	40_stdio.test \
-	41_hashif.test
+	41_hashif.test \
+	43_void_param.test
 
 %.test: %.expect %.c
 	@echo Test: $*...
