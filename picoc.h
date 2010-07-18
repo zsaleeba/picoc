@@ -75,9 +75,10 @@ enum LexToken
     /* 0x36 */ TokenIntType, TokenCharType, TokenFloatType, TokenDoubleType, TokenVoidType, TokenEnumType,
     /* 0x3c */ TokenLongType, TokenSignedType, TokenShortType, TokenStructType, TokenUnionType, TokenUnsignedType, TokenTypedef,
     /* 0x43 */ TokenContinue, TokenDo, TokenElse, TokenFor, TokenIf, TokenWhile, TokenBreak, TokenSwitch, TokenCase, TokenDefault, TokenReturn,
-    /* 0x4e */ TokenHashDefine, TokenHashInclude, TokenNew, TokenDelete,
-    /* 0x52 */ TokenOpenMacroBracket,
-    /* 0x53 */ TokenEOF, TokenEndOfLine, TokenEndOfFunction
+    /* 0x4e */ TokenHashDefine, TokenHashInclude, TokenHashIf, TokenHashIfdef, TokenHashIfndef, TokenHashElse, TokenHashEndif,
+    /* 0x55 */ TokenNew, TokenDelete,
+    /* 0x57 */ TokenOpenMacroBracket,
+    /* 0x58 */ TokenEOF, TokenEndOfLine, TokenEndOfFunction
 };
 
 /* used in dynamic memory allocation */
@@ -106,6 +107,8 @@ struct ParseState
     const char *FileName;
     enum RunMode Mode;          /* whether to skip or run code */
     int SearchLabel;            /* what case label we're searching for */
+    int HashIfLevel;
+    int HashIfEvaluateToLevel;
 #ifdef FANCY_ERROR_REPORTING
     int CharacterPos;
     const char *SourceText;
@@ -330,6 +333,7 @@ void LexCleanup();
 void *LexAnalyse(const char *FileName, const char *Source, int SourceLen, int *TokenLen);
 void LexInitParser(struct ParseState *Parser, const char *SourceText, void *TokenSource, const char *FileName, int RunIt);
 enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int IncPos);
+enum LexToken LexRawPeekToken(struct ParseState *Parser);
 void LexToEndOfLine(struct ParseState *Parser);
 void *LexCopyTokens(struct ParseState *StartParser, struct ParseState *EndParser);
 void LexInteractiveClear(struct ParseState *Parser);

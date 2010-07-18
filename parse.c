@@ -251,7 +251,7 @@ void ParseMacroDefinition(struct ParseState *Parser)
     
     MacroNameStr = MacroName->Val->Identifier;
     
-    if (LexGetToken(Parser, NULL, FALSE) == TokenOpenMacroBracket)
+    if (LexRawPeekToken(Parser) == TokenOpenMacroBracket)
     {
         /* it's a parameterised macro, read the parameters */
         enum LexToken Token = LexGetToken(Parser, NULL, TRUE);
@@ -304,6 +304,8 @@ void ParserCopyPos(struct ParseState *To, struct ParseState *From)
 {
     To->Pos = From->Pos;
     To->Line = From->Line;
+    To->HashIfLevel = From->HashIfLevel;
+    To->HashIfEvaluateToLevel = From->HashIfEvaluateToLevel;
 #ifdef FANCY_ERROR_REPORTING
     To->CharacterPos = From->CharacterPos;
 #endif

@@ -44,6 +44,11 @@ struct ReservedWord
 static struct ReservedWord ReservedWords[] =
 {
     { "#define", TokenHashDefine, NULL },
+    { "#else", TokenHashElse, NULL },
+    { "#endif", TokenHashEndif, NULL },
+    { "#if", TokenHashIf, NULL },
+    { "#ifdef", TokenHashIfdef, NULL },
+    { "#ifndef", TokenHashIfndef, NULL },
     { "#include", TokenHashInclude, NULL },
     { "break", TokenBreak, NULL },
     { "case", TokenCase, NULL },
@@ -481,6 +486,7 @@ void *LexTokenise(struct LexState *Lexer, int *TokenLen)
     { 
         /* store the token at the end of the stack area */
         Token = LexScanGetToken(Lexer, &GotValue);
+        
 #ifdef DEBUG_LEXER
         printf("Token: %02x\n", Token);
 #endif
@@ -557,14 +563,16 @@ void LexInitParser(struct ParseState *Parser, const char *SourceText, void *Toke
     Parser->FileName = FileName;
     Parser->Mode = RunIt ? RunModeRun : RunModeSkip;
     Parser->SearchLabel = 0;
+    Parser->HashIfLevel = 0;
+    Parser->HashIfEvaluateToLevel = 0;
 #ifdef FANCY_ERROR_REPORTING
     Parser->CharacterPos = 0;
     Parser->SourceText = SourceText;
 #endif
 }
 
-/* get the next token given a parser state */
-enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int IncPos)
+/* get the next token, without pre-processing */
+enum LexToken LexGetRawToken(struct ParseState *Parser, struct Value **Value, int IncPos)
 {
     enum LexToken Token = TokenNone;
     int ValueSize;
@@ -695,6 +703,136 @@ enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int I
     return Token;
 }
 
+/* correct the token position depending if we already incremented the position */
+void LexHashIncPos(struct ParseState *Parser, int IncPos)
+{
+    if (!IncPos)
+        LexGetRawToken(Parser, NULL, TRUE);
+}
+
+/* handle a #ifdef directive */
+void LexHashIfdef(struct ParseState *Parser, int IfNot)
+{
+    /* get symbol to check */
+    struct Value *IdentValue;
+    struct Value *SavedValue;
+    int IsDefined;
+    enum LexToken Token = LexGetRawToken(Parser, &IdentValue, TRUE);
+    
+    if (Token != TokenIdentifier)
+        ProgramFail(Parser, "identifier expected");
+    
+    /* is the identifier defined? */
+    IsDefined = TableGet(&GlobalTable, IdentValue->Val->Identifier, &SavedValue);
+    if (Parser->HashIfEvaluateToLevel == Parser->HashIfLevel && ( (IsDefined && !IfNot) || (!IsDefined && IfNot)) )
+    {
+        /* #if is active, evaluate to this new level */
+        Parser->HashIfEvaluateToLevel++;
+    }
+    
+    Parser->HashIfLevel++;
+}
+
+/* handle a #if directive */
+void LexHashIf(struct ParseState *Parser)
+{
+    /* get symbol to check */
+    struct Value *IdentValue;
+    struct Value *SavedValue;
+    struct ParseState MacroParser;
+    enum LexToken Token = LexGetRawToken(Parser, &IdentValue, TRUE);
+
+    if (Token == TokenIdentifier)
+    {
+        /* look up a value from a macro definition */
+        if (!TableGet(&GlobalTable, IdentValue->Val->Identifier, &SavedValue))
+            ProgramFail(Parser, "'%s' is undefined", IdentValue->Val->Identifier);
+        
+        if (SavedValue->Typ->Base != TypeMacro)
+            ProgramFail(Parser, "value expected");
+        
+        MacroParser = SavedValue->Val->MacroDef.Body;
+        Token = LexGetRawToken(&MacroParser, &IdentValue, TRUE);
+    }
+    
+    if (Token != TokenCharacterConstant)
+        ProgramFail(Parser, "value expected");
+    
+    /* is the identifier defined? */
+    if (Parser->HashIfEvaluateToLevel == Parser->HashIfLevel && IdentValue->Val->Character)
+    {
+        /* #if is active, evaluate to this new level */
+        Parser->HashIfEvaluateToLevel++;
+    }
+    
+    Parser->HashIfLevel++;
+}
+
+/* handle a #else directive */
+void LexHashElse(struct ParseState *Parser)
+{
+    if (Parser->HashIfEvaluateToLevel == Parser->HashIfLevel - 1)
+        Parser->HashIfEvaluateToLevel++;     /* #if was not active, make this next section active */
+        
+    else if (Parser->HashIfEvaluateToLevel == Parser->HashIfLevel)
+    {
+        /* #if was active, now go inactive */
+        if (Parser->HashIfLevel == 0)
+            ProgramFail(Parser, "#else without #if");
+            
+        Parser->HashIfEvaluateToLevel--;
+    }
+}
+
+/* handle a #endif directive */
+void LexHashEndif(struct ParseState *Parser)
+{
+    if (Parser->HashIfLevel == 0)
+        ProgramFail(Parser, "#endif without #if");
+
+    Parser->HashIfLevel--;
+    if (Parser->HashIfEvaluateToLevel > Parser->HashIfLevel)
+        Parser->HashIfEvaluateToLevel = Parser->HashIfLevel;
+}
+
+/* get the next token given a parser state, pre-processing as we go */
+enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int IncPos)
+{
+    enum LexToken Token;
+    int TryNextToken;
+    
+    /* implements the pre-processor #if commands */
+    do
+    {
+        int WasPreProcToken = TRUE;
+
+        Token = LexGetRawToken(Parser, Value, IncPos);
+        switch (Token)
+        {
+            case TokenHashIfdef:    LexHashIncPos(Parser, IncPos); LexHashIfdef(Parser, FALSE); break;
+            case TokenHashIfndef:   LexHashIncPos(Parser, IncPos); LexHashIfdef(Parser, TRUE); break;
+            case TokenHashIf:       LexHashIncPos(Parser, IncPos); LexHashIf(Parser); break;
+            case TokenHashElse:     LexHashIncPos(Parser, IncPos); LexHashElse(Parser); break;
+            case TokenHashEndif:    LexHashIncPos(Parser, IncPos); LexHashEndif(Parser); break;
+            default:                WasPreProcToken = FALSE; break;
+        }
+
+        /* if we're going to reject this token, increment the token pointer to the next one */
+        TryNextToken = (Parser->HashIfEvaluateToLevel < Parser->HashIfLevel && Token != TokenEOF) || WasPreProcToken;
+        if (!IncPos && TryNextToken)
+            LexGetRawToken(Parser, NULL, TRUE);
+            
+    } while (TryNextToken);
+    
+    return Token;
+}
+
+/* take a quick peek at the next token, skipping any pre-processing */
+enum LexToken LexRawPeekToken(struct ParseState *Parser)
+{
+    return (enum LexToken)*(unsigned char *)Parser->Pos;
+}
+
 /* find the end of the line */
 void LexToEndOfLine(struct ParseState *Parser)
 {
@@ -704,7 +842,7 @@ void LexToEndOfLine(struct ParseState *Parser)
         if (Token == TokenEndOfLine || Token == TokenEOF)
             return;
         else
-            LexGetToken(Parser, NULL, TRUE);
+            LexGetRawToken(Parser, NULL, TRUE);
     }
 }
 
