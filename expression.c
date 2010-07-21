@@ -771,6 +771,24 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
             ExpressionAssign(Parser, BottomValue, TopValue, FALSE, NULL, 0, FALSE);
             ExpressionStackPushValueNode(Parser, StackTop, BottomValue);
         }
+        else if (Op == TokenAddAssign || Op == TokenSubtractAssign)
+        {
+            /* pointer arithmetic */
+            int Size = TypeSize(BottomValue->Typ->FromType, 0, TRUE);
+
+            Pointer = BottomValue->Val->Pointer;
+            if (Pointer == NULL)
+                ProgramFail(Parser, "invalid use of a NULL pointer");
+
+            if (Op == TokenAddAssign)
+                Pointer = (void *)((char *)Pointer + TopInt * Size);
+            else
+                Pointer = (void *)((char *)Pointer - TopInt * Size);
+
+            HeapUnpopStack(sizeof(struct Value));   /* XXX - possible bug if lvalue is a temp value and takes more than sizeof(struct Value) */
+            BottomValue->Val->Pointer = Pointer;
+            ExpressionStackPushValueNode(Parser, StackTop, BottomValue);
+        }
         else
             ProgramFail(Parser, "invalid operation");
     }
