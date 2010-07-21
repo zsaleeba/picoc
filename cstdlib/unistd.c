@@ -18,11 +18,6 @@ void UnistdAlarm(struct ParseState *Parser, struct Value *ReturnValue, struct Va
     ReturnValue->Val->Integer = alarm(Param[0]->Val->Integer);
 }
 
-void UnistdBrk(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
-{
-    ReturnValue->Val->Integer = brk(Param[0]->Val->Pointer);
-}
-
 void UnistdChdir(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     ReturnValue->Val->Integer = chdir(Param[0]->Val->Pointer);
@@ -401,7 +396,7 @@ struct LibraryFunction UnistdFunctions[] =
 {
     { UnistdAccess,        "int access(char *, int);" },
     { UnistdAlarm,         "unsigned int alarm(unsigned int);" },
-    { UnistdBrk,           "int brk(void *);" },
+/*    { UnistdBrk,           "int brk(void *);" }, */
     { UnistdChdir,         "int chdir(char *);" },
     { UnistdChroot,        "int chroot(char *);" },
     { UnistdChown,         "int chown(char *, uid_t, gid_t);" },
