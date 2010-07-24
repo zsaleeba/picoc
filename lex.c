@@ -362,7 +362,6 @@ enum LexToken LexGetCharacterConstant(struct LexState *Lexer, struct Value *Valu
 /* skip a comment - used while scanning */
 void LexSkipComment(struct LexState *Lexer, char NextChar, enum LexToken *ReturnToken)
 {
-    LEXER_INC(Lexer);
     if (NextChar == '*')
     {   
         /* conventional C comment */
@@ -454,7 +453,7 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
             case '+': NEXTIS3('=', TokenAddAssign, '+', TokenIncrement, TokenPlus); break;
             case '-': NEXTIS4('=', TokenSubtractAssign, '>', TokenArrow, '-', TokenDecrement, TokenMinus); break;
             case '*': NEXTIS('=', TokenMultiplyAssign, TokenAsterisk); break;
-            case '/': if (NextChar == '/' || NextChar == '*') LexSkipComment(Lexer, NextChar, &GotToken); else NEXTIS('=', TokenDivideAssign, TokenSlash); break;
+            case '/': if (NextChar == '/' || NextChar == '*') { LEXER_INC(Lexer); LexSkipComment(Lexer, NextChar, &GotToken); } else NEXTIS('=', TokenDivideAssign, TokenSlash); break;
             case '%': NEXTIS('=', TokenModulusAssign, TokenModulus); break;
             case '<': if (Lexer->Mode == LexModeHashInclude) GotToken = LexGetStringConstant(Lexer, *Value, '>'); else { NEXTIS3PLUS('=', TokenLessEqual, '<', TokenShiftLeft, '=', TokenShiftLeftAssign, TokenLessThan); } break; 
             case '>': NEXTIS3PLUS('=', TokenGreaterEqual, '>', TokenShiftRight, '=', TokenShiftRightAssign, TokenGreaterThan); break;
