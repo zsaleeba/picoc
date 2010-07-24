@@ -233,7 +233,7 @@ void TypeParseStruct(struct ParseState *Parser, struct ValueType **Typ, int IsSt
                 (*Typ)->Sizeof = TypeSizeValue(MemberValue);
         }
         
-        if (!TableSet((*Typ)->Members, MemberIdentifier, MemberValue))
+        if (!TableSet((*Typ)->Members, MemberIdentifier, MemberValue, Parser->Line, Parser->CharacterPos))
             ProgramFail(Parser, "member '%s' already defined", &MemberIdentifier);
             
         if (LexGetToken(Parser, NULL, TRUE) != TokenSemicolon)

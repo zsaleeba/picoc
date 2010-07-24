@@ -128,7 +128,7 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
         FuncValue->Val->FuncDef.Body.Pos = LexCopyTokens(&FuncBody, Parser);
 
         /* is this function already in the global table? */
-        if (TableGet(&GlobalTable, Identifier, &OldFuncValue))
+        if (TableGet(&GlobalTable, Identifier, &OldFuncValue, NULL, NULL))
         {
             if (OldFuncValue->Val->FuncDef.Body.Pos == NULL)
                 TableDelete(&GlobalTable, Identifier);   /* override an old function prototype */
@@ -137,7 +137,7 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
         }
     }
 
-    if (!TableSet(&GlobalTable, Identifier, FuncValue))
+    if (!TableSet(&GlobalTable, Identifier, FuncValue, Parser->Line, Parser->CharacterPos))
         ProgramFail(Parser, "'%s' is already defined", Identifier);
         
     return FuncValue;
@@ -227,7 +227,7 @@ int ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
                     ProgramFail(Parser, "can't define a void variable");
                     
                 if (Parser->Mode == RunModeRun)
-                    NewVariable = VariableDefine(Parser, Identifier, NULL, Typ, TRUE);
+                    NewVariable = VariableDefineButIgnoreIdentical(Parser, Identifier, Typ);
                 
                 if (LexGetToken(Parser, NULL, FALSE) == TokenAssign)
                 {
@@ -304,7 +304,7 @@ void ParseMacroDefinition(struct ParseState *Parser)
     LexToEndOfLine(Parser);
     MacroValue->Val->MacroDef.Body.Pos = LexCopyTokens(&MacroValue->Val->MacroDef.Body, Parser);
     
-    if (!TableSet(&GlobalTable, MacroNameStr, MacroValue))
+    if (!TableSet(&GlobalTable, MacroNameStr, MacroValue, Parser->Line, Parser->CharacterPos))
         ProgramFail(Parser, "'%s' is already defined", MacroNameStr);
 }
 

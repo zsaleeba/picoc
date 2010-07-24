@@ -767,7 +767,7 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
         else if (Op == TokenAssign && TopInt == 0)
         {
             /* assign a NULL pointer */
-            HeapUnpopStack(sizeof(struct Value));   /* XXX - possible bug if lvalue is a temp value and takes more than sizeof(struct Value) */
+            HeapUnpopStack(sizeof(struct Value));
             ExpressionAssign(Parser, BottomValue, TopValue, FALSE, NULL, 0, FALSE);
             ExpressionStackPushValueNode(Parser, StackTop, BottomValue);
         }
@@ -785,7 +785,7 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
             else
                 Pointer = (void *)((char *)Pointer - TopInt * Size);
 
-            HeapUnpopStack(sizeof(struct Value));   /* XXX - possible bug if lvalue is a temp value and takes more than sizeof(struct Value) */
+            HeapUnpopStack(sizeof(struct Value));
             BottomValue->Val->Pointer = Pointer;
             ExpressionStackPushValueNode(Parser, StackTop, BottomValue);
         }
@@ -963,7 +963,7 @@ void ExpressionGetStructElement(struct ParseState *Parser, struct ExpressionStac
         if (StructType->Base != TypeStruct && StructType->Base != TypeUnion)
             ProgramFail(Parser, "can't use '%s' on something that's not a struct or union %s : it's a %t", (Token == TokenDot) ? "." : "->", (Token == TokenArrow) ? "pointer" : "", ParamVal->Typ);
             
-        if (!TableGet(StructType->Members, Ident->Val->Identifier, &MemberValue))
+        if (!TableGet(StructType->Members, Ident->Val->Identifier, &MemberValue, NULL, NULL))
             ProgramFail(Parser, "doesn't have a member called '%s'", Ident->Val->Identifier);
         
         /* pop the value - assume it'll still be there until we're done */

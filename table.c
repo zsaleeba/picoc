@@ -56,7 +56,7 @@ static struct TableEntry *TableSearch(struct Table *Tbl, const char *Key, int *A
 
 /* set an identifier to a value. returns FALSE if it already exists. 
  * Key must be a shared string from TableStrRegister() */
-int TableSet(struct Table *Tbl, char *Key, struct Value *Val)
+int TableSet(struct Table *Tbl, char *Key, struct Value *Val, int DeclLine, int DeclColumn)
 {
     int AddAt;
     struct TableEntry *FoundEntry = TableSearch(Tbl, Key, &AddAt);
@@ -64,6 +64,8 @@ int TableSet(struct Table *Tbl, char *Key, struct Value *Val)
     if (FoundEntry == NULL)
     {   /* add it to the table */
         struct TableEntry *NewEntry = VariableAlloc(NULL, sizeof(struct TableEntry), Tbl->OnHeap);
+        NewEntry->DeclLine = DeclLine;
+        NewEntry->DeclColumn = DeclColumn;
         NewEntry->p.v.Key = Key;
         NewEntry->p.v.Val = Val;
         NewEntry->Next = Tbl->HashTable[AddAt];
@@ -76,7 +78,7 @@ int TableSet(struct Table *Tbl, char *Key, struct Value *Val)
 
 /* find a value in a table. returns FALSE if not found. 
  * Key must be a shared string from TableStrRegister() */
-int TableGet(struct Table *Tbl, const char *Key, struct Value **Val)
+int TableGet(struct Table *Tbl, const char *Key, struct Value **Val, int *DeclLine, int *DeclColumn)
 {
     int AddAt;
     struct TableEntry *FoundEntry = TableSearch(Tbl, Key, &AddAt);
@@ -84,6 +86,13 @@ int TableGet(struct Table *Tbl, const char *Key, struct Value **Val)
         return FALSE;
     
     *Val = FoundEntry->p.v.Val;
+    
+    if (DeclLine != NULL)
+    {
+        *DeclLine = FoundEntry->DeclLine;
+        *DeclColumn = FoundEntry->DeclColumn;
+    }
+    
     return TRUE;
 }
 
@@ -132,7 +141,7 @@ char *TableSetIdentifier(struct Table *Tbl, const char *Ident, int IdentLen)
         return &FoundEntry->p.Key[0];
     else
     {   /* add it to the table - we economise by not allocating the whole structure here */
-        struct TableEntry *NewEntry = HeapAllocMem(sizeof(struct TableEntry *) + IdentLen + 1);
+        struct TableEntry *NewEntry = HeapAllocMem(sizeof(struct TableEntry) - sizeof(union TableEntryPayload) + IdentLen + 1);
         if (NewEntry == NULL)
             ProgramFail(NULL, "out of memory");
             

@@ -161,10 +161,24 @@ struct Value *VariableDefine(struct ParseState *Parser, char *Ident, struct Valu
     
     AssignValue->IsLValue = MakeWritable;
         
-    if (!TableSet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, Ident, AssignValue))
+    if (!TableSet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, Ident, AssignValue, Parser ? Parser->Line : 0, Parser ? Parser->CharacterPos : 0))
         ProgramFail(Parser, "'%s' is already defined", Ident);
     
     return AssignValue;
+}
+
+/* define a variable. Ident must be registered. If it's a redefinition from the same declaration don't throw an error */
+struct Value *VariableDefineButIgnoreIdentical(struct ParseState *Parser, char *Ident, struct ValueType *Typ)
+{
+    struct Value *ExistingValue;
+    int DeclLine;
+    int DeclColumn;
+    
+    if (Parser->Line != 0 && TableGet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, Ident, &ExistingValue, &DeclLine, &DeclColumn)
+            && DeclLine == Parser->Line && DeclColumn == Parser->CharacterPos)
+        return ExistingValue;
+    else
+        return VariableDefine(Parser, Ident, NULL, Typ, TRUE);
 }
 
 /* check if a variable with a given name is defined. Ident must be registered */
@@ -172,9 +186,9 @@ int VariableDefined(const char *Ident)
 {
     struct Value *FoundValue;
     
-    if (TopStackFrame == NULL || !TableGet(&TopStackFrame->LocalTable, Ident, &FoundValue))
+    if (TopStackFrame == NULL || !TableGet(&TopStackFrame->LocalTable, Ident, &FoundValue, NULL, NULL))
     {
-        if (!TableGet(&GlobalTable, Ident, &FoundValue))
+        if (!TableGet(&GlobalTable, Ident, &FoundValue, NULL, NULL))
             return FALSE;
     }
 
@@ -184,9 +198,9 @@ int VariableDefined(const char *Ident)
 /* get the value of a variable. must be defined. Ident must be registered */
 void VariableGet(struct ParseState *Parser, const char *Ident, struct Value **LVal)
 {
-    if (TopStackFrame == NULL || !TableGet(&TopStackFrame->LocalTable, Ident, LVal))
+    if (TopStackFrame == NULL || !TableGet(&TopStackFrame->LocalTable, Ident, LVal, NULL, NULL))
     {
-        if (!TableGet(&GlobalTable, Ident, LVal))
+        if (!TableGet(&GlobalTable, Ident, LVal, NULL, NULL))
             ProgramFail(Parser, "'%s' is undefined", Ident);
     }
 }
@@ -198,7 +212,7 @@ void VariableDefinePlatformVar(struct ParseState *Parser, char *Ident, struct Va
     SomeValue->Typ = Typ;
     SomeValue->Val = FromValue;
     
-    if (!TableSet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, TableStrRegister(Ident), SomeValue))
+    if (!TableSet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, TableStrRegister(Ident), SomeValue, Parser ? Parser->Line : 0, Parser ? Parser->CharacterPos : 0))
         ProgramFail(Parser, "'%s' is already defined", Ident);
 }
 
@@ -261,7 +275,7 @@ struct Value *VariableStringLiteralGet(char *Ident)
 {
     struct Value *LVal = NULL;
 
-    if (TableGet(&StringLiteralTable, Ident, &LVal))
+    if (TableGet(&StringLiteralTable, Ident, &LVal, NULL, NULL))
         return LVal;
     else
         return NULL;
@@ -270,7 +284,7 @@ struct Value *VariableStringLiteralGet(char *Ident)
 /* define a string literal. assumes that Ident is already registered */
 void VariableStringLiteralDefine(char *Ident, struct Value *Val)
 {
-    TableSet(&StringLiteralTable, Ident, Val);
+    TableSet(&StringLiteralTable, Ident, Val, 0, 0);
 }
 
 /* check a pointer for validity and dereference it for use */

@@ -208,6 +208,9 @@ struct Value
 struct TableEntry
 {
     struct TableEntry *Next;        /* next item in this hash chain */
+    unsigned short DeclLine;        /* where the variable was declared */
+    unsigned short DeclColumn;
+
     union TableEntryPayload
     {
         struct ValueEntry
@@ -321,8 +324,8 @@ void TableInit();
 char *TableStrRegister(const char *Str);
 char *TableStrRegister2(const char *Str, int Len);
 void TableInitTable(struct Table *Tbl, struct TableEntry **HashTable, int Size, int OnHeap);
-int TableSet(struct Table *Tbl, char *Key, struct Value *Val);
-int TableGet(struct Table *Tbl, const char *Key, struct Value **Val);
+int TableSet(struct Table *Tbl, char *Key, struct Value *Val, int DeclLine, int DeclColumn);
+int TableGet(struct Table *Tbl, const char *Key, struct Value **Val, int *DeclLine, int *DeclColumn);
 struct Value *TableDelete(struct Table *Tbl, const char *Key);
 char *TableSetIdentifier(struct Table *Tbl, const char *Ident, int IdentLen);
 void TableStrFree();
@@ -394,6 +397,7 @@ struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct Value
 struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, struct ValueType *Typ, union AnyValue *FromValue, int IsLValue, struct Value *LValueFrom);
 struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *FromValue);
 struct Value *VariableDefine(struct ParseState *Parser, char *Ident, struct Value *InitValue, struct ValueType *Typ, int MakeWritable);
+struct Value *VariableDefineButIgnoreIdentical(struct ParseState *Parser, char *Ident, struct ValueType *Typ);
 int VariableDefined(const char *Ident);
 void VariableGet(struct ParseState *Parser, const char *Ident, struct Value **LVal);
 void VariableDefinePlatformVar(struct ParseState *Parser, char *Ident, struct ValueType *Typ, union AnyValue *FromValue, int IsWritable);
