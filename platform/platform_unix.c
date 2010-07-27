@@ -5,14 +5,8 @@
 #include <readline/history.h>
 #endif
 
-/* a source file we need to clean up */
-static char *CleanupText = NULL;
-
-/* deallocate any storage */
 void PlatformCleanup()
 {
-    if (CleanupText != NULL)
-        free(CleanupText);
 }
 
 /* get a line of interactive input */
@@ -91,15 +85,8 @@ char *PlatformReadFile(const char *FileName)
 void PlatformScanFile(const char *FileName)
 {
     char *SourceStr = PlatformReadFile(FileName);
-    char *OrigCleanupText = CleanupText;
-    if (CleanupText == NULL)
-        CleanupText = SourceStr;
 
-    Parse(FileName, SourceStr, strlen(SourceStr), TRUE);
-    free(SourceStr);
-
-    if (OrigCleanupText == NULL)
-        CleanupText = NULL;
+    Parse(FileName, SourceStr, strlen(SourceStr), TRUE, FALSE, TRUE);
 }
 
 /* mark where to end the program for platforms which require this */

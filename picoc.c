@@ -59,18 +59,18 @@ void CallMain(int argc, char **argv)
     if (FuncValue->Val->FuncDef.ReturnType == &VoidType)
     {
         if (FuncValue->Val->FuncDef.NumParams == 0)
-            Parse("", CALL_MAIN_NO_ARGS_RETURN_VOID, strlen(CALL_MAIN_NO_ARGS_RETURN_VOID), TRUE);
+            Parse("startup", CALL_MAIN_NO_ARGS_RETURN_VOID, strlen(CALL_MAIN_NO_ARGS_RETURN_VOID), TRUE, TRUE, FALSE);
         else
-            Parse("", CALL_MAIN_WITH_ARGS_RETURN_VOID, strlen(CALL_MAIN_WITH_ARGS_RETURN_VOID), TRUE);
+            Parse("startup", CALL_MAIN_WITH_ARGS_RETURN_VOID, strlen(CALL_MAIN_WITH_ARGS_RETURN_VOID), TRUE, TRUE, FALSE);
     }
     else
     {
         VariableDefinePlatformVar(NULL, "__exit_value", &IntType, (union AnyValue *)&ExitValue, TRUE);
     
         if (FuncValue->Val->FuncDef.NumParams == 0)
-            Parse("", CALL_MAIN_NO_ARGS_RETURN_INT, strlen(CALL_MAIN_NO_ARGS_RETURN_INT), TRUE);
+            Parse("startup", CALL_MAIN_NO_ARGS_RETURN_INT, strlen(CALL_MAIN_NO_ARGS_RETURN_INT), TRUE, TRUE, FALSE);
         else
-            Parse("", CALL_MAIN_WITH_ARGS_RETURN_INT, strlen(CALL_MAIN_WITH_ARGS_RETURN_INT), TRUE);
+            Parse("startup", CALL_MAIN_WITH_ARGS_RETURN_INT, strlen(CALL_MAIN_WITH_ARGS_RETURN_INT), TRUE, TRUE, FALSE);
     }
 }
 

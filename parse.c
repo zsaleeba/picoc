@@ -1,13 +1,30 @@
 #include "picoc.h"
 
-/* a chunk of heap-allocated tokens we should cleanup when we're done */
-static void *CleanupTokens = NULL;
+/* a chunk of heap-allocated tokens we'll cleanup when we're done */
+struct CleanupTokenNode
+{
+    void *Tokens;
+    const char *SourceText;
+    struct CleanupTokenNode *Next;
+};
+
+static struct CleanupTokenNode *CleanupTokenList = NULL;
+
 
 /* deallocate any memory */
 void ParseCleanup()
 {
-    if (CleanupTokens != NULL)
-        HeapFreeMem(CleanupTokens);
+    while (CleanupTokenList != NULL)
+    {
+        struct CleanupTokenNode *Next = CleanupTokenList->Next;
+        
+        HeapFreeMem(CleanupTokenList->Tokens);
+        if (CleanupTokenList->SourceText != NULL)
+            HeapFreeMem((void *)CleanupTokenList->SourceText);
+            
+        HeapFreeMem(CleanupTokenList);
+        CleanupTokenList = Next;
+    }
 }
 
 /* parse a statement, but only run it if Condition is TRUE */
@@ -725,16 +742,32 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
 }
 
 /* quick scan a source file for definitions */
-void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt)
+void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt, int CleanupNow, int CleanupSource)
 {
     struct ParseState Parser;
     enum ParseResult Ok;
+    struct CleanupTokenNode *NewCleanupNode;
     
-    void *OldCleanupTokens = CleanupTokens;
     void *Tokens = LexAnalyse(FileName, Source, SourceLen, NULL);
-    if (OldCleanupTokens == NULL)
-        CleanupTokens = Tokens;
-
+    
+    /* allocate a cleanup node so we can clean up the tokens later */
+    if (!CleanupNow)
+    {
+        NewCleanupNode = HeapAllocMem(sizeof(struct CleanupTokenNode));
+        if (NewCleanupNode == NULL)
+            ProgramFail(NULL, "out of memory");
+        
+        NewCleanupNode->Tokens = Tokens;
+        if (CleanupSource)
+            NewCleanupNode->SourceText = Source;
+        else
+            NewCleanupNode->SourceText = NULL;
+            
+        NewCleanupNode->Next = CleanupTokenList;
+        CleanupTokenList = NewCleanupNode;
+    }
+    
+    /* do the parsing */
     LexInitParser(&Parser, Source, Tokens, FileName, RunIt);
 
     do {
@@ -744,9 +777,9 @@ void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt)
     if (Ok == ParseResultError)
         ProgramFail(&Parser, "parse error");
     
-    HeapFreeMem(Tokens);
-    if (OldCleanupTokens == NULL)
-        CleanupTokens = NULL;
+    /* clean up */
+    if (CleanupNow)
+        HeapFreeMem(Tokens);
 }
 
 /* parse interactively */

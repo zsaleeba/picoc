@@ -87,7 +87,7 @@ void IncludeFile(char *FileName)
                 
                 /* parse the setup C source code - may define types etc. */
                 if (LInclude->SetupCSource != NULL)
-                    Parse(FileName, LInclude->SetupCSource, strlen(LInclude->SetupCSource), TRUE);
+                    Parse(FileName, LInclude->SetupCSource, strlen(LInclude->SetupCSource), TRUE, TRUE, FALSE);
                 
                 /* set up the library functions */
                 if (LInclude->FuncList != NULL)
