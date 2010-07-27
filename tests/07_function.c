@@ -21,3 +21,5 @@ void qfunc()
 }
 
 qfunc();
+
+void main() {}

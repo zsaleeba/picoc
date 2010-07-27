@@ -6,3 +6,5 @@
 printf("%d\n", FRED);
 printf("%d, %d, %d\n", BLOGGS(1), BLOGGS(2), BLOGGS(3));
 
+
+void main() {}

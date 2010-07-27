@@ -16,3 +16,5 @@ do
     p = t;
 } while (a < 100);
 
+
+void main() {}

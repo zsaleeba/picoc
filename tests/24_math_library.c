@@ -19,3 +19,5 @@ printf("%f\n", sqrt(0.12));
 printf("%f\n", round(12.34));
 printf("%f\n", ceil(12.34));
 printf("%f\n", floor(12.34));
+
+void main() {}

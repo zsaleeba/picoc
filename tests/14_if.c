@@ -13,3 +13,5 @@ if (b)
 else
     printf("b is false\n");
 
+
+void main() {}

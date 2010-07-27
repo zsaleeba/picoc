@@ -9,3 +9,5 @@ printf("%d\n", '\x10');
 printf("%d\n", '\x40');
 printf("test \x407\n");
 
+
+void main() {}

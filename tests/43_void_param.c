@@ -6,3 +6,5 @@ void fred(void)
 }
 
 fred();
+
+void main() {}

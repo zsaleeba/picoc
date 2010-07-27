@@ -25,3 +25,5 @@ for (x = 0; x < 4; x++)
     }
     printf("\n");
 }
+
+void main() {}

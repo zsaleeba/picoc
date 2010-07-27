@@ -25,3 +25,5 @@ while (*src != 0)
 
 printf("copied string is %s\n", destarray);
 
+
+void main() {}

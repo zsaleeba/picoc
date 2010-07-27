@@ -12,3 +12,5 @@ for (Count = 0; Count < 10; Count++)
 {
     printf("%d\n", Array[Count]);
 }
+
+void main() {}

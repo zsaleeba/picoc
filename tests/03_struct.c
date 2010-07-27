@@ -13,3 +13,5 @@ bloggs.natasha = 34;
 
 printf("%d\n", bloggs.boris);
 printf("%d\n", bloggs.natasha);
+
+void main() {}

@@ -33,3 +33,5 @@ printf("%d\n", a != b && c != d);
 printf("%d\n", a + b * c / f);
 printf("%d\n", a + b * c / f);
 
+
+void main() {}

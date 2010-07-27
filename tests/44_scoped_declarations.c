@@ -8,3 +8,5 @@ for (a = 0; a < 2; a++)
 }
 
 printf("it's all good\n");
+
+void main() {}

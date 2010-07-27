@@ -76,3 +76,5 @@ printf("#include test\n");
   printf("t\n");
  #endif
 #endif
+
+void main() {}

@@ -1,7 +1,9 @@
 #include "picoc.h"
 
-#define CALL_MAIN_NO_ARGS "main();"
-#define CALL_MAIN_WITH_ARGS "main(__argc,__argv);"
+#define CALL_MAIN_NO_ARGS_RETURN_VOID "main();"
+#define CALL_MAIN_WITH_ARGS_RETURN_VOID "main(__argc,__argv);"
+#define CALL_MAIN_NO_ARGS_RETURN_INT "__exit_value = main();"
+#define CALL_MAIN_WITH_ARGS_RETURN_INT "__exit_value = main(__argc,__argv);"
 
 /* initialise everything */
 void Initialise(int StackSize)
@@ -41,21 +43,34 @@ void CallMain(int argc, char **argv)
     struct Value *FuncValue = NULL;
 
     if (!VariableDefined(TableStrRegister("main")))
-        return;
+        ProgramFail(NULL, "main() is not defined");
         
     VariableGet(NULL, TableStrRegister("main"), &FuncValue);
     if (FuncValue->Typ->Base != TypeFunction)
         ProgramFail(NULL, "main is not a function - can't call it");
 
-    if (FuncValue->Val->FuncDef.NumParams == 0)
-        Parse("", CALL_MAIN_NO_ARGS, strlen(CALL_MAIN_NO_ARGS), TRUE);
-    else
+    if (FuncValue->Val->FuncDef.NumParams != 0)
     {
         /* define the arguments */
         VariableDefinePlatformVar(NULL, "__argc", &IntType, (union AnyValue *)&argc, FALSE);
         VariableDefinePlatformVar(NULL, "__argv", CharPtrPtrType, (union AnyValue *)&argv, FALSE);
+    }
 
-        Parse("", CALL_MAIN_WITH_ARGS, strlen(CALL_MAIN_WITH_ARGS), TRUE);
+    if (FuncValue->Val->FuncDef.ReturnType == &VoidType)
+    {
+        if (FuncValue->Val->FuncDef.NumParams == 0)
+            Parse("", CALL_MAIN_NO_ARGS_RETURN_VOID, strlen(CALL_MAIN_NO_ARGS_RETURN_VOID), TRUE);
+        else
+            Parse("", CALL_MAIN_WITH_ARGS_RETURN_VOID, strlen(CALL_MAIN_WITH_ARGS_RETURN_VOID), TRUE);
+    }
+    else
+    {
+        VariableDefinePlatformVar(NULL, "__exit_value", &IntType, (union AnyValue *)&ExitValue, TRUE);
+    
+        if (FuncValue->Val->FuncDef.NumParams == 0)
+            Parse("", CALL_MAIN_NO_ARGS_RETURN_INT, strlen(CALL_MAIN_NO_ARGS_RETURN_INT), TRUE);
+        else
+            Parse("", CALL_MAIN_WITH_ARGS_RETURN_INT, strlen(CALL_MAIN_WITH_ARGS_RETURN_INT), TRUE);
     }
 }
 
@@ -103,7 +118,7 @@ int main(int argc, char **argv)
     }
     
     Cleanup();
-    return 0;
+    return ExitValue;
 }
 #else
 # ifdef SURVEYOR_HOST
@@ -131,7 +146,7 @@ int picoc(char *SourceStr)
         Parse("test.c", SourceStr, strlen(SourceStr), TRUE);
     ParseInteractive();
     Cleanup();
-    return 0;
+    return ExitValue;
 }
 # endif
 #endif

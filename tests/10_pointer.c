@@ -33,3 +33,5 @@ printf("tsar->c = %d\n", tsar->c);
 b = &(bolshevic.b);
 printf("bolshevic.b = %d\n", *b);
 */
+
+void main() {}

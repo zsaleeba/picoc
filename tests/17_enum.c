@@ -20,3 +20,5 @@ frod = 12;
 printf("%d\n", frod);
 frod = e;
 printf("%d\n", frod);
+
+void main() {}

@@ -16,3 +16,5 @@ d = e;
 printf("%d\n", d == e);
 printf("%d\n", d != e);
 
+
+void main() {}

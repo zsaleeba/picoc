@@ -45,3 +45,5 @@ float f = 'a';
 float g = 97;
 
 printf("%f %f\n", f, g);
+
+void main() {}

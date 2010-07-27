@@ -43,3 +43,5 @@ while (fgets(freddy, sizeof(freddy), f) != NULL)
     printf("x: %s", freddy);
 
 fclose(f);
+
+void main() {}

@@ -22,3 +22,5 @@ typedef MyFunStruct *MoreFunThanEver;
 
 MoreFunThanEver c = &b;
 printf("%d,%d\n", c->i, c->j);
+
+void main() {}

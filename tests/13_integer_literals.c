@@ -12,3 +12,5 @@ printf("%d\n", c);
 printf("%d\n", d);
 printf("%d\n", e);
 
+
+void main() {}

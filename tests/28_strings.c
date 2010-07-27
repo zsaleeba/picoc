@@ -37,3 +37,5 @@ printf("%d\n", memcmp(a, "apple", 4) > 0);
 printf("%d\n", memcmp(a, "grgr", 4) == 0);
 printf("%d\n", memcmp(a, "zebra", 4) < 0);
 
+
+void main() {}

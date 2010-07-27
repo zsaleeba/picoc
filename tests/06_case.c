@@ -20,3 +20,5 @@ for (Count = 0; Count < 4; Count++)
             break;
     }
 }
+
+void main() {}

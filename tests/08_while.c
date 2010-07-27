@@ -15,3 +15,5 @@ while (a < 100)
     a = t + p;
     p = t;
 }
+
+void main() {}

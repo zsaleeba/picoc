@@ -20,3 +20,5 @@ if (c == NULL)
 else
     printf("c is not NULL\n");
 
+
+void main() {}
