@@ -315,9 +315,7 @@ void ParserCopyPos(struct ParseState *To, struct ParseState *From)
     To->Line = From->Line;
     To->HashIfLevel = From->HashIfLevel;
     To->HashIfEvaluateToLevel = From->HashIfEvaluateToLevel;
-#ifdef FANCY_ERROR_REPORTING
     To->CharacterPos = From->CharacterPos;
-#endif
 }
 
 /* parse a "for" statement */

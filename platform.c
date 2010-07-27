@@ -1,6 +1,5 @@
 #include "picoc.h"
 
-#ifdef FANCY_ERROR_REPORTING
 void PrintSourceTextErrorLine(const char *FileName, const char *SourceText, int Line, int CharacterPos)
 {
     int LineCount;
@@ -40,17 +39,12 @@ void PrintSourceTextErrorLine(const char *FileName, const char *SourceText, int 
     PlatformPrintf("^\n%s:%d: ", FileName, Line, CharacterPos);
     
 }
-#endif
 
 /* display the source line and line number to identify an error */
 void PlatformErrorPrefix(struct ParseState *Parser)
 {
     if (Parser != NULL)
-#ifdef FANCY_ERROR_REPORTING
         PrintSourceTextErrorLine(Parser->FileName, Parser->SourceText, Parser->Line, Parser->CharacterPos);
-#else
-        PlatformPrintf("%s:%d: ", Parser->FileName, Parser->Line);   
-#endif
 }
 
 /* exit with a message */
@@ -88,12 +82,7 @@ void LexFail(struct LexState *Lexer, const char *Message, ...)
 {
     va_list Args;
 
-#ifdef FANCY_ERROR_REPORTING
     PrintSourceTextErrorLine(Lexer->FileName, Lexer->SourceText, Lexer->Line, Lexer->CharacterPos);
-#else
-    PlatformPrintf("%s:%d: ", Lexer->FileName, Lexer->Line);  
-#endif
-
     va_start(Args, Message);
     PlatformVPrintf(Message, Args);
     va_end(Args);

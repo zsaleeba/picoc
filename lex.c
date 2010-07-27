@@ -19,15 +19,9 @@
 #define NEXTIS3PLUS(c,x,d,y,e,z,a) { if (NextChar == (c)) { LEXER_INC(Lexer); GotToken = (x); } else if (NextChar == (d)) { if (Lexer->Pos[1] == (e)) { LEXER_INCN(Lexer, 2); GotToken = (z); } else { LEXER_INC(Lexer); GotToken = (y); } } else GotToken = (a); }
 #define NEXTISEXACTLY3(c,d,y,z) { if (NextChar == (c) && Lexer->Pos[1] == (d)) { LEXER_INCN(Lexer, 2); GotToken = (y); } else GotToken = (z); }
 
-#ifdef FANCY_ERROR_REPORTING
 #define LEXER_INC(l) ( (l)->Pos++, (l)->CharacterPos++ )
 #define LEXER_INCN(l, n) ( (l)->Pos+=(n), (l)->CharacterPos+=(n) )
 #define TOKEN_DATA_OFFSET 2
-#else
-#define LEXER_INC(l) (l)->Pos++
-#define LEXER_INCN(l, n) (l)->Pos+=(n)
-#define TOKEN_DATA_OFFSET 1
-#endif
 
 #define MAX_CHAR_VALUE 255      /* maximum value which can be represented by a "char" data type */
 
@@ -260,8 +254,12 @@ unsigned char LexUnEscapeCharacter(const char **From, const char *End)
     unsigned char ThisChar;
     
     while ( *From != End && **From == '\\' && 
-            &(*From)[1] != End && (*From)[1] == '\n')
-        (*From) += 2;       /* skip escaped end of lines */
+            &(*From)[1] != End && (*From)[1] == '\n' )
+        (*From) += 2;       /* skip escaped end of lines with LF line termination */
+    
+    while ( *From != End && **From == '\\' && 
+            &(*From)[1] != End && &(*From)[2] != End && (*From)[1] == '\r' && (*From)[2] == '\n')
+        (*From) += 3;       /* skip escaped end of lines with CR/LF line termination */
     
     if (*From == End)
         return '\\';
@@ -310,7 +308,20 @@ enum LexToken LexGetStringConstant(struct LexState *Lexer, struct Value *Value, 
     { 
         /* find the end */
         if (Escape)
+        {
+            if (*Lexer->Pos == '\r' && Lexer->Pos+1 != Lexer->End)
+                Lexer->Pos++;
+            
+            if (*Lexer->Pos == '\n' && Lexer->Pos+1 != Lexer->End)
+            {
+                Lexer->Line++;
+                Lexer->Pos++;
+                Lexer->CharacterPos = 0;
+                Lexer->EmitExtraNewlines++;
+            }
+            
             Escape = FALSE;
+        }
         else if (*Lexer->Pos == '\\')
             Escape = TRUE;
             
@@ -368,14 +379,9 @@ void LexSkipComment(struct LexState *Lexer, char NextChar, enum LexToken *Return
         while (Lexer->Pos != Lexer->End && (*(Lexer->Pos-1) != '*' || *Lexer->Pos != '/'))
         {
             if (*Lexer->Pos == '\n')
-            {
-                LEXER_INC(Lexer);
-                Lexer->Mode = LexModeMultiLineComment;
-                *ReturnToken = TokenEndOfLine;
-                return;
-            }
-            else
-                LEXER_INC(Lexer);
+                Lexer->EmitExtraNewlines++;
+
+            LEXER_INC(Lexer);
         }
         
         if (Lexer->Pos != Lexer->End)
@@ -398,12 +404,11 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
     char NextChar;
     enum LexToken GotToken = TokenNone;
     
-    /* handle the end of multi-line comments */
-    if (Lexer->Mode == LexModeMultiLineComment)
+    /* handle cases line multi-line comments or string constants which mess up the line count */
+    if (Lexer->EmitExtraNewlines > 0)
     {
-        LexSkipComment(Lexer, '*', &GotToken);
-        if (GotToken != TokenNone)
-            return GotToken;
+        Lexer->EmitExtraNewlines--;
+        return TokenEndOfLine;
     }
     
     /* scan for a token */
@@ -417,9 +422,7 @@ enum LexToken LexScanGetToken(struct LexState *Lexer, struct Value **Value)
                 Lexer->Line++;
                 Lexer->Pos++;
                 Lexer->Mode = LexModeNormal;
-#ifdef FANCY_ERROR_REPORTING
                 Lexer->CharacterPos = 0;
-#endif
                 return TokenEndOfLine;
             }
             else if (Lexer->Mode == LexModeHashDefine || Lexer->Mode == LexModeHashDefineSpace)
@@ -499,16 +502,10 @@ void *LexTokenise(struct LexState *Lexer, int *TokenLen)
     struct Value *GotValue;
     int MemUsed = 0;
     int ValueSize;
-#ifdef FANCY_ERROR_REPORTING
     int ReserveSpace = (Lexer->End - Lexer->Pos) * 4 + 16; 
-#else
-    int ReserveSpace = (Lexer->End - Lexer->Pos) * 3 + 16; 
-#endif
     void *TokenSpace = HeapAllocStack(ReserveSpace);
     char *TokenPos = (char *)TokenSpace;
-#ifdef FANCY_ERROR_REPORTING
     int LastCharacterPos = 0;
-#endif
 
     if (TokenSpace == NULL)
         LexFail(Lexer, "out of memory");
@@ -525,11 +522,9 @@ void *LexTokenise(struct LexState *Lexer, int *TokenLen)
         TokenPos++;
         MemUsed++;
 
-#ifdef FANCY_ERROR_REPORTING
         *(unsigned char *)TokenPos = (unsigned char)LastCharacterPos;
         TokenPos++;
         MemUsed++;
-#endif
 
         ValueSize = LexTokenSize(Token);
         if (ValueSize > 0)
@@ -540,9 +535,7 @@ void *LexTokenise(struct LexState *Lexer, int *TokenLen)
             MemUsed += ValueSize;
         }
     
-#ifdef FANCY_ERROR_REPORTING
         LastCharacterPos = Lexer->CharacterPos;
-#endif
                     
     } while (Token != TokenEOF);
     
@@ -578,10 +571,9 @@ void *LexAnalyse(const char *FileName, const char *Source, int SourceLen, int *T
     Lexer.Line = 1;
     Lexer.FileName = FileName;
     Lexer.Mode = LexModeNormal;
-#ifdef FANCY_ERROR_REPORTING
+    Lexer.EmitExtraNewlines = 0;
     Lexer.CharacterPos = 1;
     Lexer.SourceText = Source;
-#endif
     
     return LexTokenise(&Lexer, TokenLen);
 }
@@ -596,10 +588,8 @@ void LexInitParser(struct ParseState *Parser, const char *SourceText, void *Toke
     Parser->SearchLabel = 0;
     Parser->HashIfLevel = 0;
     Parser->HashIfEvaluateToLevel = 0;
-#ifdef FANCY_ERROR_REPORTING
     Parser->CharacterPos = 0;
     Parser->SourceText = SourceText;
-#endif
 }
 
 /* get the next token, without pre-processing */
@@ -657,9 +647,7 @@ enum LexToken LexGetRawToken(struct ParseState *Parser, struct Value **Value, in
                     /* start a new list */
                     InteractiveHead = LineNode;
                     Parser->Line = 1;
-#ifdef FANCY_ERROR_REPORTING
                     Parser->CharacterPos = 0;
-#endif
                 }
                 else
                     InteractiveTail->Next = LineNode;
@@ -688,10 +676,7 @@ enum LexToken LexGetRawToken(struct ParseState *Parser, struct Value **Value, in
         }
     } while ((Parser->FileName == StrEmpty && Token == TokenEOF) || Token == TokenEndOfLine);
 
-#ifdef FANCY_ERROR_REPORTING
     Parser->CharacterPos = *((unsigned char *)Parser->Pos + 1);
-#endif
-
     ValueSize = LexTokenSize(Token);
     if (ValueSize > 0)
     { 

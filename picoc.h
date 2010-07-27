@@ -109,10 +109,8 @@ struct ParseState
     int SearchLabel;            /* what case label we're searching for */
     int HashIfLevel;
     int HashIfEvaluateToLevel;
-#ifdef FANCY_ERROR_REPORTING
     int CharacterPos;
     const char *SourceText;
-#endif
 };
 
 /* values */
@@ -249,8 +247,7 @@ enum LexMode
     LexModeHashInclude,
     LexModeHashDefine,
     LexModeHashDefineSpace,
-    LexModeHashDefineSpaceIdent,
-    LexModeMultiLineComment
+    LexModeHashDefineSpaceIdent
 };
 
 struct LexState
@@ -259,11 +256,10 @@ struct LexState
     const char *End;
     const char *FileName;
     int Line;
-    enum LexMode Mode;
-#ifdef FANCY_ERROR_REPORTING
     int CharacterPos;
     const char *SourceText;
-#endif
+    enum LexMode Mode;
+    int EmitExtraNewlines;
 };
 
 /* library function definition */
