@@ -5,7 +5,7 @@
 /* a list of libraries we can include */
 struct IncludeLibrary
 {
-    const char *IncludeName;
+    char *IncludeName;
     void (*SetupFunction)(void);
     struct LibraryFunction *FuncList;
     const char *SetupCSource;
@@ -57,6 +57,14 @@ void IncludeRegister(const char *IncludeName, void (*SetupFunction)(void), struc
     IncludeLibList = NewLib;
 }
 
+/* include all of the system headers */
+void IncludeAllSystemHeaders()
+{
+    struct IncludeLibrary *ThisInclude = IncludeLibList;
+    
+    for (; ThisInclude != NULL; ThisInclude = ThisInclude->NextLib)
+        IncludeFile(ThisInclude->IncludeName);
+}
 
 /* include one of a number of predefined libraries, or perhaps an actual file */
 void IncludeFile(char *FileName)

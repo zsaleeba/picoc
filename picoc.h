@@ -437,6 +437,7 @@ void IncludeInit();
 void IncludeCleanup();
 void IncludeRegister(const char *IncludeName, void (*SetupFunction)(void), struct LibraryFunction *FuncList, const char *SetupCSource);
 void IncludeFile(char *Filename);
+void IncludeAllSystemHeaders();
 
 /* stdio.c */
 extern const char StdioDefs[];

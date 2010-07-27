@@ -67,21 +67,25 @@ int main(int argc, char **argv)
     if (argc < 2)
     {
         printf("Format: picoc <csource1.c>... [- <arg1>...]    : run a program (calls main() to start it)\n"
-               "        picoc -m <csource1.c>... [- <arg1>...] : run a program without calling main()\n"
+               "        picoc -s <csource1.c>... [- <arg1>...] : script mode - runs the program without calling main()\n"
                "        picoc -i                               : interactive mode\n");
         exit(1);
     }
     
     Initialise();
     
-    if (strcmp(argv[ParamCount], "-m") == 0)
+    if (strcmp(argv[ParamCount], "-s") == 0 || strcmp(argv[ParamCount], "-m") == 0)
     {
         DontRunMain = TRUE;
+        IncludeAllSystemHeaders();
         ParamCount++;
     }
         
     if (strcmp(argv[ParamCount], "-i") == 0)
+    {
+        IncludeAllSystemHeaders();
         ParseInteractive();
+    }
     else
     {
         if (PlatformSetExitPoint())
