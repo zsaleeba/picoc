@@ -228,6 +228,7 @@ long ExpressionAssignInt(struct ParseState *Parser, struct Value *DestValue, lon
         case TypeLong:          DestValue->Val->LongInteger = (long)FromInt; break;
         case TypeUnsignedInt:   DestValue->Val->UnsignedInteger = (unsigned int)FromInt; break;
         case TypeUnsignedShort: DestValue->Val->UnsignedShortInteger = (unsigned short)FromInt; break;
+        case TypeUnsignedLong:  DestValue->Val->UnsignedLongInteger = (unsigned long)FromInt; break;
         default: break;
     }
     return Result;
