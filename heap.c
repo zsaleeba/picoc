@@ -4,18 +4,25 @@
 #define FREELIST_BUCKETS 8                          /* freelists for 4, 8, 12 ... 32 byte allocs */
 #define SPLIT_MEM_THRESHOLD 16                      /* don't split memory which is close in size */
 
-#ifdef SURVEYOR_HOST
-#define HEAP_SIZE C_HEAPSIZE
+#ifdef USE_MALLOC_STACK
+static unsigned char *HeapMemory = NULL;            /* stack memory since our heap is malloc()ed */
+static void *HeapBottom = NULL;                     /* the bottom of the (downward-growing) heap */
+static void *StackFrame = NULL;                     /* the current stack frame */
+void *HeapStackTop = NULL;                          /* the top of the stack */
+#else
+# ifdef SURVEYOR_HOST
+# define HEAP_SIZE C_HEAPSIZE
 static unsigned char *HeapMemory = (unsigned char *)C_HEAPSTART;      /* all memory - stack and heap */
 static void *HeapBottom = (void *)C_HEAPSTART + HEAP_SIZE;  /* the bottom of the (downward-growing) heap */
 static void *StackFrame = (void *)C_HEAPSTART;              /* the current stack frame */
 void *HeapStackTop = (void *)C_HEAPSTART;                   /* the top of the stack */
 void *HeapMemStart = (void *)C_HEAPSTART;
-#else
+# else
 static unsigned char HeapMemory[HEAP_SIZE];         /* all memory - stack and heap */
 static void *HeapBottom = &HeapMemory[HEAP_SIZE];   /* the bottom of the (downward-growing) heap */
 static void *StackFrame = &HeapMemory[0];           /* the current stack frame */
 void *HeapStackTop = &HeapMemory[0];                /* the top of the stack */
+# endif
 #endif
 
 static struct AllocNode *FreeListBucket[FREELIST_BUCKETS];      /* we keep a pool of freelist buckets to reduce fragmentation */
@@ -35,21 +42,32 @@ void ShowBigList()
 #endif
 
 /* initialise the stack and heap storage */
-void HeapInit()
+void HeapInit(int StackOrHeapSize)
 {
     int Count;
     int AlignOffset = 0;
     
+#ifdef USE_MALLOC_STACK
+    HeapMemory = malloc(StackOrHeapSize);
+#endif
+
     while (((unsigned long)&HeapMemory[AlignOffset] & (sizeof(ALIGN_TYPE)-1)) != 0)
         AlignOffset++;
         
     StackFrame = &HeapMemory[AlignOffset];
     HeapStackTop = &HeapMemory[AlignOffset];
     *(void **)StackFrame = NULL;
-    HeapBottom = &HeapMemory[HEAP_SIZE-sizeof(ALIGN_TYPE)+AlignOffset];
+    HeapBottom = &HeapMemory[StackOrHeapSize-sizeof(ALIGN_TYPE)+AlignOffset];
     FreeListBig = NULL;
     for (Count = 0; Count < FREELIST_BUCKETS; Count++)
         FreeListBucket[Count] = NULL;
+}
+
+void HeapCleanup()
+{
+#ifdef USE_MALLOC_STACK
+    free(HeapMemory);
+#endif
 }
 
 /* allocate some space on the stack, in the current stack frame

@@ -371,7 +371,8 @@ struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *P
 struct ValueType *TypeCreateOpaqueStruct(struct ParseState *Parser, const char *StructName, int Size);
 
 /* heap.c */
-void HeapInit();
+void HeapInit(int StackSize);
+void HeapCleanup();
 void *HeapAllocStack(int Size);
 int HeapPopStack(void *Addr, int Size);
 void HeapUnpopStack(int Size);

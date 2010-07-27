@@ -5,10 +5,10 @@
 
 
 /* initialise everything */
-void Initialise()
+void Initialise(int StackSize)
 {
     BasicIOInit();
-    HeapInit();
+    HeapInit(StackSize);
     TableInit();
     VariableInit();
     LexInit();
@@ -31,6 +31,7 @@ void Cleanup()
     VariableCleanup();
     TypeCleanup();
     TableStrFree();
+    HeapCleanup();
 }
 
 /* platform-dependent code for running programs is in this file */
@@ -63,6 +64,7 @@ int main(int argc, char **argv)
 {
     int ParamCount = 1;
     int DontRunMain = FALSE;
+    int StackSize = getenv("STACKSIZE") ? atoi(getenv("STACKSIZE")) : STACK_SIZE;
     
     if (argc < 2)
     {
@@ -72,7 +74,7 @@ int main(int argc, char **argv)
         exit(1);
     }
     
-    Initialise();
+    Initialise(StackSize);
     
     if (strcmp(argv[ParamCount], "-s") == 0 || strcmp(argv[ParamCount], "-m") == 0)
     {
@@ -110,7 +112,7 @@ int picoc(char *SourceStr)
 {    
     int ix;
     
-    Initialise();
+    Initialise(HEAP_SIZE);
     if (SourceStr) {
         for (ix=0; ix<strlen(SourceStr); ix++)  /* clear out ctrl-z from XMODEM transfer */
             if (SourceStr[ix] == 0x1A)
@@ -132,32 +134,5 @@ int picoc(char *SourceStr)
     Cleanup();
     return 0;
 }
-# else
-#  ifdef SRV1_UNIX_HOST
-/*
- * Howard - this was my guess at what might suit you.
- * Please feel free to change this to whatever type of main function suits you best 
- */
-int picoc(char *SourceFile, int Interactive)
-{    
-    Initialise();
-    
-    if (Interactive)
-        ParseInteractive();
-    else
-    {
-        if (PlatformSetExitPoint())
-        {
-            Cleanup();
-            return 1;
-        }
-        
-        PlatformScanFile(SourceFile);
-    }
-    
-    Cleanup();
-    return 0;
-}
-#  endif
 # endif
 #endif
