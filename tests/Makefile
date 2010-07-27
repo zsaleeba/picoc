@@ -39,7 +39,8 @@ TESTS=	00_assignment.test \
 	40_stdio.test \
 	41_hashif.test \
 	43_void_param.test \
-	44_scoped_declarations.test
+	44_scoped_declarations.test \
+	45_empty_for.test
 
 %.test: %.expect %.c
 	@echo Test: $*...

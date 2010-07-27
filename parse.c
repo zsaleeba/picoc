@@ -334,7 +334,10 @@ void ParseFor(struct ParseState *Parser)
         ProgramFail(Parser, "statement expected");
     
     ParserCopyPos(&PreConditional, Parser);
-    Condition = ExpressionParseInt(Parser);
+    if (LexGetToken(Parser, NULL, FALSE) == TokenSemicolon)
+        Condition = TRUE;
+    else
+        Condition = ExpressionParseInt(Parser);
     
     if (LexGetToken(Parser, NULL, TRUE) != TokenSemicolon)
         ProgramFail(Parser, "';' expected");
@@ -360,7 +363,10 @@ void ParseFor(struct ParseState *Parser)
         ParseStatement(Parser, FALSE);
                         
         ParserCopyPos(Parser, &PreConditional);
-        Condition = ExpressionParseInt(Parser);
+        if (LexGetToken(Parser, NULL, FALSE) == TokenSemicolon)
+            Condition = TRUE;
+        else
+            Condition = ExpressionParseInt(Parser);
         
         if (Condition)
         {
@@ -555,7 +561,9 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
             CheckTrailingSemicolon = FALSE;
             break;
 
-        case TokenSemicolon: break;
+        case TokenSemicolon: 
+            CheckTrailingSemicolon = FALSE; 
+            break;
 
         case TokenIntType:
         case TokenShortType:
