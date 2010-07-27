@@ -428,10 +428,11 @@ void PlatformPutc(unsigned char OutCh, union OutputStreamInfo *);
 void PlatformErrorPrefix(struct ParseState *Parser);
 void PlatformPrintf(const char *Format, ...);
 void PlatformVPrintf(const char *Format, va_list Args);
-void PlatformExit();
+void PlatformExit(int ExitVal);
 void PlatformLibraryInit();
 void Initialise();
 void Cleanup();
+extern int ExitValue;
 
 /* include.c */
 void IncludeInit();

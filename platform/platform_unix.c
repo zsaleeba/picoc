@@ -106,8 +106,9 @@ void PlatformScanFile(const char *FileName)
 jmp_buf ExitBuf;
 
 /* exit the program */
-void PlatformExit()
+void PlatformExit(int RetVal)
 {
+    ExitValue = RetVal;
     longjmp(ExitBuf, 1);
 }
 

@@ -1,5 +1,8 @@
 #include "picoc.h"
 
+/* the value passed to exit() */
+int ExitValue = 0;
+
 void PrintSourceTextErrorLine(const char *FileName, const char *SourceText, int Line, int CharacterPos)
 {
     int LineCount;

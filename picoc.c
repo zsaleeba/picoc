@@ -3,7 +3,6 @@
 #define CALL_MAIN_NO_ARGS "main();"
 #define CALL_MAIN_WITH_ARGS "main(__argc,__argv);"
 
-
 /* initialise everything */
 void Initialise(int StackSize)
 {
@@ -93,7 +92,7 @@ int main(int argc, char **argv)
         if (PlatformSetExitPoint())
         {
             Cleanup();
-            return 1;
+            return ExitValue;
         }
         
         for (; ParamCount < argc && strcmp(argv[ParamCount], "-") != 0; ParamCount++)
@@ -125,7 +124,7 @@ int picoc(char *SourceStr)
     if (ExitBuf[40]) {
         printf("leaving picoC\n\r");
         Cleanup();
-        return 1;
+        return ExitValue;
     }
         
     if (SourceStr)    
