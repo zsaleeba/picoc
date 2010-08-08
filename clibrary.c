@@ -228,7 +228,7 @@ void GenericPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct 
             }
             
             /* get any field width in the format */
-            while (isdigit(*FPos))
+            while (isdigit((int)*FPos))
                 FieldWidth = FieldWidth * 10 + (*FPos++ - '0');
             
             /* now check the format type */
@@ -341,7 +341,7 @@ void LibGetc(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
 
 void LibExit(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    PlatformExit();
+    PlatformExit(Param[0]->Val->Integer);
 }
 
 #ifdef PICOC_MATH_LIBRARY
@@ -603,7 +603,7 @@ struct LibraryFunction CLibrary[] =
     { LibSPrintf,       "char *sprintf(char *, char *, ...);" },
     { LibGets,          "void gets(char *, int);" },
     { LibGetc,          "int getchar();" },
-    { LibExit,          "void exit();" },
+    { LibExit,          "void exit(int);" },
 #ifdef PICOC_MATH_LIBRARY
     { LibSin,           "float sin(float);" },
     { LibCos,           "float cos(float);" },
