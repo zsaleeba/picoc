@@ -43,6 +43,8 @@ void IncludeCleanup()
         HeapFreeMem(ThisInclude);
         ThisInclude = NextInclude;
     }
+
+    IncludeLibList = NULL;
 }
 
 /* register a new build-in include file */
