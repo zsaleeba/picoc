@@ -1012,7 +1012,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                 { 
                     /* it's either a new bracket level or a cast */
                     enum LexToken BracketToken = LexGetToken(Parser, &LexValue, FALSE);
-                    if (IS_TYPE_TOKEN(BracketToken) && StackTop != NULL && StackTop->Op != TokenSizeof)
+                    if (IS_TYPE_TOKEN(BracketToken) && (StackTop == NULL || StackTop->Op != TokenSizeof) )
                     {
                         /* it's a cast - get the new type */
                         struct ValueType *CastType;
