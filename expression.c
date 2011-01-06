@@ -719,7 +719,7 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
             case TokenLessEqual:            ResultInt = BottomInt <= TopInt; break;
             case TokenGreaterEqual:         ResultInt = BottomInt >= TopInt; break;
             case TokenShiftLeft:            ResultInt = BottomInt << TopInt; break;
-            case TokenShiftRight:           ResultInt = BottomInt << TopInt; break;
+            case TokenShiftRight:           ResultInt = BottomInt >> TopInt; break;
             case TokenPlus:                 ResultInt = BottomInt + TopInt; break;
             case TokenMinus:                ResultInt = BottomInt - TopInt; break;
             case TokenAsterisk:             ResultInt = BottomInt * TopInt; break;
