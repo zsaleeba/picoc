@@ -2,8 +2,8 @@ picoc
 -----
 
 PicoC is a very small C interpreter for scripting. It was originally written 
-for scripting a UAV's on-board flight system and it's also very suitable for 
-other robotic, embedded and non-embedded applications too.
+as a script language for a UAV's on-board flight system. It's also very 
+suitable for other robotic, embedded and non-embedded applications.
 
 The core C source code is around 3500 lines of code. It's not intended to be 
 a complete implementation of ISO C but it has all the essentials. When 
@@ -59,7 +59,7 @@ picoc is published under the "New BSD License".
 http://www.opensource.org/licenses/bsd-license.php
 
 
-Copyright (c) 2009, Zik Saleeba
+Copyright (c) 2009-2011, Zik Saleeba
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without 
