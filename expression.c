@@ -110,7 +110,7 @@ void ExpressionStackShow(struct ExpressionStack *StackTop)
                 case TypeStruct:    printf("%s:struct", StackTop->Val->Val->Identifier); break;
                 case TypeUnion:     printf("%s:union", StackTop->Val->Val->Identifier); break;
                 case TypeEnum:      printf("%s:enum", StackTop->Val->Val->Identifier); break;
-                case Type_Type:     PrintType(StackTop->Val->Val->Typ, &CStdOut); printf(":type"); break;
+                case Type_Type:     PrintType(StackTop->Val->Val->Typ, CStdOut); printf(":type"); break;
                 default:            printf("unknown"); break;
             }
             printf("[0x%lx,0x%lx]", (long)StackTop, (long)StackTop->Val);
