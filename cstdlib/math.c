@@ -120,7 +120,9 @@ void MathSqrt(struct ParseState *Parser, struct Value *ReturnValue, struct Value
 
 void MathRound(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = round(Param[0]->Val->FP );
+    /* this awkward definition of "round()" due to it being inconsistently
+    /* declared in math.h */
+    ReturnValue->Val->FP = ceil(Param[0]->Val->FP - 0.5);
 }
 
 void MathCeil(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)

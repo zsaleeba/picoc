@@ -16,7 +16,8 @@ void StdIsalpha(struct ParseState *Parser, struct Value *ReturnValue, struct Val
 
 void StdIsblank(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->Integer = isblank(Param[0]->Val->Integer);
+    int ch = Param[0]->Val->Integer;
+    ReturnValue->Val->Integer = (ch == ' ') | (ch == '\t');
 }
 
 void StdIscntrl(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
