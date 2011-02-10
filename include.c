@@ -21,7 +21,9 @@ void IncludeInit()
 #ifndef BUILTIN_MINI_STDLIB
     IncludeRegister("ctype.h", NULL, &StdCtypeFunctions[0], NULL);
     IncludeRegister("errno.h", &StdErrnoSetupFunc, NULL, NULL);
+#ifndef NO_FP
     IncludeRegister("math.h", &MathSetupFunc, &MathFunctions[0], NULL);
+#endif
     IncludeRegister("stdbool.h", &StdboolSetupFunc, NULL, StdboolDefs);
     IncludeRegister("stdio.h", &StdioSetupFunc, &StdioFunctions[0], StdioDefs);
     IncludeRegister("stdlib.h", &StdlibSetupFunc, &StdlibFunctions[0], NULL);
