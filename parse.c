@@ -635,7 +635,9 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
                 
                 ParseBlock(Parser, TRUE, OldMode != RunModeSkip);
                 
-                Parser->Mode = OldMode;
+                if (Parser->Mode != RunModeReturn)
+                    Parser->Mode = OldMode;
+
                 Parser->SearchLabel = OldSearchLabel;
             }
 
