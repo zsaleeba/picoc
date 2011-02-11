@@ -516,6 +516,7 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
         case TokenWhile:
             {
                 struct ParseState PreConditional;
+                enum RunMode PreMode = Parser->Mode;
 
                 if (LexGetToken(Parser, NULL, TRUE) != TokenOpenBracket)
                     ProgramFail(Parser, "'(' expected");
@@ -532,12 +533,12 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
                         ProgramFail(Parser, "statement expected");
                     
                     if (Parser->Mode == RunModeContinue)
-                        Parser->Mode = RunModeRun;
+                        Parser->Mode = PreMode;
                     
                 } while (Parser->Mode == RunModeRun && Condition);
                 
                 if (Parser->Mode == RunModeBreak)
-                    Parser->Mode = RunModeRun;
+                    Parser->Mode = PreMode;
 
                 CheckTrailingSemicolon = FALSE;
             }

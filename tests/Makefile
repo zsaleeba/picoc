@@ -42,7 +42,8 @@ TESTS=	00_assignment.test \
 	43_void_param.test \
 	44_scoped_declarations.test \
 	45_empty_for.test \
-	47_switch_return.test
+	47_switch_return.test \
+	48_nested_break.test
 
 %.test: %.expect %.c
 	@echo Test: $*...
