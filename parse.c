@@ -547,6 +547,7 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
         case TokenDo:
             {
                 struct ParseState PreStatement;
+                enum RunMode PreMode = Parser->Mode;
                 ParserCopyPos(&PreStatement, Parser);
                 do
                 {
@@ -555,7 +556,7 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
                         ProgramFail(Parser, "statement expected");
                 
                     if (Parser->Mode == RunModeContinue)
-                        Parser->Mode = RunModeRun;
+                        Parser->Mode = PreMode;
 
                     if (LexGetToken(Parser, NULL, TRUE) != TokenWhile)
                         ProgramFail(Parser, "'while' expected");
@@ -570,7 +571,7 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
                 } while (Condition && Parser->Mode == RunModeRun);           
                 
                 if (Parser->Mode == RunModeBreak)
-                    Parser->Mode = RunModeRun;
+                    Parser->Mode = PreMode;
             }
             break;
                 
