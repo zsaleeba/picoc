@@ -56,6 +56,7 @@ static struct ReservedWord ReservedWords[] =
 #endif
     { "else", TokenElse, NULL },
     { "enum", TokenEnumType, NULL },
+    { "extern", TokenExternType, NULL },
 #ifndef NO_FP
     { "float", TokenFloatType, NULL },
 #endif
@@ -64,6 +65,7 @@ static struct ReservedWord ReservedWords[] =
     { "int", TokenIntType, NULL },
     { "long", TokenLongType, NULL },
     { "new", TokenNew, NULL },
+    { "register", TokenRegisterType, NULL },
     { "return", TokenReturn, NULL },
     { "short", TokenShortType, NULL },
     { "signed", TokenSignedType, NULL },

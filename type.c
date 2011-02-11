@@ -324,7 +324,7 @@ int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ)
     *Typ = NULL;
 
     /* ignore leading type qualifiers */
-    while (Token == TokenStaticType)
+    while (Token == TokenStaticType || Token == TokenRegisterType  || Token == TokenExternType)
         Token = LexGetToken(Parser, &LexerValue, TRUE);
         
     /* handle signed/unsigned with no trailing type */
