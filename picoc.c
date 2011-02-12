@@ -97,7 +97,7 @@ int main(int argc, char **argv)
         ParamCount++;
     }
         
-    if (strcmp(argv[ParamCount], "-i") == 0)
+    if (argc > ParamCount && strcmp(argv[ParamCount], "-i") == 0)
     {
         IncludeAllSystemHeaders();
         ParseInteractive();
