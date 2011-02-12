@@ -1238,7 +1238,7 @@ void ExpressionParseMacroCall(struct ParseState *Parser, struct ExpressionStack 
 #ifndef NO_FP
         ExpressionStackPushValueByType(Parser, StackTop, &FPType);  /* largest return type there is */
 #else
-        ExpressionStackPushValueByType(Parser, StackTop, IntType);  /* largest return type there is */
+        ExpressionStackPushValueByType(Parser, StackTop, &IntType);  /* largest return type there is */
 #endif
         ReturnValue = (*StackTop)->Val;
         HeapPushStackFrame();

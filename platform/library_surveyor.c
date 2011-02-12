@@ -1,20 +1,128 @@
 #include "../picoc.h"
 
 static int Blobcnt, Blobx1, Blobx2, Bloby1, Bloby2, Iy1, Iy2, Iu1, Iu2, Iv1, Iv2;
+static int Cxmin, Cxmax, Cymin, Cymax;
 static int GPSlat, GPSlon, GPSalt, GPSfix, GPSsat, GPSutc, Elcount, Ercount;
 static int ScanVect[16], NNVect[NUM_OUTPUT];
 
+void PlatformLibraryInit()
+{
+    struct ValueType *IntArrayType;
+    
+    IntArrayType = TypeGetMatching(NULL, &IntType, TypeArray, 16, NULL);
+    VariableDefinePlatformVar(NULL, "scanvect", IntArrayType, (union AnyValue *)&ScanVect, FALSE);
+    VariableDefinePlatformVar(NULL, "neuron", IntArrayType, (union AnyValue *)&NNVect, FALSE);
+    VariableDefinePlatformVar(NULL, "xbuf", CharArrayType, (union AnyValue *)&xbuff, FALSE);
+    VariableDefinePlatformVar(NULL, "blobcnt", &IntType, (union AnyValue *)&Blobcnt, FALSE);
+    VariableDefinePlatformVar(NULL, "blobx1", &IntType, (union AnyValue *)&Blobx1, FALSE);
+    VariableDefinePlatformVar(NULL, "blobx2", &IntType, (union AnyValue *)&Blobx2, FALSE);
+    VariableDefinePlatformVar(NULL, "bloby1", &IntType, (union AnyValue *)&Bloby1, FALSE);
+    VariableDefinePlatformVar(NULL, "bloby2", &IntType, (union AnyValue *)&Bloby2, FALSE);
+    VariableDefinePlatformVar(NULL, "lcount", &IntType, (union AnyValue *)&Elcount, FALSE);
+    VariableDefinePlatformVar(NULL, "rcount", &IntType, (union AnyValue *)&Ercount, FALSE);
+    VariableDefinePlatformVar(NULL, "y1", &IntType, (union AnyValue *)&Iy1, FALSE);
+    VariableDefinePlatformVar(NULL, "y2", &IntType, (union AnyValue *)&Iy2, FALSE);
+    VariableDefinePlatformVar(NULL, "u1", &IntType, (union AnyValue *)&Iu1, FALSE);
+    VariableDefinePlatformVar(NULL, "u2", &IntType, (union AnyValue *)&Iu2, FALSE);
+    VariableDefinePlatformVar(NULL, "v1", &IntType, (union AnyValue *)&Iv1, FALSE);
+    VariableDefinePlatformVar(NULL, "v2", &IntType, (union AnyValue *)&Iv2, FALSE);
+    VariableDefinePlatformVar(NULL, "gpslat", &IntType, (union AnyValue *)&GPSlat, FALSE);
+    VariableDefinePlatformVar(NULL, "gpslon", &IntType, (union AnyValue *)&GPSlon, FALSE);
+    VariableDefinePlatformVar(NULL, "gpsalt", &IntType, (union AnyValue *)&GPSalt, FALSE);
+    VariableDefinePlatformVar(NULL, "gpsfix", &IntType, (union AnyValue *)&GPSfix, FALSE);
+    VariableDefinePlatformVar(NULL, "gpssat", &IntType, (union AnyValue *)&GPSsat, FALSE);
+    VariableDefinePlatformVar(NULL, "gpsutc", &IntType, (union AnyValue *)&GPSutc, FALSE);
+    VariableDefinePlatformVar(NULL, "cxmin", &IntType, (union AnyValue *)&Cxmin, FALSE);
+    VariableDefinePlatformVar(NULL, "cxmax", &IntType, (union AnyValue *)&Cxmax, FALSE);
+    VariableDefinePlatformVar(NULL, "cymin", &IntType, (union AnyValue *)&Cymin, FALSE);
+    VariableDefinePlatformVar(NULL, "cymax", &IntType, (union AnyValue *)&Cymax, FALSE);
+    LibraryInit(&GlobalTable, "platform library", &PlatformLibrary);
+}
+
 void Csignal(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // check for kbhit, return t or nil
 {
-    if (getsignal())
-        ReturnValue->Val->Integer = 1;
-    else
-        ReturnValue->Val->Integer = 0;
+    ReturnValue->Val->Integer = getsignal();
+}
+
+void Csignal1(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // check for kbhit, return t or nil
+{
+    ReturnValue->Val->Integer = uart1Signal();
 }
 
 void Cinput(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // return 0-9 from console input
 {
     ReturnValue->Val->Integer = getch();
+}
+
+void Cinput1(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // return 0-9 from console input
+{
+    ReturnValue->Val->Integer = uart1GetCh();
+}
+
+void Cread_int(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // return 0-9 from console input
+{
+    int ix, sign;
+    unsigned char ch;
+    
+    ix = 0;
+    sign = 1;
+    while (1) {
+        ch = getch();
+        if (ch == '-') {
+            sign = -1;
+            continue;
+        }
+        if ((ch < '0') || (ch > '9')) { // if not '-' or 0-9, we're done
+            ReturnValue->Val->Integer = ix * sign;
+            return;
+        }
+        ix = (ix * 10) + (ch & 0x0F);
+    }
+}
+
+void Cread_str(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) // read string from console
+{
+    int ix;
+    unsigned char ch;
+    
+    ix = 0;
+    char *cp = (char *)Param[0]->Val->Pointer;
+    while (1) {
+        ch = getch();
+        cp[ix++] = ch;
+        if ((ch == 0) || (ch == 0x01)) {  // null or ctrl-A
+            ix--;
+            cp[ix] = 0;
+            break;
+        }
+        if (ix > 1023) {
+            cp[ix] = 0;
+            ix--;
+            break;
+        } 
+    }
+    ReturnValue->Val->Integer = ix;    
+}
+
+void Cinit_uart1(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // return 0-9 from console input
+{
+    int ii;
+    ii = Param[0]->Val->Integer;  // ii = baudrate for uart1
+    init_uart1(ii);
+}
+
+void Coutput(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // return 0-9 from console input
+{
+    int ch;
+    ch = Param[0]->Val->Integer;
+    putchar((unsigned char)ch);
+}
+
+void Coutput1(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // return 0-9 from console input
+{
+    int ch;
+    ch = Param[0]->Val->Integer;
+    uart1SendChar((unsigned char)ch);
 }
 
 void Cdelay(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -125,6 +233,16 @@ void Cencoders(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
    Ercount = ix & 0x0000FFFF; 
 }
 
+void Cencoderx(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // return reading from HMC6352 I2C compass
+{
+    int ix;
+    
+    ix = (unsigned char)Param[0]->Val->Integer;
+    if ((ix<0) || (ix>7))  
+        ProgramFail(NULL, "encoderx():  invalid channel");
+    ReturnValue->Val->Integer = encoder_4wd(ix);
+}
+
 void Cmotors(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
     lspeed = Param[0]->Val->Integer;
@@ -157,6 +275,32 @@ void Cmotors2(struct ParseState *Parser, struct Value *ReturnValue, struct Value
         base_speed2 = 50;
     }
     setPWM2(lspeed2, rspeed2);
+}
+
+/* motor control for SRV-4WD controller */
+void Cmotorx(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
+{
+    unsigned char ch;
+    int ls, rs;
+    
+    ls = Param[0]->Val->Integer;
+    if ((ls < -100) || (ls > 100))
+        ProgramFail(NULL, "motors():  left motor value out of range");
+    ls = (ls * 127) / 100;  // scale to full +/-127 range
+    rs = Param[1]->Val->Integer;
+    if ((rs < -100) || (rs > 100))
+        ProgramFail(NULL, "motors():  right motor value out of range");
+    rs = (rs * 127) / 100;  // scale to full +/-127 range
+    if (xwd_init == 0) {
+        xwd_init = 1;
+        init_uart1(115200);
+        delayMS(10);
+    }
+    uart1SendChar('x');
+    uart1SendChar((char)ls);
+    uart1SendChar((char)rs);
+    while (uart1GetChar(&ch))  // flush the receive buffer
+        continue;
 }
 
 void Cservos(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -394,6 +538,29 @@ void Ccompass(struct ParseState *Parser, struct Value *ReturnValue, struct Value
     ReturnValue->Val->Integer = ix;
 }
 
+void Ccompassx(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // return reading from HMC5843 I2C compass
+{
+    short x, y, z;
+    int ix;
+    
+    ix = (int)read_compass3x(&x, &y, &z);
+    Cxmin = cxmin;
+    Cxmax = cxmax;
+    Cymin = cymin;
+    Cymax = cymax;
+    ReturnValue->Val->Integer = ix;
+}
+
+void Ccompassxcal(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // return reading from HMC5843 I2C compass
+{
+    /* cxmin, cxmax, cymin, cymax */
+    cxmin = Param[0]->Val->Integer;
+    cxmax = Param[1]->Val->Integer;
+    cymin = Param[2]->Val->Integer;
+    cymax = Param[3]->Val->Integer;
+    compass_continuous_calibration = Param[4]->Val->Integer;  // continuous calibration:  off = 0, on = 1
+}
+
 void Ctilt(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // return reading from HMC6352 I2C compass
 {
     unsigned int ix;
@@ -406,50 +573,35 @@ void Ctilt(struct ParseState *Parser, struct Value *ReturnValue, struct Value **
 
 void Canalog(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // return reading from HMC6352 I2C compass
 {
-    unsigned char i2c_data[3], device_id;
     unsigned int ix, channel;
-    unsigned char mask1[] = { 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x04, 0x08 };
-    unsigned char mask2[] = { 0x10, 0x20, 0x40, 0x80, 0x00, 0x00, 0x00, 0x00 };
     
-    // decide which i2c device based on channel range
     ix = (unsigned char)Param[0]->Val->Integer;
     if ((ix<1) || (ix>28))
         ProgramFail(NULL, "analog():  invalid channel");
-    device_id = 0;
-    switch (ix / 10) {
-        case 0:
-            device_id = 0x20;  // channels 1-8
-            break;
-        case 1:
-            device_id = 0x23;  // channels 11-18
-            break;
-        case 2:
-            device_id = 0x24;  // channels 21-28
-            break;
-    }
     channel = ix % 10;
     if ((channel<1) || (channel>8))
         ProgramFail(NULL, "analog():  invalid channel");
+    ReturnValue->Val->Integer = analog(ix);
+}
     
-    // set timer register 3
-    i2c_data[0] = 0x03;
-    i2c_data[1] = 0x01;
-    i2cwrite(device_id, (unsigned char *)i2c_data, 1, SCCB_ON);
 
-    // set analog channel 
-    i2c_data[0] = 0x02;
-    i2c_data[1] = mask1[channel-1];
-    i2c_data[2] = mask2[channel-1];
-    i2cwritex(device_id, (unsigned char *)i2c_data, 3, SCCB_ON);
-
-    // small delay
-    delayUS(1000);
-
-    // read data
-    i2c_data[0] = 0x00;
-    i2cread(device_id, (unsigned char *)i2c_data, 2, SCCB_ON);
-    ix = (((i2c_data[0] & 0x0F) << 8) + i2c_data[1]);
-    ReturnValue->Val->Integer = ix;
+/* read analog channel 0-7 from SRV-4WD (
+    channel 0 = battery level
+    channel 1 = 5V gyro
+    channel 2 = 3.3V gyro
+    channel 3 = IR1
+    channel 4 = IR2
+    channel 6 = IR3
+    channel 7 = IR4
+    */
+void Canalogx(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // return reading from HMC6352 I2C compass
+{
+    int ix;
+    
+    ix = (unsigned char)Param[0]->Val->Integer;
+    if ((ix<0) || (ix>7))  
+        ProgramFail(NULL, "analogx():  invalid channel");
+    ReturnValue->Val->Integer = analog_4wd(ix);
 }
 
 void Cgps(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -496,6 +648,15 @@ void Cwritei2c(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
     i2cwrite(i2c_device, (unsigned char *)i2c_data, 1, SCCB_OFF);
 }
 
+void Cabs(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // abs(int)
+{
+    int ix;
+    
+    ix = Param[0]->Val->Integer;  // return absolute value of int
+    if (ix < 0)
+        ix = -ix;
+    ReturnValue->Val->Integer = ix;
+}
 void Csin(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // sin(angle)
 {
     int ix;
@@ -709,7 +870,14 @@ void Cerrormsg (struct ParseState *Parser, struct Value *ReturnValue, struct Val
 struct LibraryFunction PlatformLibrary[] =
 {
     { Csignal,      "int signal();" },
+    { Csignal1,     "int signal1();" },
     { Cinput,       "int input();" },
+    { Cinput1,      "int input1();" },
+    { Cinit_uart1,  "void init_uart1(int);" },
+    { Cread_int,    "int read_int();" },
+    { Cread_str,    "int read_str(char *);" },
+    { Coutput,      "void output(int);" },
+    { Coutput1,     "void output1(int);" },
     { Cdelay,       "void delay(int);" },
     { Crand,        "int rand(int);" },
     { Ctime,        "int time();" },
@@ -720,9 +888,11 @@ struct LibraryFunction PlatformLibrary[] =
     { Cpoke,        "void poke(int, int, int);" },
     { Cmotors,      "void motors(int, int);" },
     { Cmotors2,     "void motors2(int, int);" },
+    { Cmotorx,      "void motorx(int, int);" },
     { Cservos,      "void servos(int, int);" },
     { Cservos2,     "void servos2(int, int);" },
     { Cencoders,    "void encoders();" },
+    { Cencoderx,    "int encoderx(int);" },
     { Claser,       "void laser(int);" },
     { Csonar,       "int sonar(int);" },
     { Crange,       "int range();" },
@@ -740,12 +910,16 @@ struct LibraryFunction PlatformLibrary[] =
     { Cvjpeg,       "int vjpeg(int);" },
     { Cvsend,       "void vsend(int);" },
     { Ccompass,     "int compass();" },
+    { Ccompassx,    "int compassx();" },
+    { Ccompassxcal, "void compassxcal(int, int, int, int, int);" },
     { Canalog,      "int analog(int);" },
+    { Canalogx,     "int analogx(int);" },
     { Ctilt,        "int tilt(int);" },
     { Cgps,         "void gps();" },
     { Creadi2c,     "int readi2c(int, int);" },
     { Creadi2c2,    "int readi2c2(int, int);" },
     { Cwritei2c,    "void writei2c(int, int, int);" },
+    { Cabs,         "int abs(int);" },
     { Csin,         "int sin(int);" },
     { Ccos,         "int cos(int);" },
     { Ctan,         "int tan(int);" },
@@ -767,34 +941,4 @@ struct LibraryFunction PlatformLibrary[] =
     { Cerrormsg,    "void errormsg(char *);" },
     { NULL,         NULL }
 };
-
-void PlatformLibraryInit()
-{
-    struct ValueType *IntArrayType;
-    
-    IntArrayType = TypeGetMatching(NULL, &IntType, TypeArray, 16, StrEmpty);
-    VariableDefinePlatformVar(NULL, "scanvect", IntArrayType, (union AnyValue *)&ScanVect, FALSE);
-    VariableDefinePlatformVar(NULL, "neuron", IntArrayType, (union AnyValue *)&NNVect, FALSE);
-    VariableDefinePlatformVar(NULL, "blobcnt", &IntType, (union AnyValue *)&Blobcnt, FALSE);
-    VariableDefinePlatformVar(NULL, "blobx1", &IntType, (union AnyValue *)&Blobx1, FALSE);
-    VariableDefinePlatformVar(NULL, "blobx2", &IntType, (union AnyValue *)&Blobx2, FALSE);
-    VariableDefinePlatformVar(NULL, "bloby1", &IntType, (union AnyValue *)&Bloby1, FALSE);
-    VariableDefinePlatformVar(NULL, "bloby2", &IntType, (union AnyValue *)&Bloby2, FALSE);
-    VariableDefinePlatformVar(NULL, "lcount", &IntType, (union AnyValue *)&Elcount, FALSE);
-    VariableDefinePlatformVar(NULL, "rcount", &IntType, (union AnyValue *)&Ercount, FALSE);
-    VariableDefinePlatformVar(NULL, "y1", &IntType, (union AnyValue *)&Iy1, FALSE);
-    VariableDefinePlatformVar(NULL, "y2", &IntType, (union AnyValue *)&Iy2, FALSE);
-    VariableDefinePlatformVar(NULL, "u1", &IntType, (union AnyValue *)&Iu1, FALSE);
-    VariableDefinePlatformVar(NULL, "u2", &IntType, (union AnyValue *)&Iu2, FALSE);
-    VariableDefinePlatformVar(NULL, "v1", &IntType, (union AnyValue *)&Iv1, FALSE);
-    VariableDefinePlatformVar(NULL, "v2", &IntType, (union AnyValue *)&Iv2, FALSE);
-    VariableDefinePlatformVar(NULL, "gpslat", &IntType, (union AnyValue *)&GPSlat, FALSE);
-    VariableDefinePlatformVar(NULL, "gpslon", &IntType, (union AnyValue *)&GPSlon, FALSE);
-    VariableDefinePlatformVar(NULL, "gpsalt", &IntType, (union AnyValue *)&GPSalt, FALSE);
-    VariableDefinePlatformVar(NULL, "gpsfix", &IntType, (union AnyValue *)&GPSfix, FALSE);
-    VariableDefinePlatformVar(NULL, "gpssat", &IntType, (union AnyValue *)&GPSsat, FALSE);
-    VariableDefinePlatformVar(NULL, "gpsutc", &IntType, (union AnyValue *)&GPSutc, FALSE);
-
-    LibraryInit(&GlobalTable, "platform library", &PlatformLibrary);
-}
 

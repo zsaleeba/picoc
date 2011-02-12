@@ -79,6 +79,7 @@ extern jmp_buf ExitBuf;
 
 # else
 #  ifdef SURVEYOR_HOST
+#   define HEAP_SIZE C_HEAPSIZE
 #   define NO_FP
 #   define NO_CTYPE
 #   define NO_HASH_INCLUDE
@@ -95,6 +96,7 @@ extern jmp_buf ExitBuf;
 #   include "../i2c.h"
 #   include "../jpeg.h"
 #   include "../malloc.h"
+#   include "../xmodem.h"
 #   define assert(x)
 #   undef INTERACTIVE_PROMPT_STATEMENT
 #   undef INTERACTIVE_PROMPT_LINE

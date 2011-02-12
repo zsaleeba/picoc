@@ -7,7 +7,7 @@ void PlatformCleanup()
 }
 
 /* get a line of interactive input */
-char *PlatformGetLine(char *Buf, int MaxLen)
+char *PlatformGetLine(char *Buf, int MaxLen, const char *Prompt)
 {
     int ix;
     char ch, *cp;
@@ -50,8 +50,9 @@ int PlatformGetCharacter()
 int ExitBuf[41];
 
 /* exit the program */
-void PlatformExit()
+void PlatformExit(int RetVal)
 {
+    ExitValue = RetVal;
     ExitBuf[40] = 1;
     longjmp(ExitBuf, 1);
 }

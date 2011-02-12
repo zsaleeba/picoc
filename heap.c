@@ -11,7 +11,6 @@ static void *StackFrame = NULL;                     /* the current stack frame *
 void *HeapStackTop = NULL;                          /* the top of the stack */
 #else
 # ifdef SURVEYOR_HOST
-# define HEAP_SIZE C_HEAPSIZE
 static unsigned char *HeapMemory = (unsigned char *)C_HEAPSTART;      /* all memory - stack and heap */
 static void *HeapBottom = (void *)C_HEAPSTART + HEAP_SIZE;  /* the bottom of the (downward-growing) heap */
 static void *StackFrame = (void *)C_HEAPSTART;              /* the current stack frame */

@@ -14,7 +14,9 @@ void Initialise(int StackSize)
     VariableInit();
     LexInit();
     TypeInit();
+#ifndef NO_HASH_INCLUDE
     IncludeInit();
+#endif
 #ifdef BUILTIN_MINI_STDLIB
     LibraryInit(&GlobalTable, "c library", &CLibrary[0]);
     CLibraryInit();
@@ -26,7 +28,9 @@ void Initialise(int StackSize)
 void Cleanup()
 {
     PlatformCleanup();
+#ifndef NO_HASH_INCLUDE
     IncludeCleanup();
+#endif
     ParseCleanup();
     LexCleanup();
     VariableCleanup();
@@ -124,15 +128,21 @@ int main(int argc, char **argv)
 # ifdef SURVEYOR_HOST
 int picoc(char *SourceStr)
 {    
-    int ix;
-    
+    unsigned int i;
+    unsigned int sl;
+	
     Initialise(HEAP_SIZE);
-    if (SourceStr) {
-        for (ix=0; ix<strlen(SourceStr); ix++)  /* clear out ctrl-z from XMODEM transfer */
-            if (SourceStr[ix] == 0x1A)
-                SourceStr[ix] = 0x20;
-        /*printf("%s\n\r", SourceStr);*/  /* display program source */
-        /*printf("=====================\n");*/
+
+	sl = strlen(SourceStr);
+	if (SourceStr) 
+	{
+        for (i = 0; i < sl; i++)
+		{
+            if (SourceStr[i] == 0x1A)
+			{
+                SourceStr[i] = 0x20;
+			}
+		}
     }
     ExitBuf[40] = 0;
     PlatformSetExitPoint();
@@ -143,7 +153,7 @@ int picoc(char *SourceStr)
     }
         
     if (SourceStr)    
-        Parse("test.c", SourceStr, strlen(SourceStr), TRUE);
+        Parse("nofile", SourceStr, strlen(SourceStr), TRUE, TRUE, FALSE);
     ParseInteractive();
     Cleanup();
     return ExitValue;
