@@ -127,6 +127,17 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
     if (FuncValue->Val->FuncDef.NumParams != 0 && Token != TokenCloseBracket && Token != TokenComma && Token != TokenEllipsis)
         ProgramFail(&ParamParser, "bad parameter");
     
+    if (strcmp(Identifier, "main") == 0)
+    {
+        /* make sure it's int main() */
+        if (FuncValue->Val->FuncDef.ReturnType != &IntType)
+            ProgramFail(Parser, "main() should return an int");
+
+        if (FuncValue->Val->FuncDef.NumParams != 0 &&
+             (FuncValue->Val->FuncDef.NumParams != 2 || FuncValue->Val->FuncDef.ParamType[0] != &IntType) )
+            ProgramFail(Parser, "bad parameters to main()");
+    }
+    
     /* look for a function body */
     Token = LexGetToken(Parser, NULL, FALSE);
     if (Token == TokenSemicolon)
