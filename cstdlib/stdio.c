@@ -490,6 +490,12 @@ void StdioPuts(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
 void StdioGets(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) 
 {
     ReturnValue->Val->Pointer = fgets(Param[0]->Val->Pointer, GETS_MAXValue, stdin);
+    if (ReturnValue->Val->Pointer != NULL)
+    {
+        char *EOLPos = strchr(Param[0]->Val->Pointer, '\n');
+        if (EOLPos != NULL)
+            *EOLPos = '\0';
+    }
 }
 
 void StdioGetchar(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs) 

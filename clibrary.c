@@ -322,16 +322,13 @@ void LibSPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Val
 /* get a line of input. protected from buffer overrun */
 void LibGets(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    struct Value *CharArray = (struct Value *)(Param[0]->Val->Pointer);
-    char *ReadBuffer = &CharArray->Val->ArrayMem[0];
-    char *Result;
-
-    ReturnValue->Val->Pointer = NULL;
-    Result = PlatformGetLine(ReadBuffer, GETS_BUF_MAX, NULL);
-    if (Result == NULL)
-        return;
-    
-    ReturnValue->Val->Pointer = Param[0]->Val->Pointer;
+    ReturnValue->Val->Pointer = PlatformGetLine(Param[0]->Val->Pointer, GETS_BUF_MAX, NULL);
+    if (ReturnValue->Val->Pointer != NULL)
+    {
+        char *EOLPos = strchr(Param[0]->Val->Pointer, '\n');
+        if (EOLPos != NULL)
+            *EOLPos = '\0';
+    }
 }
 
 void LibGetc(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -601,7 +598,7 @@ struct LibraryFunction CLibrary[] =
 {
     { LibPrintf,        "void printf(char *, ...);" },
     { LibSPrintf,       "char *sprintf(char *, char *, ...);" },
-    { LibGets,          "void gets(char *, int);" },
+    { LibGets,          "void gets(char *);" },
     { LibGetc,          "int getchar();" },
     { LibExit,          "void exit(int);" },
 #ifdef PICOC_MATH_LIBRARY
