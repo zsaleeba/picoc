@@ -316,14 +316,16 @@ void TypeParseEnum(struct ParseState *Parser, struct ValueType **Typ)
 /* parse a type - just the basic type */
 int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ)
 {
-    struct ParseState Before = *Parser;
+    struct ParseState Before;
     struct Value *LexerValue;
-    enum LexToken Token = LexGetToken(Parser, &LexerValue, TRUE);
+    enum LexToken Token;
     int Unsigned = FALSE;
     struct Value *VarValue;
     *Typ = NULL;
 
     /* ignore leading type qualifiers */
+    ParserCopy(&Before, Parser);
+    Token = LexGetToken(Parser, &LexerValue, TRUE);
     while (Token == TokenStaticType || Token == TokenRegisterType  || Token == TokenExternType)
         Token = LexGetToken(Parser, &LexerValue, TRUE);
         
@@ -377,7 +379,7 @@ int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ)
             *Typ = VarValue->Val->Typ;
             break;
 
-        default: *Parser = Before; return FALSE;
+        default: ParserCopy(Parser, &Before); return FALSE;
     }
     
     return TRUE;
@@ -395,7 +397,7 @@ void TypeParseIdentPart(struct ParseState *Parser, struct ValueType *BasicTyp, s
     
     while (!Done)
     {
-        Before = *Parser;
+        ParserCopy(&Before, Parser);
         Token = LexGetToken(Parser, &LexValue, TRUE);
         switch (Token)
         {
@@ -423,7 +425,7 @@ void TypeParseIdentPart(struct ParseState *Parser, struct ValueType *BasicTyp, s
                 Done = TRUE;
                 break;
                 
-            default: *Parser = Before; Done = TRUE; break;
+            default: ParserCopy(Parser, &Before); Done = TRUE; break;
         }
     }
     
@@ -459,7 +461,7 @@ void TypeParseIdentPart(struct ParseState *Parser, struct ValueType *BasicTyp, s
                     break;  /* XXX - finish this */
 #endif
                 
-                default: *Parser = Before; Done = TRUE; break;
+                default: ParserCopy(Parser, &Before); Done = TRUE; break;
             }
         }
     }    

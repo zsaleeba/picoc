@@ -252,7 +252,7 @@ void VariableStackFrameAdd(struct ParseState *Parser, int NumParams)
     if (NewFrame == NULL)
         ProgramFail(Parser, "out of memory");
         
-    NewFrame->ReturnParser = *Parser;
+    ParserCopy(&NewFrame->ReturnParser, Parser);
     NewFrame->Parameter = (NumParams > 0) ? ((void *)((char *)NewFrame + sizeof(struct StackFrame))) : NULL;
     TableInitTable(&NewFrame->LocalTable, &NewFrame->LocalHashTable[0], LOCAL_TABLE_SIZE, FALSE);
     NewFrame->PreviousStackFrame = TopStackFrame;
@@ -265,7 +265,7 @@ void VariableStackFramePop(struct ParseState *Parser)
     if (TopStackFrame == NULL)
         ProgramFail(Parser, "stack is empty - can't go back");
         
-    *Parser = TopStackFrame->ReturnParser;
+    ParserCopy(Parser, &TopStackFrame->ReturnParser);
     TopStackFrame = TopStackFrame->PreviousStackFrame;
     HeapPopStackFrame();
 }

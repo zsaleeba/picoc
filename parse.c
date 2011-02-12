@@ -325,6 +325,12 @@ void ParseMacroDefinition(struct ParseState *Parser)
         ProgramFail(Parser, "'%s' is already defined", MacroNameStr);
 }
 
+/* copy the entire parser state */
+void ParserCopy(struct ParseState *To, struct ParseState *From)
+{
+    memcpy((void *)To, (void *)From, sizeof(*To));
+}
+
 /* copy where we're at in the parsing */
 void ParserCopyPos(struct ParseState *To, struct ParseState *From)
 {

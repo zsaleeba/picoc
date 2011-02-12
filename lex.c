@@ -769,7 +769,7 @@ void LexHashIf(struct ParseState *Parser)
         if (SavedValue->Typ->Base != TypeMacro)
             ProgramFail(Parser, "value expected");
         
-        MacroParser = SavedValue->Val->MacroDef.Body;
+        ParserCopy(&MacroParser, &SavedValue->Val->MacroDef.Body);
         Token = LexGetRawToken(&MacroParser, &IdentValue, TRUE);
     }
     

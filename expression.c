@@ -992,8 +992,11 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
     debugf("ExpressionParse():\n");
     do
     {
-        struct ParseState PreState = *Parser;
-        enum LexToken Token = LexGetToken(Parser, &LexValue, TRUE);
+        struct ParseState PreState;
+        enum LexToken Token;
+
+        ParserCopy(&PreState, Parser);
+        Token = LexGetToken(Parser, &LexValue, TRUE);
         if ( ( ( (int)Token > TokenComma && (int)Token <= (int)TokenOpenBracket) || 
                (Token == TokenCloseBracket && BracketPrecedence != 0)) && 
                (Token != TokenColon || TernaryDepth > 0) )
@@ -1057,7 +1060,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                             if (BracketPrecedence == 0)
                             { 
                                 /* assume this bracket is after the end of the expression */
-                                *Parser = PreState;
+                                ParserCopy(Parser, &PreState);
                                 Done = TRUE;
                             }
                             else
@@ -1131,9 +1134,10 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                     if (VariableValue->Typ->Base == TypeMacro)
                     {
                         /* evaluate a macro as a kind of simple subroutine */
-                        struct ParseState MacroParser = VariableValue->Val->MacroDef.Body;
+                        struct ParseState MacroParser;
                         struct Value *MacroResult;
                         
+                        ParserCopy(&MacroParser, &VariableValue->Val->MacroDef.Body);
                         if (VariableValue->Val->MacroDef.NumParams != 0)
                             ProgramFail(&MacroParser, "macro arguments missing");
                             
@@ -1173,7 +1177,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                 ProgramFail(Parser, "type not expected here");
                 
             PrefixState = FALSE;
-            *Parser = PreState;
+            ParserCopy(Parser, &PreState);
             TypeParse(Parser, &Typ, &Identifier);
             TypeValue = VariableAllocValueFromType(Parser, &TypeType, FALSE, NULL, FALSE);
             TypeValue->Val->Typ = Typ;
@@ -1182,7 +1186,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
         else
         { 
             /* it isn't a token from an expression */
-            *Parser = PreState;
+            ParserCopy(Parser, &PreState);
             Done = TRUE;
         }
         
@@ -1286,7 +1290,7 @@ void ExpressionParseMacroCall(struct ParseState *Parser, struct ExpressionStack 
         if (MDef->Body.Pos == NULL)
             ProgramFail(Parser, "'%s' is undefined", MacroName);
         
-        memcpy((void *)&MacroParser, (void *)&MDef->Body, sizeof(struct ParseState));
+        ParserCopy(&MacroParser, &MDef->Body);
         VariableStackFrameAdd(Parser, 0);
         TopStackFrame->NumParams = ArgCount;
         TopStackFrame->ReturnValue = ReturnValue;
@@ -1387,7 +1391,7 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
             if (FuncValue->Val->FuncDef.Body.Pos == NULL)
                 ProgramFail(Parser, "'%s' is undefined", FuncName);
             
-            memcpy((void *)&FuncParser, (void *)&FuncValue->Val->FuncDef.Body, sizeof(struct ParseState));
+            ParserCopy(&FuncParser, &FuncValue->Val->FuncDef.Body);
             VariableStackFrameAdd(Parser, FuncValue->Val->FuncDef.Intrinsic ? FuncValue->Val->FuncDef.NumParams : 0);
             TopStackFrame->NumParams = ArgCount;
             TopStackFrame->ReturnValue = ReturnValue;

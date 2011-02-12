@@ -346,6 +346,7 @@ void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt, i
 void ParseInteractive();
 void ParseCleanup();
 void ParserCopyPos(struct ParseState *To, struct ParseState *From);
+void ParserCopy(struct ParseState *To, struct ParseState *From);
 
 /* expression.c */
 int ExpressionParse(struct ParseState *Parser, struct Value **Result);
