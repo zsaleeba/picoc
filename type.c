@@ -385,6 +385,36 @@ int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ)
     return TRUE;
 }
 
+/* parse a type - the part at the end after the identifier. eg. array specifications etc. */
+struct ValueType *TypeParseBack(struct ParseState *Parser, struct ValueType *FromType)
+{
+    enum LexToken Token;
+    struct ParseState Before;
+
+    ParserCopy(&Before, Parser);
+    Token = LexGetToken(Parser, NULL, TRUE);
+    if (Token == TokenLeftSquareBracket)
+    {
+        /* add another array bound */
+        enum RunMode OldMode = Parser->Mode;
+        int ArraySize;
+        Parser->Mode = RunModeRun;
+        ArraySize = ExpressionParseInt(Parser);
+        Parser->Mode = OldMode;
+        
+        if (LexGetToken(Parser, NULL, TRUE) != TokenRightSquareBracket)
+            ProgramFail(Parser, "']' expected");
+        
+        return TypeGetMatching(Parser, TypeParseBack(Parser, FromType), TypeArray, ArraySize, StrEmpty);
+    }
+    else
+    {
+        /* the type specification has finished */
+        ParserCopy(Parser, &Before);
+        return FromType;
+    }
+}
+
 /* parse a type - the part which is repeated with each identifier in a declaration list */
 void TypeParseIdentPart(struct ParseState *Parser, struct ValueType *BasicTyp, struct ValueType **Typ, char **Identifier)
 {
@@ -435,36 +465,8 @@ void TypeParseIdentPart(struct ParseState *Parser, struct ValueType *BasicTyp, s
     if (*Identifier != StrEmpty)
     { 
         /* parse stuff after the identifier */
-        Done = FALSE;
-        while (!Done)
-        {
-            Before = *Parser;
-            switch (LexGetToken(Parser, NULL, TRUE))
-            {
-                case TokenLeftSquareBracket:
-                    {
-                        enum RunMode OldMode = Parser->Mode;
-                        int ArraySize;
-                        Parser->Mode = RunModeRun;
-                        ArraySize = ExpressionParseInt(Parser);
-                        Parser->Mode = OldMode;
-                        
-                        if (LexGetToken(Parser, NULL, TRUE) != TokenRightSquareBracket)
-                            ProgramFail(Parser, "']' expected");
-                            
-                        *Typ = TypeGetMatching(Parser, *Typ, TypeArray, ArraySize, StrEmpty);
-                    }
-                    break;
-                    
-#if 0
-                case TokenOpenBracket:
-                    break;  /* XXX - finish this */
-#endif
-                
-                default: ParserCopy(Parser, &Before); Done = TRUE; break;
-            }
-        }
-    }    
+        *Typ = TypeParseBack(Parser, *Typ);
+    }
 }
 
 /* parse a type - a complete declaration including identifier */
