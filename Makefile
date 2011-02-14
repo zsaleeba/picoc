@@ -16,11 +16,18 @@ all: depend $(TARGET)
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) $(LIBS)
 
+# rebuild the version number every time so we always have the
+# correct subversion version
+version.h:
+	echo "#define PICOC_SUBVERSION_VERSION \"`svnversion`\"" > version.h
+
+.PHONY: version.h
+
 test:	all
 	(cd tests; make test)
 
 clean:
-	rm -f $(TARGET) $(OBJS) *~
+	rm -f $(TARGET) $(OBJS) version.h *~
 
 count:
 	@echo "Core:"
@@ -30,6 +37,7 @@ count:
 	@cat $(SRCS) *.h */*.h | wc
 
 depend:
+	touch version.h
 	$(CC) -MM $(SRCS) >.depend
 
 -include .depend

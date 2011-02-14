@@ -17,8 +17,9 @@ void Initialise(int StackSize)
 #ifndef NO_HASH_INCLUDE
     IncludeInit();
 #endif
+    LibraryInit();
 #ifdef BUILTIN_MINI_STDLIB
-    LibraryInit(&GlobalTable, "c library", &CLibrary[0]);
+    LibraryAdd(&GlobalTable, "c library", &CLibrary[0]);
     CLibraryInit();
 #endif
     PlatformLibraryInit();

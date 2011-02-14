@@ -1,7 +1,21 @@
 #include "picoc.h"
+#include "version.h"
 
-/* initialise a library */
-void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct LibraryFunction *FuncList)
+/* the picoc version string */
+#define PICOC_VERSION "v2.1 beta r" PICOC_SUBVERSION_VERSION
+static const char *VersionString = NULL;
+
+
+/* global initialisation for libraries */
+void LibraryInit()
+{
+    /* define the version number macro */
+    VersionString = TableStrRegister(PICOC_VERSION);
+    VariableDefinePlatformVar(NULL, "PICOC_VERSION", CharPtrType, (union AnyValue *)&VersionString, FALSE);
+}
+
+/* add a library */
+void LibraryAdd(struct Table *GlobalTable, const char *LibraryName, struct LibraryFunction *FuncList)
 {
     struct ParseState Parser;
     int Count;
@@ -11,6 +25,7 @@ void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct Libr
     void *Tokens;
     const char *IntrinsicName = TableStrRegister("c library");
     
+    /* read all the library definitions */
     for (Count = 0; FuncList[Count].Prototype != NULL; Count++)
     {
         Tokens = LexAnalyse(IntrinsicName, FuncList[Count].Prototype, strlen((char *)FuncList[Count].Prototype), NULL);

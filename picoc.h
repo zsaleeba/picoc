@@ -408,7 +408,8 @@ void *VariableDereferencePointer(struct ParseState *Parser, struct Value *Pointe
 
 /* clibrary.c */
 void BasicIOInit();
-void LibraryInit(struct Table *GlobalTable, const char *LibraryName, struct LibraryFunction *FuncList);
+void LibraryInit();
+void LibraryAdd(struct Table *GlobalTable, const char *LibraryName, struct LibraryFunction *FuncList);
 void CLibraryInit();
 void PrintCh(char OutCh, IOFILE *Stream);
 void PrintSimpleInt(long Num, IOFILE *Stream);

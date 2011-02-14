@@ -95,7 +95,7 @@ void IncludeFile(char *FileName)
                 
                 /* set up the library functions */
                 if (LInclude->FuncList != NULL)
-                    LibraryInit(&GlobalTable, FileName, LInclude->FuncList);
+                    LibraryAdd(&GlobalTable, FileName, LInclude->FuncList);
             }
             
             return;
