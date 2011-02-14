@@ -221,11 +221,13 @@ void print_led(unsigned long x, char *buf)
 	*buf='\0';
 }
 
-void main()
+int main()
 {
 	char buf[5*MAX_DIGITS];
 	print_led(1234567, buf);
 	printf("%s\n",buf);
+
+    return 0;
 }
 
 #ifndef NO_MAIN

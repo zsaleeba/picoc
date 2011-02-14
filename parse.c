@@ -130,8 +130,9 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
     if (strcmp(Identifier, "main") == 0)
     {
         /* make sure it's int main() */
-        if (FuncValue->Val->FuncDef.ReturnType != &IntType)
-            ProgramFail(Parser, "main() should return an int");
+        if ( FuncValue->Val->FuncDef.ReturnType != &IntType &&
+             FuncValue->Val->FuncDef.ReturnType != &VoidType )
+            ProgramFail(Parser, "main() should return an int or void");
 
         if (FuncValue->Val->FuncDef.NumParams != 0 &&
              (FuncValue->Val->FuncDef.NumParams != 2 || FuncValue->Val->FuncDef.ParamType[0] != &IntType) )
@@ -498,6 +499,7 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
         case TokenAmpersand: 
         case TokenIncrement: 
         case TokenDecrement: 
+        case TokenOpenBracket: 
             *Parser = PreState;
             ExpressionParse(Parser, &CValue);
             if (Parser->Mode == RunModeRun) 

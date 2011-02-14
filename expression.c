@@ -475,16 +475,6 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
                 ExpressionPushInt(Parser, StackTop, TypeSize(TopValue->Typ, TopValue->Typ->ArraySize, TRUE));
             break;
         
-        case TokenLeftSquareBracket:
-            /* XXX */
-            ProgramFail(Parser, "not supported");
-            break;
-        
-        case TokenOpenBracket:
-            /* XXX - cast */
-            ProgramFail(Parser, "not supported");
-            break;
-
         default:
             /* an arithmetic operator */
 #ifndef NO_FP
@@ -1065,6 +1055,9 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                             }
                             else
                                 BracketPrecedence -= BRACKET_PRECEDENCE;
+                                
+                            /* collapse to the bracket precedence */
+                            ExpressionStackCollapse(Parser, &StackTop, BracketPrecedence);
                             break;
                     
                         default:

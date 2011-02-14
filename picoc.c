@@ -133,16 +133,16 @@ int picoc(char *SourceStr)
 	
     Initialise(HEAP_SIZE);
 
-	sl = strlen(SourceStr);
-	if (SourceStr) 
-	{
+    sl = strlen(SourceStr);
+    if (SourceStr) 
+    {
         for (i = 0; i < sl; i++)
-		{
+        {
             if (SourceStr[i] == 0x1A)
-			{
+            {
                 SourceStr[i] = 0x20;
-			}
-		}
+            }
+        }
     }
     ExitBuf[40] = 0;
     PlatformSetExitPoint();
