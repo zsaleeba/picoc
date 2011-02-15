@@ -198,17 +198,17 @@ void PrintFP(double Num, struct OutputStream *Stream)
     }
     
     if (Num >= 1e7)
-        Exponent = math_log10(Num);
+        Exponent = log10(Num);
     else if (Num <= 1e-7 && Num != 0.0)
-        Exponent = math_log10(Num) - 0.999999999;
+        Exponent = log10(Num) - 0.999999999;
     
-    Num /= math_pow(10.0, Exponent);    
+    Num /= pow(10.0, Exponent);    
     PrintInt((long)Num, 0, FALSE, FALSE, Stream);
     PrintCh('.', Stream);
     Num = (Num - (long)Num) * 10;
-    if (math_abs(Num) >= 1e-7)
+    if (abs(Num) >= 1e-7)
     {
-        for (MaxDecimal = 6; MaxDecimal > 0 && math_abs(Num) >= 1e-7; Num = (Num - (long)(Num + 1e-7)) * 10, MaxDecimal--)
+        for (MaxDecimal = 6; MaxDecimal > 0 && abs(Num) >= 1e-7; Num = (Num - (long)(Num + 1e-7)) * 10, MaxDecimal--)
             PrintCh('0' + (long)(Num + 1e-7), Stream);
     }
     else
@@ -367,95 +367,95 @@ void LibExit(struct ParseState *Parser, struct Value *ReturnValue, struct Value 
     PlatformExit(Param[0]->Val->Integer);
 }
 
-#ifdef PICOC_MATH_LIBRARY
+#ifdef PICOC_LIBRARY
 void LibSin(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = math_sin(Param[0]->Val->FP);
+    ReturnValue->Val->FP = sin(Param[0]->Val->FP);
 }
 
 void LibCos(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = math_cos(Param[0]->Val->FP);
+    ReturnValue->Val->FP = cos(Param[0]->Val->FP);
 }
 
 void LibTan(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = math_tan(Param[0]->Val->FP);
+    ReturnValue->Val->FP = tan(Param[0]->Val->FP);
 }
 
 void LibAsin(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = math_asin(Param[0]->Val->FP);
+    ReturnValue->Val->FP = asin(Param[0]->Val->FP);
 }
 
 void LibAcos(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = math_acos(Param[0]->Val->FP);
+    ReturnValue->Val->FP = acos(Param[0]->Val->FP);
 }
 
 void LibAtan(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = math_atan(Param[0]->Val->FP);
+    ReturnValue->Val->FP = atan(Param[0]->Val->FP);
 }
 
 void LibSinh(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = math_sinh(Param[0]->Val->FP);
+    ReturnValue->Val->FP = sinh(Param[0]->Val->FP);
 }
 
 void LibCosh(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = math_cosh(Param[0]->Val->FP);
+    ReturnValue->Val->FP = cosh(Param[0]->Val->FP);
 }
 
 void LibTanh(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = math_tanh(Param[0]->Val->FP);
+    ReturnValue->Val->FP = tanh(Param[0]->Val->FP);
 }
 
 void LibExp(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = math_exp(Param[0]->Val->FP);
+    ReturnValue->Val->FP = exp(Param[0]->Val->FP);
 }
 
 void LibFabs(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = math_fabs(Param[0]->Val->FP);
+    ReturnValue->Val->FP = fabs(Param[0]->Val->FP);
 }
 
 void LibLog(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = math_log(Param[0]->Val->FP);
+    ReturnValue->Val->FP = log(Param[0]->Val->FP);
 }
 
 void LibLog10(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = math_log10(Param[0]->Val->FP);
+    ReturnValue->Val->FP = log10(Param[0]->Val->FP);
 }
 
 void LibPow(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = math_pow(Param[0]->Val->FP, Param[1]->Val->FP);
+    ReturnValue->Val->FP = pow(Param[0]->Val->FP, Param[1]->Val->FP);
 }
 
 void LibSqrt(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = math_sqrt(Param[0]->Val->FP);
+    ReturnValue->Val->FP = sqrt(Param[0]->Val->FP);
 }
 
 void LibRound(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = math_floor(Param[0]->Val->FP + 0.5);   /* XXX - fix for soft float */
+    ReturnValue->Val->FP = floor(Param[0]->Val->FP + 0.5);   /* XXX - fix for soft float */
 }
 
 void LibCeil(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = math_ceil(Param[0]->Val->FP);
+    ReturnValue->Val->FP = ceil(Param[0]->Val->FP);
 }
 
 void LibFloor(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
-    ReturnValue->Val->FP = math_floor(Param[0]->Val->FP);
+    ReturnValue->Val->FP = floor(Param[0]->Val->FP);
 }
 #endif
 
@@ -627,7 +627,7 @@ struct LibraryFunction CLibrary[] =
     { LibGets,          "char *gets(char *);" },
     { LibGetc,          "int getchar();" },
     { LibExit,          "void exit(int);" },
-#ifdef PICOC_MATH_LIBRARY
+#ifdef PICOC_LIBRARY
     { LibSin,           "float sin(float);" },
     { LibCos,           "float cos(float);" },
     { LibTan,           "float tan(float);" },

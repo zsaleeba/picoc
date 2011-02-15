@@ -134,49 +134,4 @@ extern int ExitBuf[];
 # endif
 #endif
 
-#define math_abs(x) (((x) < 0) ? (-(x)) : (x))
-#ifdef NEED_MATH_LIBRARY
-extern double math_sin(double x);
-extern double math_cos(double x);
-extern double math_tan(double x);
-extern double math_asin(double x);
-extern double math_acos(double x);
-extern double math_atan(double x);
-extern double math_sinh(double x);
-extern double math_cosh(double x);
-extern double math_tanh(double x);
-extern double math_asinh(double x);
-extern double math_acosh(double x);
-extern double math_atanh(double x);
-extern double math_exp(double x);
-extern double math_fabs(double x);
-extern double math_log(double x);
-extern double math_log10(double x);
-extern double math_pow(double x, double y);
-extern double math_sqrt(double x);
-extern double math_floor(double x);
-extern double math_ceil(double x);
-#else /* NEED_MATH_LIBRARY */
-#define math_sin(x) sin(x)
-#define math_cos(x) cos(x)
-#define math_tan(x) tan(x)
-#define math_asin(x) asin(x)
-#define math_acos(x) acos(x)
-#define math_atan(x) atan(x)
-#define math_sinh(x) sinh(x)
-#define math_cosh(x) cosh(x)
-#define math_tanh(x) tanh(x)
-#define math_asinh(x) asinh(x)
-#define math_acosh(x) acosh(x)
-#define math_atanh(x) atanh(x)
-#define math_exp(x) exp(x)
-#define math_fabs(x) fabs(x)
-#define math_log(x) log(x)
-#define math_log10(x) log10(x)
-#define math_pow(x,y) pow(x,y)
-#define math_sqrt(x) sqrt(x)
-#define math_floor(x) floor(x)
-#define math_ceil(x) ceil(x)
-#endif /* NEED_MATH_LIBRARY */
-
 #endif /* PLATFORM_H */

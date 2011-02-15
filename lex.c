@@ -198,7 +198,7 @@ enum LexToken LexGetNumber(struct LexState *Lexer, struct Value *Value)
         for (Result = 0; Lexer->Pos != Lexer->End && IS_BASE_DIGIT(*Lexer->Pos, Base); LEXER_INC(Lexer))
             Result = Result * (double)Base + GET_BASE_DIGIT(*Lexer->Pos);
             
-        FPResult *= math_pow((double)Base, (double)Result * ExponentMultiplier);
+        FPResult *= pow((double)Base, (double)Result * ExponentMultiplier);
     }
     
     Value->Val->FP = FPResult;
