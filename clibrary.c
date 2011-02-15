@@ -2,7 +2,7 @@
 #include "version.h"
 
 /* the picoc version string */
-#define PICOC_VERSION "v2.1 beta r" PICOC_SUBVERSION_VERSION
+#define PICOC_VERSION "v2.1 beta r" VER
 static const char *VersionString = NULL;
 
 

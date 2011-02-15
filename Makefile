@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -pedantic -g -DUNIX_HOST
+CFLAGS=-Wall -pedantic -g -DUNIX_HOST -DVER=\"`svnversion -n`\"
 LIBS=-lm -lreadline
 
 TARGET	= picoc
@@ -15,13 +15,6 @@ all: depend $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) $(LIBS)
-
-# rebuild the version number every time so we always have the
-# correct subversion version
-version.h:
-	echo "#define PICOC_SUBVERSION_VERSION \"`svnversion`\"" > version.h
-
-.PHONY: version.h
 
 test:	all
 	(cd tests; make test)
