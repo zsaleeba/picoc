@@ -22,14 +22,18 @@ struct ValueType *CharPtrPtrType;
 struct ValueType *CharArrayType;
 struct ValueType *VoidPtrType;
 
+static int PointerAlignBytes;
+static int IntAlignBytes;
+
 
 /* add a new type to the set of types we know about */
-struct ValueType *TypeAdd(struct ParseState *Parser, struct ValueType *ParentType, enum BaseType Base, int ArraySize, const char *Identifier, int Sizeof)
+struct ValueType *TypeAdd(struct ParseState *Parser, struct ValueType *ParentType, enum BaseType Base, int ArraySize, const char *Identifier, int Sizeof, int AlignBytes)
 {
     struct ValueType *NewType = VariableAlloc(Parser, sizeof(struct ValueType), TRUE);
     NewType->Base = Base;
     NewType->ArraySize = ArraySize;
     NewType->Sizeof = Sizeof;
+    NewType->AlignBytes = AlignBytes;
     NewType->Identifier = Identifier;
     NewType->Members = NULL;
     NewType->FromType = ParentType;
@@ -45,6 +49,7 @@ struct ValueType *TypeAdd(struct ParseState *Parser, struct ValueType *ParentTyp
 struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *ParentType, enum BaseType Base, int ArraySize, const char *Identifier)
 {
     int Sizeof;
+    int AlignBytes;
     struct ValueType *ThisType = ParentType->DerivedTypeList;
     while (ThisType != NULL && (ThisType->Base != Base || ThisType->ArraySize != ArraySize || ThisType->Identifier != Identifier))
         ThisType = ThisType->Next;
@@ -54,28 +59,28 @@ struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *P
         
     switch (Base)
     {
-        case TypePointer:   Sizeof = sizeof(void *); break;
-        case TypeArray:     Sizeof = ArraySize * ParentType->Sizeof; break;
-        case TypeEnum:      Sizeof = sizeof(int); break;
-        default:            Sizeof = 0; break;      /* structs and unions will get bigger when we add members to them */
+        case TypePointer:   Sizeof = sizeof(void *); AlignBytes = PointerAlignBytes; break;
+        case TypeArray:     Sizeof = ArraySize * ParentType->Sizeof; AlignBytes = ParentType->AlignBytes; break;
+        case TypeEnum:      Sizeof = sizeof(int); AlignBytes = IntAlignBytes; break;
+        default:            Sizeof = 0; AlignBytes = 0; break;      /* structs and unions will get bigger when we add members to them */
     }
 
-    return TypeAdd(Parser, ParentType, Base, ArraySize, Identifier, Sizeof);
+    return TypeAdd(Parser, ParentType, Base, ArraySize, Identifier, Sizeof, AlignBytes);
 }
 
 /* stack space used by a value */
 int TypeStackSizeValue(struct Value *Val)
 {
     if (Val != NULL && Val->ValOnStack)
-        return TypeSizeValue(Val);
+        return TypeSizeValue(Val, FALSE);
     else
         return 0;
 }
 
 /* memory used by a value */
-int TypeSizeValue(struct Value *Val)
+int TypeSizeValue(struct Value *Val, int Compact)
 {
-    if (IS_INTEGER_NUMERIC(Val))
+    if (IS_INTEGER_NUMERIC(Val) && !Compact)
         return sizeof(ALIGN_TYPE);     /* allow some extra room for type extension */
     else if (Val->Typ->Base != TypeArray)
         return Val->Typ->Sizeof;
@@ -94,21 +99,13 @@ int TypeSize(struct ValueType *Typ, int ArraySize, int Compact)
         return Typ->FromType->Sizeof * ArraySize;
 }
 
-/* memory used by the base (non-array) type of a type. This is used for alignment. */
-int TypeSizeAlignment(struct ValueType *Typ)
-{
-    if (Typ->Base == TypeArray)
-        return sizeof(ALIGN_TYPE);
-    else
-        return Typ->Sizeof;
-}
-
 /* add a base type */
-void TypeAddBaseType(struct ValueType *TypeNode, enum BaseType Base, int Sizeof)
+void TypeAddBaseType(struct ValueType *TypeNode, enum BaseType Base, int Sizeof, int AlignBytes)
 {
     TypeNode->Base = Base;
     TypeNode->ArraySize = 0;
     TypeNode->Sizeof = Sizeof;
+    TypeNode->AlignBytes = AlignBytes;
     TypeNode->Identifier = StrEmpty;
     TypeNode->Members = NULL;
     TypeNode->FromType = NULL;
@@ -121,27 +118,39 @@ void TypeAddBaseType(struct ValueType *TypeNode, enum BaseType Base, int Sizeof)
 /* initialise the type system */
 void TypeInit()
 {
-    UberType.DerivedTypeList = NULL;
-    TypeAddBaseType(&IntType, TypeInt, sizeof(int));
-    TypeAddBaseType(&ShortType, TypeShort, sizeof(short));
-    TypeAddBaseType(&CharType, TypeChar, sizeof(unsigned char));
-    TypeAddBaseType(&LongType, TypeLong, sizeof(long));
-    TypeAddBaseType(&UnsignedIntType, TypeUnsignedInt, sizeof(unsigned int));
-    TypeAddBaseType(&UnsignedShortType, TypeUnsignedShort, sizeof(unsigned short));
-    TypeAddBaseType(&UnsignedLongType, TypeUnsignedLong, sizeof(unsigned long));
-    TypeAddBaseType(&VoidType, TypeVoid, 0);
-    TypeAddBaseType(&FunctionType, TypeFunction, sizeof(int));
-    TypeAddBaseType(&MacroType, TypeMacro, sizeof(int));
+    struct IntAlign { char x; int y; } ia;
+    struct ShortAlign { char x; short y; } sa;
+    struct CharAlign { char x; char y; } ca;
+    struct LongAlign { char x; long y; } la;
 #ifndef NO_FP
-    TypeAddBaseType(&FPType, TypeFP, sizeof(double));
-    TypeAddBaseType(&TypeType, Type_Type, sizeof(double));  /* must be large enough to cast to a double */
-#else
-    TypeAddBaseType(&TypeType, Type_Type, sizeof(struct ValueType *));
+    struct DoubleAlign { char x; double y; } da;
 #endif
-    CharArrayType = TypeAdd(NULL, &CharType, TypeArray, 0, StrEmpty, sizeof(char));
-    CharPtrType = TypeAdd(NULL, &CharType, TypePointer, 0, StrEmpty, sizeof(void *));
-    CharPtrPtrType = TypeAdd(NULL, CharPtrType, TypePointer, 0, StrEmpty, sizeof(void *));
-    VoidPtrType = TypeAdd(NULL, &VoidType, TypePointer, 0, StrEmpty, sizeof(void *));
+    struct PointerAlign { char x; void *y; } pa;
+    
+    IntAlignBytes = (char *)&ia.y - &ia.x;
+    PointerAlignBytes = (char *)&pa.y - &pa.x;
+    
+    UberType.DerivedTypeList = NULL;
+    TypeAddBaseType(&IntType, TypeInt, sizeof(int), IntAlignBytes);
+    TypeAddBaseType(&ShortType, TypeShort, sizeof(short), (char *)&sa.y - &sa.x);
+    TypeAddBaseType(&CharType, TypeChar, sizeof(unsigned char), (char *)&ca.y - &ca.x);
+    TypeAddBaseType(&LongType, TypeLong, sizeof(long), (char *)&la.y - &la.x);
+    TypeAddBaseType(&UnsignedIntType, TypeUnsignedInt, sizeof(unsigned int), IntAlignBytes);
+    TypeAddBaseType(&UnsignedShortType, TypeUnsignedShort, sizeof(unsigned short), (char *)&sa.y - &sa.x);
+    TypeAddBaseType(&UnsignedLongType, TypeUnsignedLong, sizeof(unsigned long), (char *)&la.y - &la.x);
+    TypeAddBaseType(&VoidType, TypeVoid, 0, 0);
+    TypeAddBaseType(&FunctionType, TypeFunction, sizeof(int), IntAlignBytes);
+    TypeAddBaseType(&MacroType, TypeMacro, sizeof(int), IntAlignBytes);
+#ifndef NO_FP
+    TypeAddBaseType(&FPType, TypeFP, sizeof(double), (char *)&da.y - &da.x);
+    TypeAddBaseType(&TypeType, Type_Type, sizeof(double), (char *)&da.y - &da.x);  /* must be large enough to cast to a double */
+#else
+    TypeAddBaseType(&TypeType, Type_Type, sizeof(struct ValueType *), PointerAlignBytes);
+#endif
+    CharArrayType = TypeAdd(NULL, &CharType, TypeArray, 0, StrEmpty, sizeof(char), (char *)&ca.y - &ca.x);
+    CharPtrType = TypeAdd(NULL, &CharType, TypePointer, 0, StrEmpty, sizeof(void *), PointerAlignBytes);
+    CharPtrPtrType = TypeAdd(NULL, CharPtrType, TypePointer, 0, StrEmpty, sizeof(void *), PointerAlignBytes);
+    VoidPtrType = TypeAdd(NULL, &VoidType, TypePointer, 0, StrEmpty, sizeof(void *), PointerAlignBytes);
 }
 
 /* deallocate heap-allocated types */
@@ -218,21 +227,26 @@ void TypeParseStruct(struct ParseState *Parser, struct ValueType **Typ, int IsSt
         if (IsStruct)
         { 
             /* allocate this member's location in the struct */
-            AlignBoundary = TypeSizeAlignment(MemberValue->Typ);
+            AlignBoundary = MemberValue->Typ->AlignBytes;
             if (((*Typ)->Sizeof & (AlignBoundary-1)) != 0)
                 (*Typ)->Sizeof += AlignBoundary - ((*Typ)->Sizeof & (AlignBoundary-1));
                 
             MemberValue->Val->Integer = (*Typ)->Sizeof;
-            (*Typ)->Sizeof += TypeSizeValue(MemberValue);
+            (*Typ)->Sizeof += TypeSizeValue(MemberValue, TRUE);
         }
         else
         { 
             /* union members always start at 0, make sure it's big enough to hold the largest member */
             MemberValue->Val->Integer = 0;
             if (MemberValue->Typ->Sizeof > (*Typ)->Sizeof)
-                (*Typ)->Sizeof = TypeSizeValue(MemberValue);
+                (*Typ)->Sizeof = TypeSizeValue(MemberValue, TRUE);
         }
+
+        /* make sure to align to the size of the largest member's alignment */
+        if ((*Typ)->AlignBytes < MemberValue->Typ->AlignBytes)
+            (*Typ)->AlignBytes = MemberValue->Typ->AlignBytes;
         
+        /* define it */
         if (!TableSet((*Typ)->Members, MemberIdentifier, MemberValue, Parser->Line, Parser->CharacterPos))
             ProgramFail(Parser, "member '%s' already defined", &MemberIdentifier);
             
@@ -240,6 +254,11 @@ void TypeParseStruct(struct ParseState *Parser, struct ValueType **Typ, int IsSt
             ProgramFail(Parser, "semicolon expected");
                     
     } while (LexGetToken(Parser, NULL, FALSE) != TokenRightBrace);
+    
+    /* now align the structure to the size of its largest member's alignment */
+    AlignBoundary = (*Typ)->AlignBytes;
+    if (((*Typ)->Sizeof & (AlignBoundary-1)) != 0)
+        (*Typ)->Sizeof += AlignBoundary - ((*Typ)->Sizeof & (AlignBoundary-1));
     
     LexGetToken(Parser, NULL, TRUE);
 }

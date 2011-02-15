@@ -143,6 +143,7 @@ struct ValueType
     enum BaseType Base;             /* what kind of type this is */
     int ArraySize;                  /* the size of an array type */
     int Sizeof;                     /* the storage required */
+    int AlignBytes;                 /* the alignment boundary of this type */
     const char *Identifier;         /* the name of a struct or union */
     struct ValueType *FromType;     /* the type we're derived from (or NULL) */
     struct ValueType *DerivedTypeList;  /* first in a list of types derived from this one */
@@ -363,7 +364,7 @@ double ExpressionCoerceFP(struct Value *Val);
 void TypeInit();
 void TypeCleanup();
 int TypeSize(struct ValueType *Typ, int ArraySize, int Compact);
-int TypeSizeValue(struct Value *Val);
+int TypeSizeValue(struct Value *Val, int Compact);
 int TypeStackSizeValue(struct Value *Val);
 int TypeLastAccessibleOffset(struct Value *Val);
 int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ);

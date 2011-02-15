@@ -118,7 +118,7 @@ struct Value *VariableAllocValueAndCopy(struct ParseState *Parser, struct Value 
     struct ValueType *DType = FromValue->Typ;
     struct Value *NewValue;
     char TmpBuf[MAX_TMP_COPY_BUF];
-    int CopySize = TypeSizeValue(FromValue);
+    int CopySize = TypeSizeValue(FromValue, TRUE);
 
     assert(CopySize <= MAX_TMP_COPY_BUF);
     memcpy((void *)&TmpBuf[0], (void *)FromValue->Val, CopySize);
@@ -223,7 +223,7 @@ void VariableStackPop(struct ParseState *Parser, struct Value *Var)
     
 #ifdef DEBUG_HEAP
     if (Var->ValOnStack)
-        printf("popping %ld at 0x%lx\n", (unsigned long)(sizeof(struct Value) + TypeSizeValue(Var)), (unsigned long)Var);
+        printf("popping %ld at 0x%lx\n", (unsigned long)(sizeof(struct Value) + TypeSizeValue(Var, FALSE)), (unsigned long)Var);
 #endif
         
     if (Var->ValOnHeap)
@@ -234,7 +234,7 @@ void VariableStackPop(struct ParseState *Parser, struct Value *Var)
         Success = HeapPopStack(Var, sizeof(struct Value));                       /* free from heap */
     }
     else if (Var->ValOnStack)
-        Success = HeapPopStack(Var, sizeof(struct Value) + TypeSizeValue(Var));  /* free from stack */
+        Success = HeapPopStack(Var, sizeof(struct Value) + TypeSizeValue(Var, FALSE));  /* free from stack */
     else
         Success = HeapPopStack(Var, sizeof(struct Value));                       /* value isn't our problem */
         
