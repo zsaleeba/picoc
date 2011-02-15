@@ -5,6 +5,12 @@
 #define PICOC_VERSION "v2.1 beta r" VER         /* VER is the subversion version number, obtained via the Makefile */
 static const char *VersionString = NULL;
 
+/* endian-ness checking */
+static const int __ENDIAN_CHECK__ = 1;
+
+static int BigEndian = 0;
+static int LittleEndian = 0;
+
 
 /* global initialisation for libraries */
 void LibraryInit()
@@ -12,6 +18,13 @@ void LibraryInit()
     /* define the version number macro */
     VersionString = TableStrRegister(PICOC_VERSION);
     VariableDefinePlatformVar(NULL, "PICOC_VERSION", CharPtrType, (union AnyValue *)&VersionString, FALSE);
+
+    /* define endian-ness macros */
+    BigEndian = ((*(char*)&__ENDIAN_CHECK__) == 0);
+    LittleEndian = ((*(char*)&__ENDIAN_CHECK__) == 1);
+
+    VariableDefinePlatformVar(NULL, "BIG_ENDIAN", &IntType, (union AnyValue *)&BigEndian, FALSE);
+    VariableDefinePlatformVar(NULL, "LITTLE_ENDIAN", &IntType, (union AnyValue *)&LittleEndian, FALSE);
 }
 
 /* add a library */
