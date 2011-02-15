@@ -33,4 +33,6 @@ depend:
 	touch version.h
 	$(CC) -MM $(SRCS) >.depend
 
+.PHONY: clibrary.c
+
 -include .depend
