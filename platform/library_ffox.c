@@ -8,6 +8,6 @@ struct LibraryFunction PlatformLibrary[] =
 
 void PlatformLibraryInit()
 {
-    LibraryInit(&GlobalTable, "platform library", &PlatformLibrary);
+    LibraryAdd(&GlobalTable, "platform library", &PlatformLibrary);
 }
 

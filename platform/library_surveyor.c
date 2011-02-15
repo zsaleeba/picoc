@@ -36,7 +36,7 @@ void PlatformLibraryInit()
     VariableDefinePlatformVar(NULL, "cxmax", &IntType, (union AnyValue *)&Cxmax, FALSE);
     VariableDefinePlatformVar(NULL, "cymin", &IntType, (union AnyValue *)&Cymin, FALSE);
     VariableDefinePlatformVar(NULL, "cymax", &IntType, (union AnyValue *)&Cymax, FALSE);
-    LibraryInit(&GlobalTable, "platform library", &PlatformLibrary[0]);
+    LibraryAdd(&GlobalTable, "platform library", &PlatformLibrary[0]);
 }
 
 void Csignal(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)  // check for kbhit, return t or nil
