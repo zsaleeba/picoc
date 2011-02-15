@@ -160,7 +160,10 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
         if (TableGet(&GlobalTable, Identifier, &OldFuncValue, NULL, NULL))
         {
             if (OldFuncValue->Val->FuncDef.Body.Pos == NULL)
-                TableDelete(&GlobalTable, Identifier);   /* override an old function prototype */
+            {
+                /* override an old function prototype */
+                VariableFree(TableDelete(&GlobalTable, Identifier));
+            }
             else
                 ProgramFail(Parser, "'%s' is already defined", Identifier);
         }

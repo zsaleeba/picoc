@@ -106,8 +106,11 @@ struct Value *TableDelete(struct Table *Tbl, const char *Key)
     {
         if ((*EntryPtr)->p.v.Key == Key)
         {
-            struct Value *Val = (*EntryPtr)->p.v.Val;
-            *EntryPtr = (*EntryPtr)->Next;
+            struct TableEntry *DeleteEntry = *EntryPtr;
+            struct Value *Val = DeleteEntry->p.v.Val;
+            *EntryPtr = DeleteEntry->Next;
+            HeapFreeMem(DeleteEntry);
+
             return Val;
         }
     }

@@ -26,8 +26,11 @@ Recreations & Essays, W.W. Rouse Ball, MacMillan, NewYork, 11th Ed. 1967,
 *
 */
 
-#include<stdio.h>
-#include<stdlib.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#define TRUE 1
+#define FALSE 0
 
 #define N 4    /* This is the number of "disks" on tower A initially. */
 	       /* Taken to be 64 in the legend. The number of moves 
@@ -67,16 +70,33 @@ PrintAll()
 
 int Move(int *source, int *dest)
 {
-	int i=0,j=0;
+	int i,j;
+    int done = FALSE;
 
-	while((*(source + i)==0)&&(i<N))i++;
-	while((*(dest + j)==0)&&(j<N))j++;
+    for (i=0; i<N && !done; )
+    {
+        if (source[i] != 0)
+            done = TRUE;
+        else
+            i++;
+    }
+
+    done = FALSE;
+    for (j=0; j<N && !done; )
+    {
+        if (dest[j] != 0)
+            done = TRUE;
+        else
+            j++;
+    }
+	//while (source[i]==0 && i<N) i++;
+	//while(dest[j]==0 && j<N) j++;
 
 
-	*(dest+j-1) = *(source+i);
-	*(source + i) = 0;
+	dest[j-1] = source[i];
+	source[i] = 0;
 	PrintAll();       /* Print configuration after each move. */
-	return *(dest+j-1);
+	return dest[j-1];
 }
 
 
