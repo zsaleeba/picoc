@@ -128,23 +128,23 @@ int main(int argc, char **argv)
 #else
 # ifdef SURVEYOR_HOST
 int picoc(char *SourceStr)
-{    
-    unsigned int i;
-    unsigned int sl;
-	
+
+{   
+    char *pos;
+
     Initialise(HEAP_SIZE);
 
-    sl = strlen(SourceStr);
-    if (SourceStr) 
+    if (SourceStr)
     {
-        for (i = 0; i < sl; i++)
+        for (pos = SourceStr; *pos != 0; pos++)
         {
-            if (SourceStr[i] == 0x1A)
+            if (*pos == 0x1a)
             {
-                SourceStr[i] = 0x20;
+                *pos = 0x20;
             }
         }
     }
+
     ExitBuf[40] = 0;
     PlatformSetExitPoint();
     if (ExitBuf[40]) {
@@ -152,9 +152,10 @@ int picoc(char *SourceStr)
         Cleanup();
         return ExitValue;
     }
-        
-    if (SourceStr)    
+
+    if (SourceStr)   
         Parse("nofile", SourceStr, strlen(SourceStr), TRUE, TRUE, FALSE);
+
     ParseInteractive();
     Cleanup();
     return ExitValue;

@@ -68,7 +68,7 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
 {
     struct ValueType *ParamType;
     char *ParamIdentifier;
-    enum LexToken Token;
+    enum LexToken Token = TokenNone;
     struct ParseState ParamParser;
     struct Value *FuncValue;
     struct Value *OldFuncValue;
