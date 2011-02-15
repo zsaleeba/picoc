@@ -1,8 +1,11 @@
 #include "picoc.h"
-#include "version.h"
 
 /* the picoc version string */
+#ifdef VER
 #define PICOC_VERSION "v2.1 beta r" VER         /* VER is the subversion version number, obtained via the Makefile */
+#else
+#define PICOC_VERSION "v2.1 beta"
+#endif
 static const char *VersionString = NULL;
 
 /* endian-ness checking */

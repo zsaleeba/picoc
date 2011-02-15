@@ -20,7 +20,7 @@ test:	all
 	(cd tests; make test)
 
 clean:
-	rm -f $(TARGET) $(OBJS) version.h *~
+	rm -f $(TARGET) $(OBJS) *~
 
 count:
 	@echo "Core:"
@@ -30,7 +30,6 @@ count:
 	@cat $(SRCS) *.h */*.h | wc
 
 depend:
-	touch version.h
 	$(CC) -MM $(SRCS) >.depend
 
 .PHONY: clibrary.c
