@@ -56,7 +56,7 @@ static struct TableEntry *TableSearch(struct Table *Tbl, const char *Key, int *A
 
 /* set an identifier to a value. returns FALSE if it already exists. 
  * Key must be a shared string from TableStrRegister() */
-int TableSet(struct Table *Tbl, char *Key, struct Value *Val, int DeclLine, int DeclColumn)
+int TableSet(struct Table *Tbl, char *Key, struct Value *Val, const char *DeclFileName, int DeclLine, int DeclColumn)
 {
     int AddAt;
     struct TableEntry *FoundEntry = TableSearch(Tbl, Key, &AddAt);
@@ -64,6 +64,7 @@ int TableSet(struct Table *Tbl, char *Key, struct Value *Val, int DeclLine, int 
     if (FoundEntry == NULL)
     {   /* add it to the table */
         struct TableEntry *NewEntry = VariableAlloc(NULL, sizeof(struct TableEntry), Tbl->OnHeap);
+        NewEntry->DeclFileName = DeclFileName;
         NewEntry->DeclLine = DeclLine;
         NewEntry->DeclColumn = DeclColumn;
         NewEntry->p.v.Key = Key;
@@ -78,7 +79,7 @@ int TableSet(struct Table *Tbl, char *Key, struct Value *Val, int DeclLine, int 
 
 /* find a value in a table. returns FALSE if not found. 
  * Key must be a shared string from TableStrRegister() */
-int TableGet(struct Table *Tbl, const char *Key, struct Value **Val, int *DeclLine, int *DeclColumn)
+int TableGet(struct Table *Tbl, const char *Key, struct Value **Val, const char **DeclFileName, int *DeclLine, int *DeclColumn)
 {
     int AddAt;
     struct TableEntry *FoundEntry = TableSearch(Tbl, Key, &AddAt);
@@ -87,8 +88,9 @@ int TableGet(struct Table *Tbl, const char *Key, struct Value **Val, int *DeclLi
     
     *Val = FoundEntry->p.v.Val;
     
-    if (DeclLine != NULL)
+    if (DeclFileName != NULL)
     {
+        *DeclFileName = FoundEntry->DeclFileName;
         *DeclLine = FoundEntry->DeclLine;
         *DeclColumn = FoundEntry->DeclColumn;
     }

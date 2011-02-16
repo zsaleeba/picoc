@@ -44,6 +44,7 @@ static struct ReservedWord ReservedWords[] =
     { "#ifdef", TokenHashIfdef, NULL },
     { "#ifndef", TokenHashIfndef, NULL },
     { "#include", TokenHashInclude, NULL },
+    { "auto", TokenAutoType, NULL },
     { "break", TokenBreak, NULL },
     { "case", TokenCase, NULL },
     { "char", TokenCharType, NULL },
@@ -741,7 +742,7 @@ void LexHashIfdef(struct ParseState *Parser, int IfNot)
         ProgramFail(Parser, "identifier expected");
     
     /* is the identifier defined? */
-    IsDefined = TableGet(&GlobalTable, IdentValue->Val->Identifier, &SavedValue, NULL, NULL);
+    IsDefined = TableGet(&GlobalTable, IdentValue->Val->Identifier, &SavedValue, NULL, NULL, NULL);
     if (Parser->HashIfEvaluateToLevel == Parser->HashIfLevel && ( (IsDefined && !IfNot) || (!IsDefined && IfNot)) )
     {
         /* #if is active, evaluate to this new level */
@@ -763,7 +764,7 @@ void LexHashIf(struct ParseState *Parser)
     if (Token == TokenIdentifier)
     {
         /* look up a value from a macro definition */
-        if (!TableGet(&GlobalTable, IdentValue->Val->Identifier, &SavedValue, NULL, NULL))
+        if (!TableGet(&GlobalTable, IdentValue->Val->Identifier, &SavedValue, NULL, NULL, NULL))
             ProgramFail(Parser, "'%s' is undefined", IdentValue->Val->Identifier);
         
         if (SavedValue->Typ->Base != TypeMacro)

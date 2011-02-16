@@ -41,7 +41,7 @@ void LibraryAdd(struct Table *GlobalTable, const char *LibraryName, struct Libra
     {
         Tokens = LexAnalyse(IntrinsicName, FuncList[Count].Prototype, strlen((char *)FuncList[Count].Prototype), NULL);
         LexInitParser(&Parser, FuncList[Count].Prototype, Tokens, IntrinsicName, TRUE);
-        TypeParse(&Parser, &ReturnType, &Identifier);
+        TypeParse(&Parser, &ReturnType, &Identifier, NULL);
         NewValue = ParseFunctionDefinition(&Parser, ReturnType, Identifier);
         NewValue->Val->FuncDef.Intrinsic = FuncList[Count].Func;
         HeapFreeMem(Tokens);

@@ -105,7 +105,7 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
         else
         { 
             /* add a parameter */
-            TypeParse(&ParamParser, &ParamType, &ParamIdentifier);
+            TypeParse(&ParamParser, &ParamType, &ParamIdentifier, NULL);
             if (ParamType->Base == TypeVoid)
             {
                 /* this isn't a real parameter at all - delete it */
@@ -157,7 +157,7 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
         FuncValue->Val->FuncDef.Body.Pos = LexCopyTokens(&FuncBody, Parser);
 
         /* is this function already in the global table? */
-        if (TableGet(&GlobalTable, Identifier, &OldFuncValue, NULL, NULL))
+        if (TableGet(&GlobalTable, Identifier, &OldFuncValue, NULL, NULL, NULL))
         {
             if (OldFuncValue->Val->FuncDef.Body.Pos == NULL)
             {
@@ -169,14 +169,14 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
         }
     }
 
-    if (!TableSet(&GlobalTable, Identifier, FuncValue, Parser->Line, Parser->CharacterPos))
+    if (!TableSet(&GlobalTable, Identifier, FuncValue, (char *)Parser->FileName, Parser->Line, Parser->CharacterPos))
         ProgramFail(Parser, "'%s' is already defined", Identifier);
         
     return FuncValue;
 }
 
 /* assign an initial value to a variable */
-void ParseDeclarationAssignment(struct ParseState *Parser, struct Value *NewVariable)
+void ParseDeclarationAssignment(struct ParseState *Parser, struct Value *NewVariable, int DoAssignment)
 {
     struct Value *CValue;
     int ArrayIndex;
@@ -200,7 +200,7 @@ void ParseDeclarationAssignment(struct ParseState *Parser, struct Value *NewVari
             if (!ExpressionParse(Parser, &CValue))
                 ProgramFail(Parser, "expression expected");
                 
-            if (Parser->Mode == RunModeRun)
+            if (Parser->Mode == RunModeRun && DoAssignment)
             {
                 ExpressionAssign(Parser, ArrayElement, CValue, FALSE, NULL, 0, FALSE);
                 VariableStackPop(Parser, CValue);
@@ -222,7 +222,7 @@ void ParseDeclarationAssignment(struct ParseState *Parser, struct Value *NewVari
         if (!ExpressionParse(Parser, &CValue))
             ProgramFail(Parser, "expression expected");
             
-        if (Parser->Mode == RunModeRun)
+        if (Parser->Mode == RunModeRun && DoAssignment)
         {
             ExpressionAssign(Parser, NewVariable, CValue, FALSE, NULL, 0, FALSE);
             VariableStackPop(Parser, CValue);
@@ -237,8 +237,10 @@ int ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
     struct ValueType *BasicType;
     struct ValueType *Typ;
     struct Value *NewVariable = NULL;
+    int IsStatic = FALSE;
+    int FirstVisit = FALSE;
 
-    TypeParseFront(Parser, &BasicType);
+    TypeParseFront(Parser, &BasicType, &IsStatic);
     do
     {
         TypeParseIdentPart(Parser, BasicType, &Typ, &Identifier);
@@ -259,13 +261,13 @@ int ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
                     ProgramFail(Parser, "can't define a void variable");
                     
                 if (Parser->Mode == RunModeRun)
-                    NewVariable = VariableDefineButIgnoreIdentical(Parser, Identifier, Typ);
+                    NewVariable = VariableDefineButIgnoreIdentical(Parser, Identifier, Typ, IsStatic, &FirstVisit);
                 
                 if (LexGetToken(Parser, NULL, FALSE) == TokenAssign)
                 {
                     /* we're assigning an initial value */
                     LexGetToken(Parser, NULL, TRUE);
-                    ParseDeclarationAssignment(Parser, NewVariable);
+                    ParseDeclarationAssignment(Parser, NewVariable, !IsStatic || FirstVisit);
                 }
             }
         }
@@ -336,7 +338,7 @@ void ParseMacroDefinition(struct ParseState *Parser)
     LexToEndOfLine(Parser);
     MacroValue->Val->MacroDef.Body.Pos = LexCopyTokens(&MacroValue->Val->MacroDef.Body, Parser);
     
-    if (!TableSet(&GlobalTable, MacroNameStr, MacroValue, Parser->Line, Parser->CharacterPos))
+    if (!TableSet(&GlobalTable, MacroNameStr, MacroValue, (char *)Parser->FileName, Parser->Line, Parser->CharacterPos))
         ProgramFail(Parser, "'%s' is already defined", MacroNameStr);
 }
 
@@ -458,7 +460,7 @@ void ParseTypedef(struct ParseState *Parser)
     char *TypeName;
     struct Value InitValue;
     
-    TypeParse(Parser, &Typ, &TypeName);
+    TypeParse(Parser, &Typ, &TypeName, NULL);
     
     if (Parser->Mode == RunModeRun)
     {
@@ -619,6 +621,7 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
         case TokenSignedType:
         case TokenUnsignedType:
         case TokenStaticType:
+        case TokenAutoType:
         case TokenRegisterType:
         case TokenExternType:
             *Parser = PreState;

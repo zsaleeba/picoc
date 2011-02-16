@@ -80,12 +80,12 @@ enum LexToken
     /* 0x32 */ TokenSemicolon, TokenEllipsis,
     /* 0x34 */ TokenLeftBrace, TokenRightBrace,
     /* 0x36 */ TokenIntType, TokenCharType, TokenFloatType, TokenDoubleType, TokenVoidType, TokenEnumType,
-    /* 0x3c */ TokenLongType, TokenSignedType, TokenShortType, TokenStaticType, TokenRegisterType, TokenExternType, TokenStructType, TokenUnionType, TokenUnsignedType, TokenTypedef,
-    /* 0x45 */ TokenContinue, TokenDo, TokenElse, TokenFor, TokenIf, TokenWhile, TokenBreak, TokenSwitch, TokenCase, TokenDefault, TokenReturn,
-    /* 0x50 */ TokenHashDefine, TokenHashInclude, TokenHashIf, TokenHashIfdef, TokenHashIfndef, TokenHashElse, TokenHashEndif,
-    /* 0x57 */ TokenNew, TokenDelete,
-    /* 0x59 */ TokenOpenMacroBracket,
-    /* 0x5a */ TokenEOF, TokenEndOfLine, TokenEndOfFunction
+    /* 0x3c */ TokenLongType, TokenSignedType, TokenShortType, TokenStaticType, TokenAutoType, TokenRegisterType, TokenExternType, TokenStructType, TokenUnionType, TokenUnsignedType, TokenTypedef,
+    /* 0x46 */ TokenContinue, TokenDo, TokenElse, TokenFor, TokenIf, TokenWhile, TokenBreak, TokenSwitch, TokenCase, TokenDefault, TokenReturn,
+    /* 0x51 */ TokenHashDefine, TokenHashInclude, TokenHashIf, TokenHashIfdef, TokenHashIfndef, TokenHashElse, TokenHashEndif,
+    /* 0x58 */ TokenNew, TokenDelete,
+    /* 0x5a */ TokenOpenMacroBracket,
+    /* 0x5b */ TokenEOF, TokenEndOfLine, TokenEndOfFunction
 };
 
 /* used in dynamic memory allocation */
@@ -110,13 +110,13 @@ enum RunMode
 struct ParseState
 {
     const unsigned char *Pos;
-    int Line;
     const char *FileName;
+    short int Line;
+    short int CharacterPos;
     enum RunMode Mode;          /* whether to skip or run code */
     int SearchLabel;            /* what case label we're searching for */
-    int HashIfLevel;
-    int HashIfEvaluateToLevel;
-    int CharacterPos;
+    short int HashIfLevel;
+    short int HashIfEvaluateToLevel;
     const char *SourceText;
 };
 
@@ -157,6 +157,7 @@ struct ValueType
     struct ValueType *Next;         /* next item in the derived type list */
     struct Table *Members;          /* members of a struct or union */
     int OnHeap;                     /* true if allocated on the heap */
+    int StaticQualifier;            /* true if it's a static */
 };
 
 /* function definition */
@@ -214,7 +215,8 @@ struct Value
 struct TableEntry
 {
     struct TableEntry *Next;        /* next item in this hash chain */
-    unsigned short DeclLine;        /* where the variable was declared */
+    const char *DeclFileName;       /* where the variable was declared */
+    unsigned short DeclLine;
     unsigned short DeclColumn;
 
     union TableEntryPayload
@@ -240,6 +242,7 @@ struct Table
 struct StackFrame
 {
     struct ParseState ReturnParser;         /* how we got here */
+    const char *FuncName;                   /* the name of the function we're in */
     struct Value *ReturnValue;              /* copy the return value here */
     struct Value **Parameter;               /* array of parameter values */
     int NumParams;                          /* the number of parameters */
@@ -329,8 +332,8 @@ void TableInit();
 char *TableStrRegister(const char *Str);
 char *TableStrRegister2(const char *Str, int Len);
 void TableInitTable(struct Table *Tbl, struct TableEntry **HashTable, int Size, int OnHeap);
-int TableSet(struct Table *Tbl, char *Key, struct Value *Val, int DeclLine, int DeclColumn);
-int TableGet(struct Table *Tbl, const char *Key, struct Value **Val, int *DeclLine, int *DeclColumn);
+int TableSet(struct Table *Tbl, char *Key, struct Value *Val, const char *DeclFileName, int DeclLine, int DeclColumn);
+int TableGet(struct Table *Tbl, const char *Key, struct Value **Val, const char **DeclFileName, int *DeclLine, int *DeclColumn);
 struct Value *TableDelete(struct Table *Tbl, const char *Key);
 char *TableSetIdentifier(struct Table *Tbl, const char *Ident, int IdentLen);
 void TableStrFree();
@@ -374,9 +377,9 @@ int TypeSize(struct ValueType *Typ, int ArraySize, int Compact);
 int TypeSizeValue(struct Value *Val, int Compact);
 int TypeStackSizeValue(struct Value *Val);
 int TypeLastAccessibleOffset(struct Value *Val);
-int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ);
+int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ, int *IsStatic);
 void TypeParseIdentPart(struct ParseState *Parser, struct ValueType *BasicTyp, struct ValueType **Typ, char **Identifier);
-void TypeParse(struct ParseState *Parser, struct ValueType **Typ, char **Identifier);
+void TypeParse(struct ParseState *Parser, struct ValueType **Typ, char **Identifier, int *IsStatic);
 struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *ParentType, enum BaseType Base, int ArraySize, const char *Identifier);
 struct ValueType *TypeCreateOpaqueStruct(struct ParseState *Parser, const char *StructName, int Size);
 
@@ -404,11 +407,11 @@ struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct Value
 struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, struct ValueType *Typ, union AnyValue *FromValue, int IsLValue, struct Value *LValueFrom);
 struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *FromValue);
 struct Value *VariableDefine(struct ParseState *Parser, char *Ident, struct Value *InitValue, struct ValueType *Typ, int MakeWritable);
-struct Value *VariableDefineButIgnoreIdentical(struct ParseState *Parser, char *Ident, struct ValueType *Typ);
+struct Value *VariableDefineButIgnoreIdentical(struct ParseState *Parser, char *Ident, struct ValueType *Typ, int IsStatic, int *FirstVisit);
 int VariableDefined(const char *Ident);
 void VariableGet(struct ParseState *Parser, const char *Ident, struct Value **LVal);
 void VariableDefinePlatformVar(struct ParseState *Parser, char *Ident, struct ValueType *Typ, union AnyValue *FromValue, int IsWritable);
-void VariableStackFrameAdd(struct ParseState *Parser, int NumParams);
+void VariableStackFrameAdd(struct ParseState *Parser, const char *FuncName, int NumParams);
 void VariableStackFramePop(struct ParseState *Parser);
 struct Value *VariableStringLiteralGet(char *Ident);
 void VariableStringLiteralDefine(char *Ident, struct Value *Val);

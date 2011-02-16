@@ -161,24 +161,65 @@ struct Value *VariableDefine(struct ParseState *Parser, char *Ident, struct Valu
     
     AssignValue->IsLValue = MakeWritable;
         
-    if (!TableSet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, Ident, AssignValue, Parser ? Parser->Line : 0, Parser ? Parser->CharacterPos : 0))
+    if (!TableSet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, Ident, AssignValue, Parser ? ((char *)Parser->FileName) : NULL, Parser ? Parser->Line : 0, Parser ? Parser->CharacterPos : 0))
         ProgramFail(Parser, "'%s' is already defined", Ident);
     
     return AssignValue;
 }
 
 /* define a variable. Ident must be registered. If it's a redefinition from the same declaration don't throw an error */
-struct Value *VariableDefineButIgnoreIdentical(struct ParseState *Parser, char *Ident, struct ValueType *Typ)
+struct Value *VariableDefineButIgnoreIdentical(struct ParseState *Parser, char *Ident, struct ValueType *Typ, int IsStatic, int *FirstVisit)
 {
     struct Value *ExistingValue;
+    const char *DeclFileName;
     int DeclLine;
     int DeclColumn;
     
-    if (Parser->Line != 0 && TableGet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, Ident, &ExistingValue, &DeclLine, &DeclColumn)
-            && DeclLine == Parser->Line && DeclColumn == Parser->CharacterPos)
+    if (IsStatic)
+    {
+        char MangledName[LINEBUFFER_MAX];
+        char *MNPos = &MangledName[0];
+        char *MNEnd = &MangledName[LINEBUFFER_MAX-1];
+        const char *RegisteredMangledName;
+        
+        /* make the mangled static name (avoiding using sprintf() to minimise library impact) */
+        memset(MangledName, '\0', sizeof(MangledName));
+        *MNPos++ = '/';
+        strncpy(MNPos, Parser->FileName, MNEnd - MNPos);
+        MNPos += strlen(MNPos);
+        
+        if (TopStackFrame != NULL)
+        {
+            /* we're inside a function */
+            if (MNEnd - MNPos > 0) *MNPos++ = '/';
+            strncpy(MNPos, TopStackFrame->FuncName, MNEnd - MNPos);
+            MNPos += strlen(MNPos);
+        }
+            
+        if (MNEnd - MNPos > 0) *MNPos++ = '/';
+        strncpy(MNPos, Ident, MNEnd - MNPos);
+        RegisteredMangledName = TableStrRegister(MangledName);
+        
+        /* is this static already defined? */
+        if (!TableGet(&GlobalTable, RegisteredMangledName, &ExistingValue, &DeclFileName, &DeclLine, &DeclColumn))
+        {
+            /* define the mangled-named static variable store in the global scope */
+            ExistingValue = VariableDefine(Parser, (char *)RegisteredMangledName, NULL, Typ, TRUE);
+            *FirstVisit = TRUE;
+        }
+
+        /* static variable exists in the global scope - now make a mirroring variable in our own scope with the short name */
+        VariableDefinePlatformVar(Parser, Ident, ExistingValue->Typ, ExistingValue->Val, TRUE);
         return ExistingValue;
+    }
     else
-        return VariableDefine(Parser, Ident, NULL, Typ, TRUE);
+    {
+        if (Parser->Line != 0 && TableGet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, Ident, &ExistingValue, &DeclFileName, &DeclLine, &DeclColumn)
+                && DeclFileName == Parser->FileName && DeclLine == Parser->Line && DeclColumn == Parser->CharacterPos)
+            return ExistingValue;
+        else
+            return VariableDefine(Parser, Ident, NULL, Typ, TRUE);
+    }
 }
 
 /* check if a variable with a given name is defined. Ident must be registered */
@@ -186,9 +227,9 @@ int VariableDefined(const char *Ident)
 {
     struct Value *FoundValue;
     
-    if (TopStackFrame == NULL || !TableGet(&TopStackFrame->LocalTable, Ident, &FoundValue, NULL, NULL))
+    if (TopStackFrame == NULL || !TableGet(&TopStackFrame->LocalTable, Ident, &FoundValue, NULL, NULL, NULL))
     {
-        if (!TableGet(&GlobalTable, Ident, &FoundValue, NULL, NULL))
+        if (!TableGet(&GlobalTable, Ident, &FoundValue, NULL, NULL, NULL))
             return FALSE;
     }
 
@@ -198,9 +239,9 @@ int VariableDefined(const char *Ident)
 /* get the value of a variable. must be defined. Ident must be registered */
 void VariableGet(struct ParseState *Parser, const char *Ident, struct Value **LVal)
 {
-    if (TopStackFrame == NULL || !TableGet(&TopStackFrame->LocalTable, Ident, LVal, NULL, NULL))
+    if (TopStackFrame == NULL || !TableGet(&TopStackFrame->LocalTable, Ident, LVal, NULL, NULL, NULL))
     {
-        if (!TableGet(&GlobalTable, Ident, LVal, NULL, NULL))
+        if (!TableGet(&GlobalTable, Ident, LVal, NULL, NULL, NULL))
             ProgramFail(Parser, "'%s' is undefined", Ident);
     }
 }
@@ -212,7 +253,7 @@ void VariableDefinePlatformVar(struct ParseState *Parser, char *Ident, struct Va
     SomeValue->Typ = Typ;
     SomeValue->Val = FromValue;
     
-    if (!TableSet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, TableStrRegister(Ident), SomeValue, Parser ? Parser->Line : 0, Parser ? Parser->CharacterPos : 0))
+    if (!TableSet((TopStackFrame == NULL) ? &GlobalTable : &TopStackFrame->LocalTable, TableStrRegister(Ident), SomeValue, Parser ? Parser->FileName : NULL, Parser ? Parser->Line : 0, Parser ? Parser->CharacterPos : 0))
         ProgramFail(Parser, "'%s' is already defined", Ident);
 }
 
@@ -243,7 +284,7 @@ void VariableStackPop(struct ParseState *Parser, struct Value *Var)
 }
 
 /* add a stack frame when doing a function call */
-void VariableStackFrameAdd(struct ParseState *Parser, int NumParams)
+void VariableStackFrameAdd(struct ParseState *Parser, const char *FuncName, int NumParams)
 {
     struct StackFrame *NewFrame;
     
@@ -253,6 +294,7 @@ void VariableStackFrameAdd(struct ParseState *Parser, int NumParams)
         ProgramFail(Parser, "out of memory");
         
     ParserCopy(&NewFrame->ReturnParser, Parser);
+    NewFrame->FuncName = FuncName;
     NewFrame->Parameter = (NumParams > 0) ? ((void *)((char *)NewFrame + sizeof(struct StackFrame))) : NULL;
     TableInitTable(&NewFrame->LocalTable, &NewFrame->LocalHashTable[0], LOCAL_TABLE_SIZE, FALSE);
     NewFrame->PreviousStackFrame = TopStackFrame;
@@ -275,7 +317,7 @@ struct Value *VariableStringLiteralGet(char *Ident)
 {
     struct Value *LVal = NULL;
 
-    if (TableGet(&StringLiteralTable, Ident, &LVal, NULL, NULL))
+    if (TableGet(&StringLiteralTable, Ident, &LVal, NULL, NULL, NULL))
         return LVal;
     else
         return NULL;
@@ -284,7 +326,7 @@ struct Value *VariableStringLiteralGet(char *Ident)
 /* define a string literal. assumes that Ident is already registered */
 void VariableStringLiteralDefine(char *Ident, struct Value *Val)
 {
-    TableSet(&StringLiteralTable, Ident, Val, 0, 0);
+    TableSet(&StringLiteralTable, Ident, Val, NULL, 0, 0);
 }
 
 /* check a pointer for validity and dereference it for use */

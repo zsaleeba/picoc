@@ -966,7 +966,7 @@ void ExpressionGetStructElement(struct ParseState *Parser, struct ExpressionStac
         if (StructType->Base != TypeStruct && StructType->Base != TypeUnion)
             ProgramFail(Parser, "can't use '%s' on something that's not a struct or union %s : it's a %t", (Token == TokenDot) ? "." : "->", (Token == TokenArrow) ? "pointer" : "", ParamVal->Typ);
             
-        if (!TableGet(StructType->Members, Ident->Val->Identifier, &MemberValue, NULL, NULL))
+        if (!TableGet(StructType->Members, Ident->Val->Identifier, &MemberValue, NULL, NULL, NULL))
             ProgramFail(Parser, "doesn't have a member called '%s'", Ident->Val->Identifier);
         
         /* pop the value - assume it'll still be there until we're done */
@@ -1025,7 +1025,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                         char *CastIdentifier;
                         struct Value *CastTypeValue;
                         
-                        TypeParse(Parser, &CastType, &CastIdentifier);
+                        TypeParse(Parser, &CastType, &CastIdentifier, NULL);
                         if (LexGetToken(Parser, &LexValue, TRUE) != TokenCloseBracket)
                             ProgramFail(Parser, "brackets not closed");
                         
@@ -1201,7 +1201,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                 
             PrefixState = FALSE;
             ParserCopy(Parser, &PreState);
-            TypeParse(Parser, &Typ, &Identifier);
+            TypeParse(Parser, &Typ, &Identifier, NULL);
             TypeValue = VariableAllocValueFromType(Parser, &TypeType, FALSE, NULL, FALSE);
             TypeValue->Val->Typ = Typ;
             ExpressionStackPushValueNode(Parser, &StackTop, TypeValue);
@@ -1314,7 +1314,7 @@ void ExpressionParseMacroCall(struct ParseState *Parser, struct ExpressionStack 
             ProgramFail(Parser, "'%s' is undefined", MacroName);
         
         ParserCopy(&MacroParser, &MDef->Body);
-        VariableStackFrameAdd(Parser, 0);
+        VariableStackFrameAdd(Parser, MacroName, 0);
         TopStackFrame->NumParams = ArgCount;
         TopStackFrame->ReturnValue = ReturnValue;
         for (Count = 0; Count < MDef->NumParams; Count++)
@@ -1419,7 +1419,7 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
                 ProgramFail(Parser, "'%s' is undefined", FuncName);
             
             ParserCopy(&FuncParser, &FuncValue->Val->FuncDef.Body);
-            VariableStackFrameAdd(Parser, FuncValue->Val->FuncDef.Intrinsic ? FuncValue->Val->FuncDef.NumParams : 0);
+            VariableStackFrameAdd(Parser, FuncName, FuncValue->Val->FuncDef.Intrinsic ? FuncValue->Val->FuncDef.NumParams : 0);
             TopStackFrame->NumParams = ArgCount;
             TopStackFrame->ReturnValue = ReturnValue;
             for (Count = 0; Count < FuncValue->Val->FuncDef.NumParams; Count++)
