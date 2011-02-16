@@ -1085,20 +1085,21 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                 else if (OperatorPrecedence[(int)Token].InfixPrecedence != 0)
                 { 
                     /* scan and collapse the stack, then push */
+                    Precedence = BracketPrecedence + OperatorPrecedence[(int)Token].InfixPrecedence;
+                    
+                    /* for right to left order, only go down to the next higher precedence so we evaluate it in reverse order */
+                    /* for left to right order, collapse down to this precedence so we evaluate it in forward order */
+                    if (IS_LEFT_TO_RIGHT(OperatorPrecedence[(int)Token].InfixPrecedence))
+                        ExpressionStackCollapse(Parser, &StackTop, Precedence, &IgnorePrecedence);
+                    else
+                        ExpressionStackCollapse(Parser, &StackTop, Precedence+1, &IgnorePrecedence);
+                        
                     if (Token == TokenDot || Token == TokenArrow)
+                    {
                         ExpressionGetStructElement(Parser, &StackTop, Token); /* this operator is followed by a struct element so handle it as a special case */
+                    }
                     else
                     { 
-                        /* a standard infix operator */
-                        Precedence = BracketPrecedence + OperatorPrecedence[(int)Token].InfixPrecedence;
-                        
-                        /* for right to left order, only go down to the next higher precedence so we evaluate it in reverse order */
-                        /* for left to right order, collapse down to this precedence so we evaluate it in forward order */
-                        if (IS_LEFT_TO_RIGHT(OperatorPrecedence[(int)Token].InfixPrecedence))
-                            ExpressionStackCollapse(Parser, &StackTop, Precedence, &IgnorePrecedence);
-                        else
-                            ExpressionStackCollapse(Parser, &StackTop, Precedence+1, &IgnorePrecedence);
-
                         /* if it's a && or || operator we may not need to evaluate the right hand side of the expression */
                         if ( (Token == TokenLogicalOr || Token == TokenLogicalAnd) && IS_NUMERIC_COERCIBLE(StackTop->Val))
                         {
