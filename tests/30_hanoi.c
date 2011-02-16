@@ -71,27 +71,9 @@ PrintAll()
 int Move(int *source, int *dest)
 {
 	int i,j;
-    int done = FALSE;
 
-    for (i=0; i<N && !done; )
-    {
-        if (source[i] != 0)
-            done = TRUE;
-        else
-            i++;
-    }
-
-    done = FALSE;
-    for (j=0; j<N && !done; )
-    {
-        if (dest[j] != 0)
-            done = TRUE;
-        else
-            j++;
-    }
-	//while (source[i]==0 && i<N) i++;
-	//while(dest[j]==0 && j<N) j++;
-
+	while (i<N && (source[i])==0) i++;
+	while (j<N && (dest[j])==0) j++;
 
 	dest[j-1] = source[i];
 	source[i] = 0;

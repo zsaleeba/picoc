@@ -885,7 +885,7 @@ void ExpressionStackCollapse(struct ParseState *Parser, struct ExpressionStack *
                         *StackTop = TopOperatorNode->Next->Next;
                         
                         /* do the infix operation */
-                        if (Parser->Mode == RunModeRun && FoundPrecedence < *IgnorePrecedence)
+                        if (Parser->Mode == RunModeRun && FoundPrecedence <= *IgnorePrecedence)
                         {
                             /* run the operator */
                             ExpressionInfixOperator(Parser, StackTop, TopOperatorNode->Op, BottomValue, TopValue);
@@ -1067,10 +1067,11 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                                 Done = TRUE;
                             }
                             else
+                            {
+                                /* collapse to the bracket precedence */
+                                ExpressionStackCollapse(Parser, &StackTop, BracketPrecedence, &IgnorePrecedence);
                                 BracketPrecedence -= BRACKET_PRECEDENCE;
-                                
-                            /* collapse to the bracket precedence */
-                            ExpressionStackCollapse(Parser, &StackTop, BracketPrecedence, &IgnorePrecedence);
+                            }    
                             break;
                     
                         default:
