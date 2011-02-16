@@ -44,7 +44,8 @@ TESTS=	00_assignment.test \
 	45_empty_for.test \
 	47_switch_return.test \
 	48_nested_break.test \
-    49_bracket_evaluation.test
+	49_bracket_evaluation.test \
+	50_logical_second_arg.test
 
 %.test: %.expect %.c
 	@echo Test: $*...
