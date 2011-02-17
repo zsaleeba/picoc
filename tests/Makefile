@@ -31,10 +31,10 @@ TESTS=	00_assignment.test \
 	31_args.test \
 	32_led.test \
 	33_ternary_op.test \
-        34_array_assignment.test \
+    34_array_assignment.test \
 	35_sizeof.test \
 	36_array_initialisers.test \
-        37_sprintf.test \
+    37_sprintf.test \
 	38_multiple_array_index.test \
 	39_typedef.test \
 	40_stdio.test \
@@ -45,7 +45,8 @@ TESTS=	00_assignment.test \
 	47_switch_return.test \
 	48_nested_break.test \
 	49_bracket_evaluation.test \
-	50_logical_second_arg.test
+	50_logical_second_arg.test \
+	51_static.test
 
 %.test: %.expect %.c
 	@echo Test: $*...
