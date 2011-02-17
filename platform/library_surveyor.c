@@ -1,4 +1,4 @@
-#include "../picoc.h"
+#include "../interpreter.h"
 
 static int Blobcnt, Blobx1, Blobx2, Bloby1, Bloby2, Iy1, Iy2, Iu1, Iu2, Iv1, Iv2;
 static int Cxmin, Cxmax, Cymin, Cymax;

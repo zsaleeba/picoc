@@ -1,4 +1,4 @@
-#include "picoc.h"
+#include "interpreter.h"
 
 #ifdef NO_CTYPE
 #define isalpha(c) (((c) >= 'a' && (c) <= 'z') || ((c) >= 'A' && (c) <= 'Z'))

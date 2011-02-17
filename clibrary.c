@@ -1,4 +1,5 @@
 #include "picoc.h"
+#include "interpreter.h"
 
 /* the picoc version string */
 static const char *VersionString = NULL;

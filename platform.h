@@ -30,14 +30,8 @@
 #define INTERACTIVE_PROMPT_STATEMENT "picoc> "
 #define INTERACTIVE_PROMPT_LINE "     > "
 
-#define PlatformSetExitPoint() setjmp(ExitBuf)
-
-/* defines for the optional "fdlibm" maths library */
-#define _IEEE_LIBM
-
 /* host platform includes */
 #ifdef UNIX_HOST
-# define STACK_SIZE (128*1024)              /* space for the the stack */
 # define USE_MALLOC_STACK                   /* stack is allocated using malloc() */
 # define USE_MALLOC_HEAP                    /* heap is allocated using malloc() */
 # include <stdio.h>
@@ -124,8 +118,6 @@ extern jmp_buf ExitBuf;
 #    define calloc(a,b) mon_malloc(a*b)
 #    define realloc mon_realloc
 #    define free mon_free
-#    undef PlatformSetExitPoint
-#    define PlatformSetExitPoint()
 #   endif
 #  endif
 

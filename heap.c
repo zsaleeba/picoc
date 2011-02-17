@@ -1,5 +1,5 @@
 /* stack grows up from the bottom and heap grows down from the top of heap space */
-#include "picoc.h"
+#include "interpreter.h"
 
 #define FREELIST_BUCKETS 8                          /* freelists for 4, 8, 12 ... 32 byte allocs */
 #define SPLIT_MEM_THRESHOLD 16                      /* don't split memory which is close in size */

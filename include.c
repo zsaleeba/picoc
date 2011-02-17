@@ -1,4 +1,5 @@
 #include "picoc.h"
+#include "interpreter.h"
 
 #ifndef NO_HASH_INCLUDE
 
@@ -62,7 +63,7 @@ void IncludeRegister(const char *IncludeName, void (*SetupFunction)(void), struc
 }
 
 /* include all of the system headers */
-void IncludeAllSystemHeaders()
+void PicocIncludeAllSystemHeaders()
 {
     struct IncludeLibrary *ThisInclude = IncludeLibList;
     
@@ -91,7 +92,7 @@ void IncludeFile(char *FileName)
                 
                 /* parse the setup C source code - may define types etc. */
                 if (LInclude->SetupCSource != NULL)
-                    Parse(FileName, LInclude->SetupCSource, strlen(LInclude->SetupCSource), TRUE, TRUE, FALSE);
+                    PicocParse(FileName, LInclude->SetupCSource, strlen(LInclude->SetupCSource), TRUE, TRUE, FALSE);
                 
                 /* set up the library functions */
                 if (LInclude->FuncList != NULL)
@@ -103,7 +104,7 @@ void IncludeFile(char *FileName)
     }
     
     /* not a predefined file, read a real file */
-    PlatformScanFile(FileName);
+    PicocPlatformScanFile(FileName);
 }
 
 #endif /* NO_HASH_INCLUDE */

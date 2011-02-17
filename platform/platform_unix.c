@@ -1,4 +1,5 @@
 #include "../picoc.h"
+#include "../interpreter.h"
 
 #ifdef USE_READLINE
 #include <readline/readline.h>
@@ -82,20 +83,26 @@ char *PlatformReadFile(const char *FileName)
 }
 
 /* read and scan a file for definitions */
-void PlatformScanFile(const char *FileName)
+void PicocPlatformScanFile(const char *FileName)
 {
     char *SourceStr = PlatformReadFile(FileName);
 
-    Parse(FileName, SourceStr, strlen(SourceStr), TRUE, FALSE, TRUE);
+    PicocParse(FileName, SourceStr, strlen(SourceStr), TRUE, FALSE, TRUE);
 }
 
 /* mark where to end the program for platforms which require this */
 jmp_buf ExitBuf;
 
+/* set the point we'll return to when we exit through an error */
+int PicocPlatformSetExitPoint()
+{
+    return setjmp(ExitBuf);
+}
+
 /* exit the program */
 void PlatformExit(int RetVal)
 {
-    ExitValue = RetVal;
+    PicocExitValue = RetVal;
     longjmp(ExitBuf, 1);
 }
 

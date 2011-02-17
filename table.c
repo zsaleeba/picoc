@@ -1,4 +1,4 @@
-#include "picoc.h"
+#include "interpreter.h"
 
 struct Table StringTable;
 struct TableEntry *StringHashTable[STRING_TABLE_SIZE];

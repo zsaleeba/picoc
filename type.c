@@ -1,4 +1,4 @@
-#include "picoc.h"
+#include "interpreter.h"
 
 /* some basic types */
 struct ValueType UberType;

@@ -1,4 +1,4 @@
-#include "picoc.h"
+#include "interpreter.h"
 
 
 /* whether evaluation is left to right for a given precedence level */

@@ -1,7 +1,89 @@
 #include "picoc.h"
+#include "interpreter.h"
 
 /* the value passed to exit() */
-int ExitValue = 0;
+int PicocExitValue = 0;
+
+/* initialise everything */
+void PicocInitialise(int StackSize)
+{
+    BasicIOInit();
+    HeapInit(StackSize);
+    TableInit();
+    VariableInit();
+    LexInit();
+    TypeInit();
+#ifndef NO_HASH_INCLUDE
+    IncludeInit();
+#endif
+    LibraryInit();
+#ifdef BUILTIN_MINI_STDLIB
+    LibraryAdd(&GlobalTable, "c library", &CLibrary[0]);
+    CLibraryInit();
+#endif
+    PlatformLibraryInit();
+}
+
+/* free memory */
+void PicocCleanup()
+{
+    PlatformCleanup();
+#ifndef NO_HASH_INCLUDE
+    IncludeCleanup();
+#endif
+    ParseCleanup();
+    LexCleanup();
+    VariableCleanup();
+    TypeCleanup();
+    TableStrFree();
+    HeapCleanup();
+}
+
+/* platform-dependent code for running programs */
+#ifdef UNIX_HOST
+
+#define CALL_MAIN_NO_ARGS_RETURN_VOID "main();"
+#define CALL_MAIN_WITH_ARGS_RETURN_VOID "main(__argc,__argv);"
+#define CALL_MAIN_NO_ARGS_RETURN_INT "__exit_value = main();"
+#define CALL_MAIN_WITH_ARGS_RETURN_INT "__exit_value = main(__argc,__argv);"
+
+void PicocCallMain(int argc, char **argv)
+{
+    /* check if the program wants arguments */
+    struct Value *FuncValue = NULL;
+
+    if (!VariableDefined(TableStrRegister("main")))
+        ProgramFail(NULL, "main() is not defined");
+        
+    VariableGet(NULL, TableStrRegister("main"), &FuncValue);
+    if (FuncValue->Typ->Base != TypeFunction)
+        ProgramFail(NULL, "main is not a function - can't call it");
+
+    if (FuncValue->Val->FuncDef.NumParams != 0)
+    {
+        /* define the arguments */
+        VariableDefinePlatformVar(NULL, "__argc", &IntType, (union AnyValue *)&argc, FALSE);
+        VariableDefinePlatformVar(NULL, "__argv", CharPtrPtrType, (union AnyValue *)&argv, FALSE);
+    }
+
+    if (FuncValue->Val->FuncDef.ReturnType == &VoidType)
+    {
+        if (FuncValue->Val->FuncDef.NumParams == 0)
+            PicocParse("startup", CALL_MAIN_NO_ARGS_RETURN_VOID, strlen(CALL_MAIN_NO_ARGS_RETURN_VOID), TRUE, TRUE, FALSE);
+        else
+            PicocParse("startup", CALL_MAIN_WITH_ARGS_RETURN_VOID, strlen(CALL_MAIN_WITH_ARGS_RETURN_VOID), TRUE, TRUE, FALSE);
+    }
+    else
+    {
+        VariableDefinePlatformVar(NULL, "__exit_value", &IntType, (union AnyValue *)&PicocExitValue, TRUE);
+    
+        if (FuncValue->Val->FuncDef.NumParams == 0)
+            PicocParse("startup", CALL_MAIN_NO_ARGS_RETURN_INT, strlen(CALL_MAIN_NO_ARGS_RETURN_INT), TRUE, TRUE, FALSE);
+        else
+            PicocParse("startup", CALL_MAIN_WITH_ARGS_RETURN_INT, strlen(CALL_MAIN_WITH_ARGS_RETURN_INT), TRUE, TRUE, FALSE);
+    }
+}
+#endif
 
 void PrintSourceTextErrorLine(const char *FileName, const char *SourceText, int Line, int CharacterPos)
 {

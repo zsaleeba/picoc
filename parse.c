@@ -1,4 +1,5 @@
 #include "picoc.h"
+#include "interpreter.h"
 
 /* a chunk of heap-allocated tokens we'll cleanup when we're done */
 struct CleanupTokenNode
@@ -773,7 +774,7 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
 }
 
 /* quick scan a source file for definitions */
-void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt, int CleanupNow, int CleanupSource)
+void PicocParse(const char *FileName, const char *Source, int SourceLen, int RunIt, int CleanupNow, int CleanupSource)
 {
     struct ParseState Parser;
     enum ParseResult Ok;
@@ -814,14 +815,14 @@ void Parse(const char *FileName, const char *Source, int SourceLen, int RunIt, i
 }
 
 /* parse interactively */
-void ParseInteractive()
+void PicocParseInteractive()
 {
     struct ParseState Parser;
     enum ParseResult Ok;
     
     PlatformPrintf(INTERACTIVE_PROMPT_START);
     LexInitParser(&Parser, NULL, NULL, StrEmpty, TRUE);
-    PlatformSetExitPoint();
+    PicocPlatformSetExitPoint();
     LexInteractiveClear(&Parser);
 
     do
