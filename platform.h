@@ -92,10 +92,6 @@ extern jmp_buf ExitBuf;
 #   include "../malloc.h"
 #   include "../xmodem.h"
 #   define assert(x)
-#   undef INTERACTIVE_PROMPT_STATEMENT
-#   undef INTERACTIVE_PROMPT_LINE
-#   define INTERACTIVE_PROMPT_STATEMENT "> "
-#   define INTERACTIVE_PROMPT_LINE "- "
 #   undef BIG_ENDIAN
 #   define NO_CALLOC
 #   define NO_REALLOC

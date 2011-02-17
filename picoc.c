@@ -80,7 +80,7 @@ int picoc(char *SourceStr)
     ExitBuf[40] = 0;
     PicocPlatformSetExitPoint();
     if (ExitBuf[40]) {
-        printf("leaving picoC\n\r");
+        printf("Leaving PicoC\n\r");
         PicocCleanup();
         return ExitValue;
     }
