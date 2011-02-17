@@ -204,7 +204,8 @@ struct Value *VariableDefineButIgnoreIdentical(struct ParseState *Parser, char *
         if (!TableGet(&GlobalTable, RegisteredMangledName, &ExistingValue, &DeclFileName, &DeclLine, &DeclColumn))
         {
             /* define the mangled-named static variable store in the global scope */
-            ExistingValue = VariableDefine(Parser, (char *)RegisteredMangledName, NULL, Typ, TRUE);
+            ExistingValue = VariableAllocValueFromType(Parser, Typ, TRUE, NULL, TRUE);
+            TableSet(&GlobalTable, (char *)RegisteredMangledName, ExistingValue, (char *)Parser->FileName, Parser->Line, Parser->CharacterPos);
             *FirstVisit = TRUE;
         }
 
