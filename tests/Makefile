@@ -46,7 +46,8 @@ TESTS=	00_assignment.test \
 	48_nested_break.test \
 	49_bracket_evaluation.test \
 	50_logical_second_arg.test \
-	51_static.test
+	51_static.test \
+    52_unnamed_enum.test
 
 %.test: %.expect %.c
 	@echo Test: $*...
