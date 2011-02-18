@@ -45,7 +45,8 @@ struct ValueType *TypeAdd(struct ParseState *Parser, struct ValueType *ParentTyp
     return NewType;
 }
 
-/* given a parent type, get a matching derived type and make one if necessary */
+/* given a parent type, get a matching derived type and make one if necessary.
+ * Identifier should be registered with the shared string table. */
 struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *ParentType, enum BaseType Base, int ArraySize, const char *Identifier, int AllowDuplicates)
 {
     int Sizeof;
@@ -195,14 +196,25 @@ void TypeParseStruct(struct ParseState *Parser, struct ValueType **Typ, int IsSt
     struct Value *LexValue;
     struct ValueType *MemberType;
     char *MemberIdentifier;
+    char *StructIdentifier;
     struct Value *MemberValue;
     enum LexToken Token;
     int AlignBoundary;
     
-    if (LexGetToken(Parser, &LexValue, TRUE) != TokenIdentifier)
-        ProgramFail(Parser, "struct/union name required");
-    
-    *Typ = TypeGetMatching(Parser, &UberType, IsStruct ? TypeStruct : TypeUnion, 0, LexValue->Val->Identifier);
+    Token = LexGetToken(Parser, &LexValue, FALSE);
+    if (Token == TokenIdentifier)
+    {
+        LexGetToken(Parser, &LexValue, TRUE);
+        StructIdentifier = LexValue->Val->Identifier;
+        Token = LexGetToken(Parser, NULL, FALSE);
+    }
+    else
+    {
+        static char TempNameBuf[7] = "^s0000";
+        StructIdentifier = PlatformMakeTempName(TempNameBuf);
+    }
+
+    *Typ = TypeGetMatching(Parser, &UberType, IsStruct ? TypeStruct : TypeUnion, 0, StructIdentifier, Token != TokenLeftBrace);
 
     Token = LexGetToken(Parser, NULL, FALSE);
     if (Token != TokenLeftBrace)
@@ -271,7 +283,7 @@ void TypeParseStruct(struct ParseState *Parser, struct ValueType **Typ, int IsSt
 /* create a system struct which has no user-visible members */
 struct ValueType *TypeCreateOpaqueStruct(struct ParseState *Parser, const char *StructName, int Size)
 {
-    struct ValueType *Typ = TypeGetMatching(Parser, &UberType, TypeStruct, 0, StructName);
+    struct ValueType *Typ = TypeGetMatching(Parser, &UberType, TypeStruct, 0, StructName, FALSE);
     
     /* create the (empty) table */
     Typ->Members = VariableAlloc(Parser, sizeof(struct Table) + STRUCT_TABLE_SIZE * sizeof(struct TableEntry), TRUE);
@@ -292,17 +304,26 @@ void TypeParseEnum(struct ParseState *Parser, struct ValueType **Typ)
     int EnumValue = 0;
     char *EnumIdentifier;
     
-    if (LexGetToken(Parser, &LexValue, TRUE) != TokenIdentifier)
-        ProgramFail(Parser, "enum name required");
-    
+    Token = LexGetToken(Parser, &LexValue, FALSE);
+    if (Token == TokenIdentifier)
+    {
+        LexGetToken(Parser, &LexValue, TRUE);
+        EnumIdentifier = LexValue->Val->Identifier;
+        Token = LexGetToken(Parser, NULL, FALSE);
+    }
+    else
+    {
+        static char TempNameBuf[7] = "^e0000";
+        EnumIdentifier = PlatformMakeTempName(TempNameBuf);
+    }
+
+    EnumType = TypeGetMatching(Parser, &UberType, TypeEnum, 0, EnumIdentifier, Token != TokenLeftBrace);
     *Typ = &IntType;
-    EnumType = TypeGetMatching(Parser, &UberType, TypeEnum, 0, LexValue->Val->Identifier);
-    Token = LexGetToken(Parser, NULL, FALSE);
     if (Token != TokenLeftBrace)
     { 
         /* use the already defined enum */
         if ((*Typ)->Members == NULL)
-            ProgramFail(Parser, "enum '%s' isn't defined", LexValue->Val->Identifier);
+            ProgramFail(Parser, "enum '%s' isn't defined", EnumIdentifier);
             
         return;
     }

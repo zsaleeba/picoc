@@ -223,14 +223,14 @@ char *PlatformMakeTempName(char *TempNameBuffer)
         if (TempNameBuffer[CPos] < '9')
         {
             TempNameBuffer[CPos]++;
-            return TempNameBuffer;
+            return TableStrRegister(TempNameBuffer);
         }
         else
         {
-            TempNameBuffer[CPos] = 0;
+            TempNameBuffer[CPos] = '0';
             CPos--;
         }
     }
 
-    return TempNameBuffer;
+    return TableStrRegister(TempNameBuffer);
 }

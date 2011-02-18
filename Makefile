@@ -24,7 +24,7 @@ clean:
 
 count:
 	@echo "Core:"
-	@cat picoc.h picoc.c table.c lex.c parse.c expression.c platform.c heap.c type.c variable.c include.c | grep -v '^[ 	]*/\*' | grep -v '^[ 	]*$$' | wc
+	@cat picoc.h interpreter.h picoc.c table.c lex.c parse.c expression.c platform.c heap.c type.c variable.c include.c | grep -v '^[ 	]*/\*' | grep -v '^[ 	]*$$' | wc
 	@echo ""
 	@echo "Everything:"
 	@cat $(SRCS) *.h */*.h | wc
