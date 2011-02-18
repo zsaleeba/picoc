@@ -183,16 +183,16 @@ struct Value *VariableDefineButIgnoreIdentical(struct ParseState *Parser, char *
         const char *RegisteredMangledName;
         
         /* make the mangled static name (avoiding using sprintf() to minimise library impact) */
-        memset(MangledName, '\0', sizeof(MangledName));
+        memset((void *)&MangledName, '\0', sizeof(MangledName));
         *MNPos++ = '/';
-        strncpy(MNPos, Parser->FileName, MNEnd - MNPos);
+        strncpy(MNPos, (char *)Parser->FileName, MNEnd - MNPos);
         MNPos += strlen(MNPos);
         
         if (TopStackFrame != NULL)
         {
             /* we're inside a function */
             if (MNEnd - MNPos > 0) *MNPos++ = '/';
-            strncpy(MNPos, TopStackFrame->FuncName, MNEnd - MNPos);
+            strncpy(MNPos, (char *)TopStackFrame->FuncName, MNEnd - MNPos);
             MNPos += strlen(MNPos);
         }
             
