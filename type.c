@@ -46,7 +46,7 @@ struct ValueType *TypeAdd(struct ParseState *Parser, struct ValueType *ParentTyp
 }
 
 /* given a parent type, get a matching derived type and make one if necessary */
-struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *ParentType, enum BaseType Base, int ArraySize, const char *Identifier)
+struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *ParentType, enum BaseType Base, int ArraySize, const char *Identifier, int AllowDuplicates)
 {
     int Sizeof;
     int AlignBytes;
@@ -55,7 +55,12 @@ struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *P
         ThisType = ThisType->Next;
     
     if (ThisType != NULL)
-        return ThisType;
+    {
+        if (AllowDuplicates)
+            return ThisType;
+        else
+            ProgramFail(Parser, "data type '%s' is already defined", Identifier);
+    }
         
     switch (Base)
     {
@@ -433,7 +438,7 @@ struct ValueType *TypeParseBack(struct ParseState *Parser, struct ValueType *Fro
         if (LexGetToken(Parser, NULL, TRUE) != TokenRightSquareBracket)
             ProgramFail(Parser, "']' expected");
         
-        return TypeGetMatching(Parser, TypeParseBack(Parser, FromType), TypeArray, ArraySize, StrEmpty);
+        return TypeGetMatching(Parser, TypeParseBack(Parser, FromType), TypeArray, ArraySize, StrEmpty, TRUE);
     }
     else
     {
@@ -472,7 +477,7 @@ void TypeParseIdentPart(struct ParseState *Parser, struct ValueType *BasicTyp, s
                 if (*Typ == NULL)
                     ProgramFail(Parser, "bad type declaration");
 
-                *Typ = TypeGetMatching(Parser, *Typ, TypePointer, 0, StrEmpty);
+                *Typ = TypeGetMatching(Parser, *Typ, TypePointer, 0, StrEmpty, TRUE);
                 break;
             
             case TokenIdentifier:
