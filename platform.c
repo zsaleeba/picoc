@@ -211,3 +211,26 @@ void PlatformVPrintf(const char *Format, va_list Args)
             PrintCh(*FPos, CStdOut);
     }
 }
+
+/* make a new temporary name. takes a static buffer of char [7] as a parameter. should be initialised to "XX0000"
+ * where XX can be any characters */
+char *PlatformMakeTempName(char *TempNameBuffer)
+{
+    int CPos = 5;
+    
+    while (CPos > 1)
+    {
+        if (TempNameBuffer[CPos] < '9')
+        {
+            TempNameBuffer[CPos]++;
+            return TempNameBuffer;
+        }
+        else
+        {
+            TempNameBuffer[CPos] = 0;
+            CPos--;
+        }
+    }
+
+    return TempNameBuffer;
+}

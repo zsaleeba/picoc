@@ -6,6 +6,9 @@
 #include <readline/history.h>
 #endif
 
+/* mark where to end the program for platforms which require this */
+jmp_buf PicocExitBuf;
+
 void PlatformCleanup()
 {
 }
@@ -90,19 +93,10 @@ void PicocPlatformScanFile(const char *FileName)
     PicocParse(FileName, SourceStr, strlen(SourceStr), TRUE, FALSE, TRUE);
 }
 
-/* mark where to end the program for platforms which require this */
-jmp_buf ExitBuf;
-
-/* set the point we'll return to when we exit through an error */
-int PicocPlatformSetExitPoint()
-{
-    return setjmp(ExitBuf);
-}
-
 /* exit the program */
 void PlatformExit(int RetVal)
 {
     PicocExitValue = RetVal;
-    longjmp(ExitBuf, 1);
+    longjmp(PicocExitBuf, 1);
 }
 

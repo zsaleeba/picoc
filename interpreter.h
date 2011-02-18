@@ -375,7 +375,7 @@ int TypeLastAccessibleOffset(struct Value *Val);
 int TypeParseFront(struct ParseState *Parser, struct ValueType **Typ, int *IsStatic);
 void TypeParseIdentPart(struct ParseState *Parser, struct ValueType *BasicTyp, struct ValueType **Typ, char **Identifier);
 void TypeParse(struct ParseState *Parser, struct ValueType **Typ, char **Identifier, int *IsStatic);
-struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *ParentType, enum BaseType Base, int ArraySize, const char *Identifier);
+struct ValueType *TypeGetMatching(struct ParseState *Parser, struct ValueType *ParentType, enum BaseType Base, int ArraySize, const char *Identifier, int AllowDuplicates);
 struct ValueType *TypeCreateOpaqueStruct(struct ParseState *Parser, const char *StructName, int Size);
 
 /* heap.c */
@@ -444,6 +444,7 @@ void PlatformErrorPrefix(struct ParseState *Parser);
 void PlatformPrintf(const char *Format, ...);
 void PlatformVPrintf(const char *Format, va_list Args);
 void PlatformExit(int ExitVal);
+char *PlatformMakeTempName(char *TempNameBuffer);
 void PlatformLibraryInit();
 
 /* include.c */

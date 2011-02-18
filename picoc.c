@@ -1,3 +1,4 @@
+/* include only picoc.h here - should be able to use it with only the external interfaces, no internals from interpreter.h */
 #include "picoc.h"
 
 /* platform-dependent code for running programs is in this file */
@@ -58,9 +59,11 @@ int main(int argc, char **argv)
 #else
 # ifdef SURVEYOR_HOST
 #  define HEAP_SIZE C_HEAPSIZE
+#  include <setjmp.h>
+
+extern int ExitBuf[];
 
 int picoc(char *SourceStr)
-
 {   
     char *pos;
 
@@ -78,7 +81,7 @@ int picoc(char *SourceStr)
     }
 
     ExitBuf[40] = 0;
-    PicocPlatformSetExitPoint();
+    setjmp(ExitBuf);
     if (ExitBuf[40]) {
         printf("Leaving PicoC\n\r");
         PicocCleanup();

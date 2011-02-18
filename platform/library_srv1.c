@@ -9,7 +9,7 @@ struct ValueType *IntArrayType;
 
 void SRV1SetupFunc()
 {    
-    IntArrayType = TypeGetMatching(NULL, &IntType, TypeArray, 16, StrEmpty);
+    IntArrayType = TypeGetMatching(NULL, &IntType, TypeArray, 16, StrEmpty, TRUE);
     VariableDefinePlatformVar(NULL, "scanvect", IntArrayType, (union AnyValue *)&ScanVect, FALSE);
     VariableDefinePlatformVar(NULL, "neuron", IntArrayType, (union AnyValue *)&NNVect, FALSE);
     VariableDefinePlatformVar(NULL, "blobcnt", &IntType, (union AnyValue *)&Blobcnt, FALSE);
