@@ -25,6 +25,12 @@ extern jmp_buf PicocExitBuf;
 #define PicocPlatformSetExitPoint() setjmp(PicocExitBuf)
 #endif
 
+#ifdef SURVEYOR_HOST
+/* mark where to end the program for platforms which require this */
+extern int PicocExitBuf[];
+
+#define PicocPlatformSetExitPoint() setjmp(PicocExitBuf)
+#endif
 
 /* parse.c */
 void PicocParse(const char *FileName, const char *Source, int SourceLen, int RunIt, int CleanupNow, int CleanupSource);

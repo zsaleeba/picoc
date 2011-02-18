@@ -60,8 +60,9 @@ int main(int argc, char **argv)
 # ifdef SURVEYOR_HOST
 #  define HEAP_SIZE C_HEAPSIZE
 #  include <setjmp.h>
-
-extern int ExitBuf[];
+#  include "../srv.h"
+#  include "../print.h"
+#  include "../string.h"
 
 int picoc(char *SourceStr)
 {   
@@ -80,12 +81,12 @@ int picoc(char *SourceStr)
         }
     }
 
-    ExitBuf[40] = 0;
-    setjmp(ExitBuf);
-    if (ExitBuf[40]) {
+    PicocExitBuf[40] = 0;
+    setjmp(PicocExitBuf);
+    if (PicocExitBuf[40]) {
         printf("Leaving PicoC\n\r");
         PicocCleanup();
-        return ExitValue;
+        return PicocExitValue;
     }
 
     if (SourceStr)   
@@ -94,7 +95,7 @@ int picoc(char *SourceStr)
     PicocParseInteractive();
     PicocCleanup();
     
-    return ExitValue;
+    return PicocExitValue;
 }
 # endif
 #endif

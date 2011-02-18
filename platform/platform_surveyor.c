@@ -1,5 +1,8 @@
 #include "../interpreter.h"
+#include "../picoc.h"
 
+/* mark where to end the program for platforms which require this */
+int PicocExitBuf[41];
 
 /* deallocate any storage */
 void PlatformCleanup()
@@ -11,12 +14,12 @@ char *PlatformGetLine(char *Buf, int MaxLen, const char *Prompt)
 {
     int ix;
     char ch, *cp;
-   
+    
     printf(Prompt);
-   
+    
     ix = 0;
     cp = 0;
-   
+    
     // If the first character is \n or \r, eat it
     ch = getch();
     if (ch == '\n' || ch == '\r')
@@ -24,10 +27,11 @@ char *PlatformGetLine(char *Buf, int MaxLen, const char *Prompt)
         // And get the next character
         ch = getch();
     }
-   
+    
     while (ix++ < MaxLen) {
+
         if (ch == 0x1B || ch == 0x03) { // ESC character or ctrl-c (to avoid problem with TeraTerm) - exit
-                                                printf("Leaving PicoC\n");
+            printf("Leaving PicoC\n");
             return NULL;
         }
         if (ch == '\n') {
@@ -57,14 +61,11 @@ int PlatformGetCharacter()
     return getch();
 }
 
-/* mark where to end the program for platforms which require this */
-int ExitBuf[41];
-
 /* exit the program */
 void PlatformExit(int RetVal)
 {
-    ExitValue = RetVal;
-    ExitBuf[40] = 1;
-    longjmp(ExitBuf, 1);
+    PicocExitValue = RetVal;
+    PicocExitBuf[40] = 1;
+    longjmp(PicocExitBuf, 1);
 }
 

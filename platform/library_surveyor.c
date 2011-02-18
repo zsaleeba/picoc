@@ -1,4 +1,5 @@
 #include "../interpreter.h"
+#include "../picoc.h"
 
 static int Blobcnt, Blobx1, Blobx2, Bloby1, Bloby2, Iy1, Iy2, Iu1, Iu2, Iv1, Iv2;
 static int Cxmin, Cxmax, Cymin, Cymax;
@@ -850,8 +851,8 @@ void Cautorun (struct ParseState *Parser, struct Value *ReturnValue, struct Valu
         if (getchar(&ch)) {
             if (ch == 0x1B) {  // if ESC found, exit picoC
                 printf("found ESC\r\n");
-                ExitBuf[40] = 1;
-                longjmp(ExitBuf, 1);
+                PicocExitBuf[40] = 1;
+                longjmp(PicocExitBuf, 1);
             }
         }
     }
