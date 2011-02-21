@@ -62,6 +62,7 @@ static struct ReservedWord ReservedWords[] =
     { "float", TokenFloatType, NULL },
 #endif
     { "for", TokenFor, NULL },
+    { "goto", TokenGoto, NULL },
     { "if", TokenIf, NULL },
     { "int", TokenIntType, NULL },
     { "long", TokenLongType, NULL },

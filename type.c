@@ -17,6 +17,7 @@ struct ValueType TypeType;
 struct ValueType FunctionType;
 struct ValueType MacroType;
 struct ValueType EnumType;
+struct ValueType GotoLabelType;
 struct ValueType *CharPtrType;
 struct ValueType *CharPtrPtrType;
 struct ValueType *CharArrayType;
@@ -144,9 +145,10 @@ void TypeInit()
     TypeAddBaseType(&UnsignedIntType, TypeUnsignedInt, sizeof(unsigned int), IntAlignBytes);
     TypeAddBaseType(&UnsignedShortType, TypeUnsignedShort, sizeof(unsigned short), (char *)&sa.y - &sa.x);
     TypeAddBaseType(&UnsignedLongType, TypeUnsignedLong, sizeof(unsigned long), (char *)&la.y - &la.x);
-    TypeAddBaseType(&VoidType, TypeVoid, 0, 0);
+    TypeAddBaseType(&VoidType, TypeVoid, 0, 1);
     TypeAddBaseType(&FunctionType, TypeFunction, sizeof(int), IntAlignBytes);
     TypeAddBaseType(&MacroType, TypeMacro, sizeof(int), IntAlignBytes);
+    TypeAddBaseType(&GotoLabelType, TypeGotoLabel, 0, 1);
 #ifndef NO_FP
     TypeAddBaseType(&FPType, TypeFP, sizeof(double), (char *)&da.y - &da.x);
     TypeAddBaseType(&TypeType, Type_Type, sizeof(double), (char *)&da.y - &da.x);  /* must be large enough to cast to a double */

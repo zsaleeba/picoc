@@ -80,7 +80,7 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
         ProgramFail(Parser, "nested function definitions are not allowed");
         
     LexGetToken(Parser, NULL, TRUE);  /* open bracket */
-    ParamParser = *Parser;
+    ParserCopy(&ParamParser, Parser);
     ParamCount = ParseCountParams(Parser);
     if (ParamCount > PARAMETER_MAX)
         ProgramFail(Parser, "too many parameters");
@@ -150,7 +150,7 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
         if (Token != TokenLeftBrace)
             ProgramFail(Parser, "bad function definition");
         
-        FuncBody = *Parser;
+        ParserCopy(&FuncBody, Parser);
         if (ParseStatementMaybeRun(Parser, FALSE, TRUE) != ParseResultOk)
             ProgramFail(Parser, "function definition expected");
 
@@ -261,7 +261,7 @@ int ParseDeclaration(struct ParseState *Parser, enum LexToken Token)
                 if (Typ == &VoidType && Identifier != StrEmpty)
                     ProgramFail(Parser, "can't define a void variable");
                     
-                if (Parser->Mode == RunModeRun)
+                if (Parser->Mode == RunModeRun || Parser->Mode == RunModeGoto)
                     NewVariable = VariableDefineButIgnoreIdentical(Parser, Identifier, Typ, IsStatic, &FirstVisit);
                 
                 if (LexGetToken(Parser, NULL, FALSE) == TokenAssign)
@@ -299,10 +299,12 @@ void ParseMacroDefinition(struct ParseState *Parser)
     {
         /* it's a parameterised macro, read the parameters */
         enum LexToken Token = LexGetToken(Parser, NULL, TRUE);
-        struct ParseState ParamParser = *Parser;
-        int NumParams = ParseCountParams(&ParamParser);
+        struct ParseState ParamParser;
+        int NumParams;
         int ParamCount = 0;
         
+        ParserCopy(&ParamParser, Parser);
+        NumParams = ParseCountParams(&ParamParser);
         MacroValue = VariableAllocValueAndData(Parser, sizeof(struct MacroDef) + sizeof(const char *) * NumParams, FALSE, NULL, TRUE);
         MacroValue->Val->MacroDef.NumParams = NumParams;
         MacroValue->Val->MacroDef.ParamName = (char **)((char *)MacroValue->Val + sizeof(struct MacroDef));
@@ -334,7 +336,7 @@ void ParseMacroDefinition(struct ParseState *Parser)
     }
     
     /* copy the body of the macro to execute later */
-    MacroValue->Val->MacroDef.Body = *Parser;
+    ParserCopy(&MacroValue->Val->MacroDef.Body, Parser);
     MacroValue->Typ = &MacroType;
     LexToEndOfLine(Parser);
     MacroValue->Val->MacroDef.Body.Pos = LexCopyTokens(&MacroValue->Val->MacroDef.Body, Parser);
@@ -479,8 +481,11 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
     struct Value *LexerValue;
     struct Value *VarValue;
     int Condition;
-    struct ParseState PreState = *Parser;
-    enum LexToken Token = LexGetToken(Parser, &LexerValue, TRUE);
+    struct ParseState PreState;
+    enum LexToken Token;
+    
+    ParserCopy(&PreState, Parser);
+    Token = LexGetToken(Parser, &LexerValue, TRUE);
     
     switch (Token)
     {
@@ -496,6 +501,21 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
                 {
                     *Parser = PreState;
                     ParseDeclaration(Parser, Token);
+                    break;
+                }
+            }
+            else
+            {
+                /* it might be a goto label */
+                enum LexToken NextToken = LexGetToken(Parser, NULL, FALSE);
+                if (NextToken == TokenColon)
+                {
+                    /* declare the identifier as a goto label */
+                    LexGetToken(Parser, NULL, TRUE);
+                    if (Parser->Mode == RunModeGoto && LexerValue->Val->Identifier == Parser->SearchGotoLabel)
+                        Parser->Mode = RunModeRun;
+        
+                    CheckTrailingSemicolon = FALSE;
                     break;
                 }
             }
@@ -738,6 +758,18 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
 
         case TokenTypedef:
             ParseTypedef(Parser);
+            break;
+            
+        case TokenGoto:
+            if (LexGetToken(Parser, &LexerValue, TRUE) != TokenIdentifier)
+                ProgramFail(Parser, "identifier expected");
+            
+            if (Parser->Mode == RunModeRun)
+            { 
+                /* start scanning for the goto label */
+                Parser->SearchGotoLabel = LexerValue->Val->Identifier;
+                Parser->Mode = RunModeGoto;
+            }
             break;
                 
         case TokenDelete:

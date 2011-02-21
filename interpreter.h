@@ -75,11 +75,11 @@ enum LexToken
     /* 0x34 */ TokenLeftBrace, TokenRightBrace,
     /* 0x36 */ TokenIntType, TokenCharType, TokenFloatType, TokenDoubleType, TokenVoidType, TokenEnumType,
     /* 0x3c */ TokenLongType, TokenSignedType, TokenShortType, TokenStaticType, TokenAutoType, TokenRegisterType, TokenExternType, TokenStructType, TokenUnionType, TokenUnsignedType, TokenTypedef,
-    /* 0x46 */ TokenContinue, TokenDo, TokenElse, TokenFor, TokenIf, TokenWhile, TokenBreak, TokenSwitch, TokenCase, TokenDefault, TokenReturn,
-    /* 0x51 */ TokenHashDefine, TokenHashInclude, TokenHashIf, TokenHashIfdef, TokenHashIfndef, TokenHashElse, TokenHashEndif,
-    /* 0x58 */ TokenNew, TokenDelete,
-    /* 0x5a */ TokenOpenMacroBracket,
-    /* 0x5b */ TokenEOF, TokenEndOfLine, TokenEndOfFunction
+    /* 0x46 */ TokenContinue, TokenDo, TokenElse, TokenFor, TokenGoto, TokenIf, TokenWhile, TokenBreak, TokenSwitch, TokenCase, TokenDefault, TokenReturn,
+    /* 0x52 */ TokenHashDefine, TokenHashInclude, TokenHashIf, TokenHashIfdef, TokenHashIfndef, TokenHashElse, TokenHashEndif,
+    /* 0x59 */ TokenNew, TokenDelete,
+    /* 0x5b */ TokenOpenMacroBracket,
+    /* 0x5c */ TokenEOF, TokenEndOfLine, TokenEndOfFunction
 };
 
 /* used in dynamic memory allocation */
@@ -97,7 +97,8 @@ enum RunMode
     RunModeReturn,              /* returning from a function */
     RunModeCaseSearch,          /* searching for a case label */
     RunModeBreak,               /* breaking out of a switch/while/do */
-    RunModeContinue             /* as above but repeat the loop */
+    RunModeContinue,            /* as above but repeat the loop */
+    RunModeGoto                 /* searching for a goto label */
 };
 
 /* parser state - has all this detail so we can parse nested files */
@@ -109,6 +110,7 @@ struct ParseState
     short int CharacterPos;
     enum RunMode Mode;          /* whether to skip or run code */
     int SearchLabel;            /* what case label we're searching for */
+    const char *SearchGotoLabel;/* what goto label we're searching for */
     short int HashIfLevel;
     short int HashIfEvaluateToLevel;
     const char *SourceText;
@@ -135,6 +137,7 @@ enum BaseType
     TypeStruct,                 /* aggregate type */
     TypeUnion,                  /* merged type */
     TypeEnum,                   /* enumerated integer type */
+    TypeGotoLabel,              /* a label we can "goto" */
     Type_Type                   /* a type for storing types */
 };
 
@@ -311,6 +314,7 @@ extern struct ValueType VoidType;
 extern struct ValueType TypeType;
 extern struct ValueType FunctionType;
 extern struct ValueType MacroType;
+extern struct ValueType GotoLabelType;
 extern struct ValueType *CharPtrType;
 extern struct ValueType *CharPtrPtrType;
 extern struct ValueType *CharArrayType;
