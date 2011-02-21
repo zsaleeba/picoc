@@ -347,6 +347,11 @@ void ExpressionAssignToPointer(struct ParseState *Parser, struct Value *ToValue,
         /* assign integer to native pointer */
         ToValue->Val->Pointer = (void *)(unsigned long)ExpressionCoerceUnsignedInteger(FromValue);
     }
+    else if (AllowPointerCoercion && FromValue->Typ->Base == TypePointer)
+    {
+        /* assign a pointer to a pointer to a different type */
+        ToValue->Val->Pointer = FromValue->Val->Pointer;
+    }
     else
         AssignFail(Parser, "%t from %t", ToValue->Typ, FromValue->Typ, 0, 0, FuncName, ParamNo); 
 }
