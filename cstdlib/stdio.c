@@ -231,7 +231,7 @@ int StdioBasePrintf(struct ParseState *Parser, FILE *Stream, char *StrOut, int S
                         case 'n':   
                             ThisArg = (struct Value *)((char *)ThisArg + MEM_ALIGN(sizeof(struct Value) + TypeStackSizeValue(ThisArg)));
                             if (ThisArg->Typ->Base == TypeArray && ThisArg->Typ->FromType->Base == TypeInt)
-                                *(int *)ThisArg->Val->Integer = SOStream.CharCount;
+                                *(int *)ThisArg->Val->Pointer = SOStream.CharCount;
                             break;
                     }
                 }
