@@ -851,8 +851,7 @@ void Cautorun (struct ParseState *Parser, struct Value *ReturnValue, struct Valu
         if (getchar(&ch)) {
             if (ch == 0x1B) {  // if ESC found, exit picoC
                 printf("found ESC\r\n");
-                PicocExitBuf[40] = 1;
-                longjmp(PicocExitBuf, 1);
+                PlatformExit(0);
             }
         }
     }
