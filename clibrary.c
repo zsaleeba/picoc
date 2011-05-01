@@ -1,3 +1,6 @@
+/* picoc mini standard C library - provides an optional tiny C standard library 
+ * if BUILTIN_MINI_STDLIB is defined */ 
+ 
 #include "picoc.h"
 #include "interpreter.h"
 
@@ -35,13 +38,13 @@ void LibraryAdd(struct Table *GlobalTable, const char *LibraryName, struct Libra
     struct ValueType *ReturnType;
     struct Value *NewValue;
     void *Tokens;
-    const char *IntrinsicName = TableStrRegister("c library");
+    char *IntrinsicName = TableStrRegister("c library");
     
     /* read all the library definitions */
     for (Count = 0; FuncList[Count].Prototype != NULL; Count++)
     {
         Tokens = LexAnalyse(IntrinsicName, FuncList[Count].Prototype, strlen((char *)FuncList[Count].Prototype), NULL);
-        LexInitParser(&Parser, FuncList[Count].Prototype, Tokens, IntrinsicName, TRUE);
+        LexInitParser(&Parser, FuncList[Count].Prototype, Tokens, IntrinsicName, TRUE, FALSE);
         TypeParse(&Parser, &ReturnType, &Identifier, NULL);
         NewValue = ParseFunctionDefinition(&Parser, ReturnType, Identifier);
         NewValue->Val->FuncDef.Intrinsic = FuncList[Count].Func;

@@ -1,3 +1,6 @@
+/* picoc main program - this varies depending on your operating system and
+ * how you're using picoc */
+ 
 /* include only picoc.h here - should be able to use it with only the external interfaces, no internals from interpreter.h */
 #include "picoc.h"
 
@@ -36,7 +39,7 @@ int main(int argc, char **argv)
     if (argc > ParamCount && strcmp(argv[ParamCount], "-i") == 0)
     {
         PicocIncludeAllSystemHeaders();
-        PicocParseInteractive();
+        PicocParseInteractive(TRUE);
     }
     else
     {

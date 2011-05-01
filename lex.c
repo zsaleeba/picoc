@@ -1,3 +1,5 @@
+/* picoc lexer - converts source text into a tokenised form */ 
+
 #include "interpreter.h"
 
 #ifdef NO_CTYPE
@@ -583,7 +585,7 @@ void *LexAnalyse(const char *FileName, const char *Source, int SourceLen, int *T
 }
 
 /* prepare to parse a pre-tokenised buffer */
-void LexInitParser(struct ParseState *Parser, const char *SourceText, void *TokenSource, const char *FileName, int RunIt)
+void LexInitParser(struct ParseState *Parser, const char *SourceText, void *TokenSource, char *FileName, int RunIt, int EnableDebugger)
 {
     Parser->Pos = TokenSource;
     Parser->Line = 1;
@@ -594,6 +596,7 @@ void LexInitParser(struct ParseState *Parser, const char *SourceText, void *Toke
     Parser->HashIfEvaluateToLevel = 0;
     Parser->CharacterPos = 0;
     Parser->SourceText = SourceText;
+    Parser->DebugMode = EnableDebugger;
 }
 
 /* get the next token, without pre-processing */

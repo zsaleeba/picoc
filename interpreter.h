@@ -1,3 +1,7 @@
+/* picoc main header file - this has all the main data structures and 
+ * function prototypes. If you're just calling picoc you should look at the
+ * external interface instead, in picoc.h */
+ 
 #ifndef INTERPRETER_H
 #define INTERPRETER_H
 
@@ -104,16 +108,17 @@ enum RunMode
 /* parser state - has all this detail so we can parse nested files */
 struct ParseState
 {
-    const unsigned char *Pos;
-    const char *FileName;
-    short int Line;
-    short int CharacterPos;
+    const unsigned char *Pos;   /* the character position in the source text */
+    char *FileName;             /* what file we're executing (registered string) */
+    short int Line;             /* line number we're executing */
+    short int CharacterPos;     /* character/column in the line we're executing */
     enum RunMode Mode;          /* whether to skip or run code */
     int SearchLabel;            /* what case label we're searching for */
     const char *SearchGotoLabel;/* what goto label we're searching for */
-    short int HashIfLevel;
-    short int HashIfEvaluateToLevel;
-    const char *SourceText;
+    const char *SourceText;     /* the entire source text */
+    short int HashIfLevel;      /* how many "if"s we're nested down */
+    short int HashIfEvaluateToLevel;    /* if we're not evaluating an if branch, what the last evaluated level was */
+    char DebugMode;             /* debugging mode */
 };
 
 /* values */
@@ -225,6 +230,14 @@ struct TableEntry
         } v;                        /* used for tables of values */
         
         char Key[1];                /* dummy size - used for the shared string table */
+        
+        struct BreakpointEntry      /* defines a breakpoint */
+        {
+            const char *FileName;
+            short int Line;
+            short int CharacterPos;
+        } b;
+        
     } p;
 };
     
@@ -340,7 +353,7 @@ void TableStrFree();
 void LexInit();
 void LexCleanup();
 void *LexAnalyse(const char *FileName, const char *Source, int SourceLen, int *TokenLen);
-void LexInitParser(struct ParseState *Parser, const char *SourceText, void *TokenSource, const char *FileName, int RunIt);
+void LexInitParser(struct ParseState *Parser, const char *SourceText, void *TokenSource, char *FileName, int RunIt, int SetDebugMode);
 enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int IncPos);
 enum LexToken LexRawPeekToken(struct ParseState *Parser);
 void LexToEndOfLine(struct ParseState *Parser);
@@ -353,6 +366,7 @@ void LexInteractiveStatementPrompt();
 /* the following are defined in picoc.h:
  * void PicocParse(const char *FileName, const char *Source, int SourceLen, int RunIt, int CleanupNow, int CleanupSource);
  * void PicocParseInteractive(); */
+void PicocParseInteractiveNoStartPrompt(int EnableDebugger);
 enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemicolon);
 struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueType *ReturnType, char *Identifier);
 void ParseCleanup();
@@ -440,6 +454,7 @@ void LibPrintf(struct ParseState *Parser, struct Value *ReturnValue, struct Valu
 void ProgramFail(struct ParseState *Parser, const char *Message, ...);
 void AssignFail(struct ParseState *Parser, const char *Format, struct ValueType *Type1, struct ValueType *Type2, int Num1, int Num2, const char *FuncName, int ParamNo);
 void LexFail(struct LexState *Lexer, const char *Message, ...);
+void PlatformInit();
 void PlatformCleanup();
 char *PlatformGetLine(char *Buf, int MaxLen, const char *Prompt);
 int PlatformGetCharacter();
@@ -458,6 +473,13 @@ void IncludeRegister(const char *IncludeName, void (*SetupFunction)(void), struc
 void IncludeFile(char *Filename);
 /* the following is defined in picoc.h:
  * void PicocIncludeAllSystemHeaders(); */
+ 
+/* debug.c */
+extern int DebugManualBreak;
+void DebugInit();
+void DebugCleanup();
+void DebugCheckStatement(struct ParseState *Parser);
+
 
 /* stdio.c */
 extern const char StdioDefs[];

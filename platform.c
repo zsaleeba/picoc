@@ -1,3 +1,6 @@
+/* picoc's interface to the underlying platform. most platform-specific code
+ * is in platform/platform_XX.c and platform/library_XX.c */
+ 
 #include "picoc.h"
 #include "interpreter.h"
 
@@ -7,6 +10,7 @@ int PicocExitValue = 0;
 /* initialise everything */
 void PicocInitialise(int StackSize)
 {
+    PlatformInit();
     BasicIOInit();
     HeapInit(StackSize);
     TableInit();
@@ -22,12 +26,13 @@ void PicocInitialise(int StackSize)
     CLibraryInit();
 #endif
     PlatformLibraryInit();
+    DebugInit();
 }
 
 /* free memory */
 void PicocCleanup()
 {
-    PlatformCleanup();
+    DebugCleanup();
 #ifndef NO_HASH_INCLUDE
     IncludeCleanup();
 #endif
@@ -37,6 +42,7 @@ void PicocCleanup()
     TypeCleanup();
     TableStrFree();
     HeapCleanup();
+    PlatformCleanup();
 }
 
 /* platform-dependent code for running programs */
@@ -69,18 +75,18 @@ void PicocCallMain(int argc, char **argv)
     if (FuncValue->Val->FuncDef.ReturnType == &VoidType)
     {
         if (FuncValue->Val->FuncDef.NumParams == 0)
-            PicocParse("startup", CALL_MAIN_NO_ARGS_RETURN_VOID, strlen(CALL_MAIN_NO_ARGS_RETURN_VOID), TRUE, TRUE, FALSE);
+            PicocParse("startup", CALL_MAIN_NO_ARGS_RETURN_VOID, strlen(CALL_MAIN_NO_ARGS_RETURN_VOID), TRUE, TRUE, FALSE, TRUE);
         else
-            PicocParse("startup", CALL_MAIN_WITH_ARGS_RETURN_VOID, strlen(CALL_MAIN_WITH_ARGS_RETURN_VOID), TRUE, TRUE, FALSE);
+            PicocParse("startup", CALL_MAIN_WITH_ARGS_RETURN_VOID, strlen(CALL_MAIN_WITH_ARGS_RETURN_VOID), TRUE, TRUE, FALSE, TRUE);
     }
     else
     {
         VariableDefinePlatformVar(NULL, "__exit_value", &IntType, (union AnyValue *)&PicocExitValue, TRUE);
     
         if (FuncValue->Val->FuncDef.NumParams == 0)
-            PicocParse("startup", CALL_MAIN_NO_ARGS_RETURN_INT, strlen(CALL_MAIN_NO_ARGS_RETURN_INT), TRUE, TRUE, FALSE);
+            PicocParse("startup", CALL_MAIN_NO_ARGS_RETURN_INT, strlen(CALL_MAIN_NO_ARGS_RETURN_INT), TRUE, TRUE, FALSE, TRUE);
         else
-            PicocParse("startup", CALL_MAIN_WITH_ARGS_RETURN_INT, strlen(CALL_MAIN_WITH_ARGS_RETURN_INT), TRUE, TRUE, FALSE);
+            PicocParse("startup", CALL_MAIN_WITH_ARGS_RETURN_INT, strlen(CALL_MAIN_WITH_ARGS_RETURN_INT), TRUE, TRUE, FALSE, TRUE);
     }
 }
 #endif

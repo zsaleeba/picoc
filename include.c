@@ -1,3 +1,6 @@
+/* picoc include system - can emulate system includes from built-in libraries
+ * or it can include and parse files if the system has files */
+ 
 #include "picoc.h"
 #include "interpreter.h"
 
@@ -92,7 +95,7 @@ void IncludeFile(char *FileName)
                 
                 /* parse the setup C source code - may define types etc. */
                 if (LInclude->SetupCSource != NULL)
-                    PicocParse(FileName, LInclude->SetupCSource, strlen(LInclude->SetupCSource), TRUE, TRUE, FALSE);
+                    PicocParse(FileName, LInclude->SetupCSource, strlen(LInclude->SetupCSource), TRUE, TRUE, FALSE, FALSE);
                 
                 /* set up the library functions */
                 if (LInclude->FuncList != NULL)

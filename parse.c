@@ -1,3 +1,5 @@
+/* picoc parser - parses source and executes statements */
+
 #include "picoc.h"
 #include "interpreter.h"
 
@@ -484,6 +486,11 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
     struct ParseState PreState;
     enum LexToken Token;
     
+    /* if we're debugging, check for a breakpoint */
+    if (Parser->DebugMode && Parser->Mode == RunModeRun)
+        DebugCheckStatement(Parser);
+    
+    /* take note of where we are and then grab a token to see what statement we have */   
     ParserCopy(&PreState, Parser);
     Token = LexGetToken(Parser, &LexerValue, TRUE);
     
@@ -806,13 +813,14 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
 }
 
 /* quick scan a source file for definitions */
-void PicocParse(const char *FileName, const char *Source, int SourceLen, int RunIt, int CleanupNow, int CleanupSource)
+void PicocParse(const char *FileName, const char *Source, int SourceLen, int RunIt, int CleanupNow, int CleanupSource, int EnableDebugger)
 {
     struct ParseState Parser;
     enum ParseResult Ok;
     struct CleanupTokenNode *NewCleanupNode;
+    char *RegFileName = TableStrRegister(FileName);
     
-    void *Tokens = LexAnalyse(FileName, Source, SourceLen, NULL);
+    void *Tokens = LexAnalyse(RegFileName, Source, SourceLen, NULL);
     
     /* allocate a cleanup node so we can clean up the tokens later */
     if (!CleanupNow)
@@ -832,7 +840,7 @@ void PicocParse(const char *FileName, const char *Source, int SourceLen, int Run
     }
     
     /* do the parsing */
-    LexInitParser(&Parser, Source, Tokens, FileName, RunIt);
+    LexInitParser(&Parser, Source, Tokens, RegFileName, RunIt, EnableDebugger);
 
     do {
         Ok = ParseStatement(&Parser, TRUE);
@@ -847,13 +855,12 @@ void PicocParse(const char *FileName, const char *Source, int SourceLen, int Run
 }
 
 /* parse interactively */
-void PicocParseInteractive()
+void PicocParseInteractiveNoStartPrompt(int EnableDebugger)
 {
     struct ParseState Parser;
     enum ParseResult Ok;
     
-    PlatformPrintf(INTERACTIVE_PROMPT_START);
-    LexInitParser(&Parser, NULL, NULL, StrEmpty, TRUE);
+    LexInitParser(&Parser, NULL, NULL, StrEmpty, TRUE, EnableDebugger);
     PicocPlatformSetExitPoint();
     LexInteractiveClear(&Parser);
 
@@ -869,4 +876,11 @@ void PicocParseInteractive()
         ProgramFail(&Parser, "parse error");
     
     PlatformPrintf("\n");
+}
+
+/* parse interactively, showing a startup message */
+void PicocParseInteractive()
+{
+    PlatformPrintf(INTERACTIVE_PROMPT_START);
+    PicocParseInteractiveNoStartPrompt(TRUE);
 }

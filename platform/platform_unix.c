@@ -9,6 +9,26 @@
 /* mark where to end the program for platforms which require this */
 jmp_buf PicocExitBuf;
 
+#ifndef NO_DEBUGGER
+#include <signal.h>
+
+static void BreakHandler(int Signal)
+{
+    PlatformPrintf("break\n");
+    DebugManualBreak = TRUE;
+}
+
+void PlatformInit()
+{
+    /* capture the break signal and pass it to the debugger */
+    signal(SIGINT, BreakHandler);
+}
+#else
+void PlatformInit()
+{
+}
+#endif
+
 void PlatformCleanup()
 {
 }
@@ -90,7 +110,7 @@ void PicocPlatformScanFile(const char *FileName)
 {
     char *SourceStr = PlatformReadFile(FileName);
 
-    PicocParse(FileName, SourceStr, strlen(SourceStr), TRUE, FALSE, TRUE);
+    PicocParse(FileName, SourceStr, strlen(SourceStr), TRUE, FALSE, TRUE, TRUE);
 }
 
 /* exit the program */

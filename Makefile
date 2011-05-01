@@ -4,7 +4,7 @@ LIBS=-lm -lreadline
 
 TARGET	= picoc
 SRCS	= picoc.c table.c lex.c parse.c expression.c heap.c type.c \
-	variable.c clibrary.c platform.c include.c \
+	variable.c clibrary.c platform.c include.c debug.c \
 	platform/platform_unix.c platform/library_unix.c \
 	cstdlib/stdio.c cstdlib/math.c cstdlib/string.c cstdlib/stdlib.c \
 	cstdlib/time.c cstdlib/errno.c cstdlib/ctype.c cstdlib/stdbool.c \
@@ -24,7 +24,7 @@ clean:
 
 count:
 	@echo "Core:"
-	@cat picoc.h interpreter.h picoc.c table.c lex.c parse.c expression.c platform.c heap.c type.c variable.c include.c | grep -v '^[ 	]*/\*' | grep -v '^[ 	]*$$' | wc
+	@cat picoc.h interpreter.h picoc.c table.c lex.c parse.c expression.c platform.c heap.c type.c variable.c include.c debug.c | grep -v '^[ 	]*/\*' | grep -v '^[ 	]*$$' | wc
 	@echo ""
 	@echo "Everything:"
 	@cat $(SRCS) *.h */*.h | wc
@@ -42,6 +42,7 @@ variable.o: variable.c interpreter.h platform.h
 clibrary.o: clibrary.c picoc.h interpreter.h platform.h
 platform.o: platform.c picoc.h interpreter.h platform.h
 include.o: include.c picoc.h interpreter.h platform.h
+debug.o: debug.c interpreter.h platform.h
 platform/platform_unix.o: platform/platform_unix.c picoc.h interpreter.h platform.h
 platform/library_unix.o: platform/library_unix.c interpreter.h platform.h
 cstdlib/stdio.o: cstdlib/stdio.c interpreter.h platform.h

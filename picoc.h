@@ -1,11 +1,13 @@
+/* picoc external interface. This should be the only header you need to use if
+ * you're using picoc as a library. Internal details are in interpreter.h */
 #ifndef PICOC_H
 #define PICOC_H
 
 /* picoc version number */
 #ifdef VER
-#define PICOC_VERSION "v2.1 beta r" VER         /* VER is the subversion version number, obtained via the Makefile */
+#define PICOC_VERSION "v2.2 beta r" VER         /* VER is the subversion version number, obtained via the Makefile */
 #else
-#define PICOC_VERSION "v2.1 beta"
+#define PICOC_VERSION "v2.2"
 #endif
 
 /* handy definitions */
@@ -33,7 +35,7 @@ extern int PicocExitBuf[];
 #endif
 
 /* parse.c */
-void PicocParse(const char *FileName, const char *Source, int SourceLen, int RunIt, int CleanupNow, int CleanupSource);
+void PicocParse(const char *FileName, const char *Source, int SourceLen, int RunIt, int CleanupNow, int CleanupSource, int EnableDebugger);
 void PicocParseInteractive();
 
 /* platform.c */

@@ -1,3 +1,7 @@
+/* picoc heap memory allocation. This is a complete (but small) memory
+ * allocator for embedded systems which have no memory allocator. Alternatively
+ * you can define USE_MALLOC_HEAP to use your system's own malloc() allocator */
+ 
 /* stack grows up from the bottom and heap grows down from the top of heap space */
 #include "interpreter.h"
 
