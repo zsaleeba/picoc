@@ -370,11 +370,11 @@ void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct
     switch (DestValue->Typ->Base)
     {
         case TypeInt:           DestValue->Val->Integer = ExpressionCoerceInteger(SourceValue); break;
-        case TypeShort:         DestValue->Val->ShortInteger = ExpressionCoerceInteger(SourceValue); break;
-        case TypeChar:          DestValue->Val->Character = ExpressionCoerceUnsignedInteger(SourceValue); break;
+        case TypeShort:         DestValue->Val->ShortInteger = (short)ExpressionCoerceInteger(SourceValue); break;
+        case TypeChar:          DestValue->Val->Character = (unsigned char)ExpressionCoerceUnsignedInteger(SourceValue); break;
         case TypeLong:          DestValue->Val->LongInteger = ExpressionCoerceInteger(SourceValue); break;
         case TypeUnsignedInt:   DestValue->Val->UnsignedInteger = ExpressionCoerceUnsignedInteger(SourceValue); break;
-        case TypeUnsignedShort: DestValue->Val->UnsignedShortInteger = ExpressionCoerceUnsignedInteger(SourceValue); break;
+        case TypeUnsignedShort: DestValue->Val->UnsignedShortInteger = (unsigned short)ExpressionCoerceUnsignedInteger(SourceValue); break;
         case TypeUnsignedLong:  DestValue->Val->UnsignedLongInteger = ExpressionCoerceUnsignedInteger(SourceValue); break;
 
 #ifndef NO_FP
@@ -1171,7 +1171,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                         
                         ExpressionStackPushValueNode(Parser, &StackTop, MacroResult);
                     }
-                    else if (VariableValue->Typ == TypeVoid)
+                    else if (VariableValue->Typ == &VoidType)
                         ProgramFail(Parser, "a void value isn't much use here");
                     else
                         ExpressionStackPushLValue(Parser, &StackTop, VariableValue, 0); /* it's a value variable */

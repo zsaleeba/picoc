@@ -46,7 +46,7 @@ void PicocCleanup()
 }
 
 /* platform-dependent code for running programs */
-#ifdef UNIX_HOST
+#if defined(UNIX_HOST) || defined(WIN32)
 
 #define CALL_MAIN_NO_ARGS_RETURN_VOID "main();"
 #define CALL_MAIN_WITH_ARGS_RETURN_VOID "main(__argc,__argv);"
@@ -124,7 +124,7 @@ void PrintSourceTextErrorLine(const char *FileName, const char *SourceText, int 
     else
     {
         /* assume we're in interactive mode - try to make the arrow match up with the input text */
-        for (CCount = 0; CCount < CharacterPos + strlen(INTERACTIVE_PROMPT_STATEMENT); CCount++)
+        for (CCount = 0; CCount < CharacterPos + (int)strlen(INTERACTIVE_PROMPT_STATEMENT); CCount++)
             PrintCh(' ', CStdOut);
     }
     PlatformPrintf("^\n%s:%d: ", FileName, Line, CharacterPos);

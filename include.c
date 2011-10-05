@@ -25,15 +25,17 @@ void IncludeInit()
 #ifndef BUILTIN_MINI_STDLIB
     IncludeRegister("ctype.h", NULL, &StdCtypeFunctions[0], NULL);
     IncludeRegister("errno.h", &StdErrnoSetupFunc, NULL, NULL);
-#ifndef NO_FP
+# ifndef NO_FP
     IncludeRegister("math.h", &MathSetupFunc, &MathFunctions[0], NULL);
-#endif
+# endif
     IncludeRegister("stdbool.h", &StdboolSetupFunc, NULL, StdboolDefs);
     IncludeRegister("stdio.h", &StdioSetupFunc, &StdioFunctions[0], StdioDefs);
     IncludeRegister("stdlib.h", &StdlibSetupFunc, &StdlibFunctions[0], NULL);
     IncludeRegister("string.h", &StringSetupFunc, &StringFunctions[0], NULL);
     IncludeRegister("time.h", &StdTimeSetupFunc, &StdTimeFunctions[0], StdTimeDefs);
-    IncludeRegister("unistd.h", &UnistdSetupFunc, &UnistdFunctions[0], UnistdDefs);
+# ifndef WIN32
+	IncludeRegister("unistd.h", &UnistdSetupFunc, &UnistdFunctions[0], UnistdDefs);
+# endif
 #endif
 }
 

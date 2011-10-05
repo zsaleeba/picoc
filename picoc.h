@@ -17,7 +17,7 @@
 #endif
 
 
-#ifdef UNIX_HOST
+#if defined(UNIX_HOST) || defined(WIN32)
 #include <setjmp.h>
 
 /* mark where to end the program for platforms which require this */

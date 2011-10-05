@@ -28,7 +28,7 @@
 #define MAX_CHAR_VALUE 255      /* maximum value which can be represented by a "char" data type */
 
 static union AnyValue LexAnyValue;
-static struct Value LexValue = { TypeVoid, &LexAnyValue, NULL, FALSE, FALSE, FALSE };
+static struct Value LexValue = { &VoidType, &LexAnyValue, NULL, FALSE, FALSE, FALSE };
 
 struct ReservedWord
 {
