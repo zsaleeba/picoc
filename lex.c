@@ -28,7 +28,7 @@
 #define MAX_CHAR_VALUE 255      /* maximum value which can be represented by a "char" data type */
 
 static union AnyValue LexAnyValue;
-static struct Value LexValue = { TypeVoid, &LexAnyValue, FALSE, FALSE };
+static struct Value LexValue = { TypeVoid, &LexAnyValue, NULL, FALSE, FALSE, FALSE };
 
 struct ReservedWord
 {
@@ -199,8 +199,12 @@ enum LexToken LexGetNumber(struct LexState *Lexer, struct Value *Value)
             LEXER_INC(Lexer);
         }
         
-        for (Result = 0; Lexer->Pos != Lexer->End && IS_BASE_DIGIT(*Lexer->Pos, Base); LEXER_INC(Lexer))
-            Result = Result * (double)Base + GET_BASE_DIGIT(*Lexer->Pos);
+        Result = 0;
+        while (Lexer->Pos != Lexer->End && IS_BASE_DIGIT(*Lexer->Pos, Base))
+        {
+            Result = Result * Base + GET_BASE_DIGIT(*Lexer->Pos);
+            LEXER_INC(Lexer);
+        }
             
         FPResult *= pow((double)Base, (double)Result * ExponentMultiplier);
     }
