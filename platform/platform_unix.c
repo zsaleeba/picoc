@@ -83,6 +83,7 @@ char *PlatformReadFile(const char *FileName)
     char *ReadText;
     FILE *InFile;
     int BytesRead;
+    char *p;
     
     if (stat(FileName, &FileInfo))
         ProgramFail(NULL, "can't read file %s\n", FileName);
@@ -101,6 +102,14 @@ char *PlatformReadFile(const char *FileName)
 
     ReadText[BytesRead] = '\0';
     fclose(InFile);
+    
+    if ((ReadText[0] == '#') && (ReadText[1] == '!'))
+    {
+        for (*p = ReadText; (*p != '\r') && (*p != '\n'); ++p)
+        {
+            *p = ' ';
+        }
+    }
     
     return ReadText;    
 }
