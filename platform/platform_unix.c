@@ -119,6 +119,13 @@ void PicocPlatformScanFile(const char *FileName)
 {
     char *SourceStr = PlatformReadFile(FileName);
 
+    /* ignore "#!/path/to/picoc" .. by replacing the "#!" with "//" */
+    if (SourceStr != NULL && SourceStr[0] == '#' && SourceStr[1] == '!') 
+    { 
+        SourceStr[0] = '/'; 
+        SourceStr[1] = '/'; 
+    }
+
     PicocParse(FileName, SourceStr, strlen(SourceStr), TRUE, FALSE, TRUE, TRUE);
 }
 
