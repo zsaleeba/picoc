@@ -186,12 +186,16 @@ int StdioBasePrintf(struct ParseState *Parser, FILE *Stream, char *StrOut, int S
 {
     struct Value *ThisArg = Args->Param[0];
     int ArgCount = 0;
-    char *FPos = Format;
+    char *FPos;
     char OneFormatBuf[MAX_FORMAT+1];
     int OneFormatCount;
     struct ValueType *ShowType;
     StdOutStream SOStream;
     
+    if (Format == NULL)
+        Format = "[null format]\n";
+    
+    FPos = Format;    
     SOStream.FilePtr = Stream;
     SOStream.StrOutPtr = StrOut;
     SOStream.StrOutLen = StrOutLen;
