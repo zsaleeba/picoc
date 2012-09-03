@@ -455,16 +455,26 @@ struct ValueType *TypeParseBack(struct ParseState *Parser, struct ValueType *Fro
     if (Token == TokenLeftSquareBracket)
     {
         /* add another array bound */
-        enum RunMode OldMode = Parser->Mode;
-        int ArraySize;
-        Parser->Mode = RunModeRun;
-        ArraySize = ExpressionParseInt(Parser);
-        Parser->Mode = OldMode;
-        
-        if (LexGetToken(Parser, NULL, TRUE) != TokenRightSquareBracket)
-            ProgramFail(Parser, "']' expected");
-        
-        return TypeGetMatching(Parser, TypeParseBack(Parser, FromType), TypeArray, ArraySize, StrEmpty, TRUE);
+        if (LexGetToken(Parser, NULL, FALSE) == TokenRightSquareBracket)
+        {
+            /* an unsized array */
+            LexGetToken(Parser, NULL, TRUE);
+            return TypeGetMatching(Parser, TypeParseBack(Parser, FromType), TypeArray, 0, StrEmpty, TRUE);
+        }
+        else
+        {
+            /* get a numeric array size */
+            enum RunMode OldMode = Parser->Mode;
+            int ArraySize;
+            Parser->Mode = RunModeRun;
+            ArraySize = ExpressionParseInt(Parser);
+            Parser->Mode = OldMode;
+            
+            if (LexGetToken(Parser, NULL, TRUE) != TokenRightSquareBracket)
+                ProgramFail(Parser, "']' expected");
+            
+            return TypeGetMatching(Parser, TypeParseBack(Parser, FromType), TypeArray, ArraySize, StrEmpty, TRUE);
+        }
     }
     else
     {

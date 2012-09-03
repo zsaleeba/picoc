@@ -29,7 +29,7 @@ void VariableInit()
 /* deallocate the contents of a variable */
 void VariableFree(struct Value *Val)
 {
-    if (Val->ValOnHeap)
+    if (Val->ValOnHeap || Val->AnyValOnHeap)
     {
         /* free function bodies */
         if (Val->Typ == &FunctionType && Val->Val->FuncDef.Intrinsic == NULL && Val->Val->FuncDef.Body.Pos != NULL)
@@ -39,9 +39,14 @@ void VariableFree(struct Value *Val)
         if (Val->Typ == &MacroType)
             HeapFreeMem((void *)Val->Val->MacroDef.Body.Pos);
 
-        /* free the value */
-        HeapFreeMem(Val);
+        /* free the AnyValue */
+        if (Val->AnyValOnHeap)
+            HeapFreeMem(Val->Val);
     }
+
+    /* free the value */
+    if (Val->ValOnHeap)
+        HeapFreeMem(Val);
 }
 
 /* deallocate the global table and the string literal table */
@@ -97,6 +102,7 @@ struct Value *VariableAllocValueAndData(struct ParseState *Parser, int DataSize,
     struct Value *NewValue = VariableAlloc(Parser, MEM_ALIGN(sizeof(struct Value)) + DataSize, OnHeap);
     NewValue->Val = (union AnyValue *)((char *)NewValue + MEM_ALIGN(sizeof(struct Value)));
     NewValue->ValOnHeap = OnHeap;
+    NewValue->AnyValOnHeap = FALSE;
     NewValue->ValOnStack = !OnHeap;
     NewValue->IsLValue = IsLValue;
     NewValue->LValueFrom = LValueFrom;
@@ -109,7 +115,7 @@ struct Value *VariableAllocValueFromType(struct ParseState *Parser, struct Value
 {
     int Size = TypeSize(Typ, Typ->ArraySize, FALSE);
     struct Value *NewValue = VariableAllocValueAndData(Parser, Size, IsLValue, LValueFrom, OnHeap);
-    assert(Size > 0 || Typ == &VoidType);
+    assert(Size >= 0 || Typ == &VoidType);
     NewValue->Typ = Typ;
     
     return NewValue;
@@ -139,6 +145,7 @@ struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, stru
     NewValue->Typ = Typ;
     NewValue->Val = FromValue;
     NewValue->ValOnHeap = FALSE;
+    NewValue->AnyValOnHeap = FALSE;
     NewValue->ValOnStack = FALSE;
     NewValue->IsLValue = IsLValue;
     NewValue->LValueFrom = LValueFrom;
@@ -150,6 +157,16 @@ struct Value *VariableAllocValueFromExistingData(struct ParseState *Parser, stru
 struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *FromValue)
 {
     return VariableAllocValueFromExistingData(Parser, FromValue->Typ, FromValue->Val, FromValue->IsLValue, FromValue->IsLValue ? FromValue : NULL);
+}
+
+/* reallocate a variable so its data has a new size */
+void VariableRealloc(struct ParseState *Parser, struct Value *FromValue, int NewSize)
+{
+    if (FromValue->AnyValOnHeap)
+        VariableFree(FromValue->Val);
+        
+    FromValue->Val = VariableAlloc(Parser, NewSize, TRUE);
+    FromValue->AnyValOnHeap = TRUE;
 }
 
 /* define a variable. Ident must be registered */

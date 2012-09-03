@@ -208,8 +208,9 @@ struct Value
     struct ValueType *Typ;          /* the type of this value */
     union AnyValue *Val;            /* pointer to the AnyValue which holds the actual content */
     struct Value *LValueFrom;       /* if an LValue, this is a Value our LValue is contained within (or NULL) */
-    char ValOnHeap;                 /* the AnyValue is on the heap (but this Value is on the stack) */
+    char ValOnHeap;                 /* this Value is on the heap */
     char ValOnStack;                /* the AnyValue is on the stack along with this Value */
+    char AnyValOnHeap;              /* the AnyValue is separately allocated from the Value on the heap */
     char IsLValue;                  /* is modifiable and is allocated somewhere we can usefully modify it */
 };
 
@@ -422,6 +423,7 @@ struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *
 struct Value *VariableDefine(struct ParseState *Parser, char *Ident, struct Value *InitValue, struct ValueType *Typ, int MakeWritable);
 struct Value *VariableDefineButIgnoreIdentical(struct ParseState *Parser, char *Ident, struct ValueType *Typ, int IsStatic, int *FirstVisit);
 int VariableDefined(const char *Ident);
+void VariableRealloc(struct ParseState *Parser, struct Value *FromValue, int NewSize);
 void VariableGet(struct ParseState *Parser, const char *Ident, struct Value **LVal);
 void VariableDefinePlatformVar(struct ParseState *Parser, char *Ident, struct ValueType *Typ, union AnyValue *FromValue, int IsWritable);
 void VariableStackFrameAdd(struct ParseState *Parser, const char *FuncName, int NumParams);
