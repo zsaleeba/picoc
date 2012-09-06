@@ -178,46 +178,71 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
     return FuncValue;
 }
 
+/* parse an array initialiser and assign to a variable */
+int ParseArrayInitialiser(struct ParseState *Parser, struct Value *NewVariable, int DoAssignment)
+{
+    int ArrayIndex;
+    enum LexToken Token = TokenComma;
+    struct Value *CValue;
+    
+    /* count the number of elements in the array */
+    if (DoAssignment && Parser->Mode == RunModeRun)
+    {
+        struct ParseState CountParser;
+        int NumElements;
+        
+        ParserCopy(&CountParser, Parser);
+        NumElements = ParseArrayInitialiser(&CountParser, NewVariable, FALSE);
+        if (NewVariable->Typ->ArraySize == 0)
+            VariableRealloc(Parser, NewVariable, NumElements);
+        
+        else if (NewVariable->Typ->ArraySize != NumElements)
+            AssignFail(Parser, "from an array of size %d to one of size %d", NULL, NULL, NumElements, NewVariable->Typ->ArraySize, NULL, 0);
+    }
+    
+    /* parse the array initialiser */
+    for (ArrayIndex = 0; Token == TokenComma; ArrayIndex++)
+    {
+        struct Value *ArrayElement = NULL;
+        
+        if (Token != TokenComma)
+            ProgramFail(Parser, "comma expected");
+            
+        if (Parser->Mode == RunModeRun && DoAssignment)
+            ArrayElement = VariableAllocValueFromExistingData(Parser, NewVariable->Typ->FromType, (union AnyValue *)(&NewVariable->Val->ArrayMem[0] + TypeSize(NewVariable->Typ->FromType, 0, TRUE) * ArrayIndex), TRUE, NewVariable);
+            
+        if (!ExpressionParse(Parser, &CValue))
+            ProgramFail(Parser, "expression expected");
+            
+        if (Parser->Mode == RunModeRun && DoAssignment)
+        {
+            ExpressionAssign(Parser, ArrayElement, CValue, FALSE, NULL, 0, FALSE);
+            VariableStackPop(Parser, CValue);
+            VariableStackPop(Parser, ArrayElement);
+        }
+        
+        Token = LexGetToken(Parser, NULL, TRUE);
+    }
+    
+    if (Token == TokenComma)
+        Token = LexGetToken(Parser, NULL, TRUE);
+
+    if (Token != TokenRightBrace)
+        ProgramFail(Parser, "'}' expected");
+    
+    return ArrayIndex;
+}
+
 /* assign an initial value to a variable */
 void ParseDeclarationAssignment(struct ParseState *Parser, struct Value *NewVariable, int DoAssignment)
 {
     struct Value *CValue;
-    int ArrayIndex;
-    enum LexToken Token = TokenComma;
 
     if (LexGetToken(Parser, NULL, FALSE) == TokenLeftBrace)
     {
         /* this is an array initialiser */
         LexGetToken(Parser, NULL, TRUE);
-        
-        for (ArrayIndex = 0; (Parser->Mode != RunModeRun && Token == TokenComma) || (Parser->Mode == RunModeRun && ArrayIndex < NewVariable->Typ->ArraySize); ArrayIndex++)
-        {
-            struct Value *ArrayElement = NULL;
-            
-            if (Token != TokenComma)
-                ProgramFail(Parser, "comma expected");
-                
-            if (Parser->Mode == RunModeRun)
-                ArrayElement = VariableAllocValueFromExistingData(Parser, NewVariable->Typ->FromType, (union AnyValue *)(&NewVariable->Val->ArrayMem[0] + TypeSize(NewVariable->Typ->FromType, 0, TRUE) * ArrayIndex), TRUE, NewVariable);
-                
-            if (!ExpressionParse(Parser, &CValue))
-                ProgramFail(Parser, "expression expected");
-                
-            if (Parser->Mode == RunModeRun && DoAssignment)
-            {
-                ExpressionAssign(Parser, ArrayElement, CValue, FALSE, NULL, 0, FALSE);
-                VariableStackPop(Parser, CValue);
-                VariableStackPop(Parser, ArrayElement);
-            }
-            
-            Token = LexGetToken(Parser, NULL, TRUE);
-        }
-        
-        if (Token == TokenComma)
-            Token = LexGetToken(Parser, NULL, TRUE);
-
-        if (Token != TokenRightBrace)
-            ProgramFail(Parser, "'}' expected");
+        ParseArrayInitialiser(Parser, NewVariable, DoAssignment);
     }
     else
     {
