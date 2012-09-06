@@ -181,8 +181,8 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
 /* parse an array initialiser and assign to a variable */
 int ParseArrayInitialiser(struct ParseState *Parser, struct Value *NewVariable, int DoAssignment)
 {
-    int ArrayIndex;
-    enum LexToken Token = TokenComma;
+    int ArrayIndex = 0;
+    enum LexToken Token;
     struct Value *CValue;
     
     /* count the number of elements in the array */
@@ -201,13 +201,11 @@ int ParseArrayInitialiser(struct ParseState *Parser, struct Value *NewVariable, 
     }
     
     /* parse the array initialiser */
-    for (ArrayIndex = 0; Token == TokenComma; ArrayIndex++)
+    Token = LexGetToken(Parser, NULL, FALSE);
+    while (Token != TokenRightBrace)
     {
         struct Value *ArrayElement = NULL;
         
-        if (Token != TokenComma)
-            ProgramFail(Parser, "comma expected");
-            
         if (Parser->Mode == RunModeRun && DoAssignment)
             ArrayElement = VariableAllocValueFromExistingData(Parser, NewVariable->Typ->FromType, (union AnyValue *)(&NewVariable->Val->ArrayMem[0] + TypeSize(NewVariable->Typ->FromType, 0, TRUE) * ArrayIndex), TRUE, NewVariable);
             
@@ -221,13 +219,21 @@ int ParseArrayInitialiser(struct ParseState *Parser, struct Value *NewVariable, 
             VariableStackPop(Parser, ArrayElement);
         }
         
-        Token = LexGetToken(Parser, NULL, TRUE);
+        ArrayIndex++;
+
+        Token = LexGetToken(Parser, NULL, FALSE);
+        if (Token == TokenComma)
+        {
+            LexGetToken(Parser, NULL, TRUE);
+            Token = LexGetToken(Parser, NULL, FALSE);
+        }   
+        else if (Token != TokenRightBrace)
+            ProgramFail(Parser, "comma expected");
     }
     
-    if (Token == TokenComma)
-        Token = LexGetToken(Parser, NULL, TRUE);
-
-    if (Token != TokenRightBrace)
+    if (Token == TokenRightBrace)
+        LexGetToken(Parser, NULL, TRUE);
+    else
         ProgramFail(Parser, "'}' expected");
     
     return ArrayIndex;
