@@ -176,11 +176,11 @@ struct LibraryFunction StringFunctions[] =
 };
 
 /* creates various system-dependent definitions */
-void StringSetupFunc(void)
+void StringSetupFunc(Picoc *pc)
 {
     /* define NULL */
-    if (!VariableDefined(TableStrRegister("NULL")))
-        VariableDefinePlatformVar(NULL, "NULL", &IntType, (union AnyValue *)&ZeroValue, FALSE);
+    if (!VariableDefined(pc, TableStrRegister(pc, "NULL")))
+        VariableDefinePlatformVar(pc, NULL, "NULL", &pc->IntType, (union AnyValue *)&ZeroValue, FALSE);
 }
 
 #endif /* !BUILTIN_MINI_STDLIB */

@@ -16,6 +16,8 @@
 #define FALSE 0
 #endif
 
+#include "interpreter.h"
+
 
 #if defined(UNIX_HOST) || defined(WIN32)
 #include <setjmp.h>
@@ -35,18 +37,16 @@ extern int PicocExitBuf[];
 #endif
 
 /* parse.c */
-void PicocParse(const char *FileName, const char *Source, int SourceLen, int RunIt, int CleanupNow, int CleanupSource, int EnableDebugger);
-void PicocParseInteractive();
+void PicocParse(Picoc *pc, const char *FileName, const char *Source, int SourceLen, int RunIt, int CleanupNow, int CleanupSource, int EnableDebugger);
+void PicocParseInteractive(Picoc *pc);
 
 /* platform.c */
-void PicocCallMain(int argc, char **argv);
-void PicocInitialise(int StackSize);
-void PicocCleanup();
-void PicocPlatformScanFile(const char *FileName);
-
-extern int PicocExitValue;
+void PicocCallMain(Picoc *pc, int argc, char **argv);
+void PicocInitialise(Picoc *pc, int StackSize);
+void PicocCleanup(Picoc *pc);
+void PicocPlatformScanFile(Picoc *pc, const char *FileName);
 
 /* include.c */
-void PicocIncludeAllSystemHeaders();
+void PicocIncludeAllSystemHeaders(Picoc *pc);
 
 #endif /* PICOC_H */

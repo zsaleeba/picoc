@@ -482,17 +482,17 @@ struct LibraryFunction UnistdFunctions[] =
 };
 
 /* creates various system-dependent definitions */
-void UnistdSetupFunc(void)
+void UnistdSetupFunc(Picoc *pc)
 {
     /* define NULL */
-    if (!VariableDefined(TableStrRegister("NULL")))
-        VariableDefinePlatformVar(NULL, "NULL", &IntType, (union AnyValue *)&ZeroValue, FALSE);
+    if (!VariableDefined(pc, TableStrRegister(pc, "NULL")))
+        VariableDefinePlatformVar(pc, NULL, "NULL", &pc->IntType, (union AnyValue *)&ZeroValue, FALSE);
 
     /* define optarg and friends */
-    VariableDefinePlatformVar(NULL, "optarg", CharPtrType, (union AnyValue *)&optarg, TRUE);
-    VariableDefinePlatformVar(NULL, "optind", &IntType, (union AnyValue *)&optind, TRUE);
-    VariableDefinePlatformVar(NULL, "opterr", &IntType, (union AnyValue *)&opterr, TRUE);
-    VariableDefinePlatformVar(NULL, "optopt", &IntType, (union AnyValue *)&optopt, TRUE);
+    VariableDefinePlatformVar(pc, NULL, "optarg", pc->CharPtrType, (union AnyValue *)&optarg, TRUE);
+    VariableDefinePlatformVar(pc, NULL, "optind", &pc->IntType, (union AnyValue *)&optind, TRUE);
+    VariableDefinePlatformVar(pc, NULL, "opterr", &pc->IntType, (union AnyValue *)&opterr, TRUE);
+    VariableDefinePlatformVar(pc, NULL, "optopt", &pc->IntType, (union AnyValue *)&optopt, TRUE);
 }
 
 #endif /* !BUILTIN_MINI_STDLIB */

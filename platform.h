@@ -22,6 +22,7 @@
 #define GLOBAL_TABLE_SIZE 97                /* global variable table */
 #define STRING_TABLE_SIZE 97                /* shared string table size */
 #define STRING_LITERAL_TABLE_SIZE 97        /* string literal table size */
+#define RESERVED_WORD_TABLE_SIZE 97         /* reserved word table size */
 #define PARAMETER_MAX 16                    /* maximum number of parameters to a function */
 #define LINEBUFFER_MAX 256                  /* maximum number of characters on a line */
 #define LOCAL_TABLE_SIZE 11                 /* size of local variable table (can expand) */
