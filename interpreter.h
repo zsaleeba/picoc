@@ -445,7 +445,12 @@ struct Picoc_Struct
     const char *VersionString;
     
     /* exit longjump buffer */
+#if defined(UNIX_HOST) || defined(WIN32)
     jmp_buf PicocExitBuf;
+#endif
+#ifdef SURVEYOR_HOST
+    int PicocExitBuf[41];
+#endif
     
     /* string table */
     struct Table StringTable;

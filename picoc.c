@@ -44,7 +44,7 @@ int main(int argc, char **argv)
     }
     else
     {
-        if (PicocPlatformSetExitPoint())
+        if (PicocPlatformSetExitPoint(&pc))
         {
             PicocCleanup(&pc);
             return pc.PicocExitValue;

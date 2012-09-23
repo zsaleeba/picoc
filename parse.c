@@ -883,7 +883,7 @@ void PicocParseInteractiveNoStartPrompt(Picoc *pc, int EnableDebugger)
     enum ParseResult Ok;
     
     LexInitParser(&Parser, pc, NULL, NULL, pc->StrEmpty, TRUE, EnableDebugger);
-    PicocPlatformSetExitPoint();
+    PicocPlatformSetExitPoint(pc);
     LexInteractiveClear(pc, &Parser);
 
     do
