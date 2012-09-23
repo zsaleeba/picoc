@@ -49,7 +49,8 @@ TESTS=	00_assignment.test \
 	51_static.test \
 	52_unnamed_enum.test \
 	54_goto.test \
-	55_array_initialiser.test
+	55_array_initialiser.test \
+	56_cross_structure.test
 
 %.test: %.expect %.c
 	@echo Test: $*...

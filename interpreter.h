@@ -515,6 +515,7 @@ void TypeParseIdentPart(struct ParseState *Parser, struct ValueType *BasicTyp, s
 void TypeParse(struct ParseState *Parser, struct ValueType **Typ, char **Identifier, int *IsStatic);
 struct ValueType *TypeGetMatching(Picoc *pc, struct ParseState *Parser, struct ValueType *ParentType, enum BaseType Base, int ArraySize, const char *Identifier, int AllowDuplicates);
 struct ValueType *TypeCreateOpaqueStruct(Picoc *pc, struct ParseState *Parser, const char *StructName, int Size);
+int TypeIsForwardDeclared(struct ParseState *Parser, struct ValueType *Typ);
 
 /* heap.c */
 void HeapInit(Picoc *pc, int StackSize);

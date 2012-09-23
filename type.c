@@ -198,15 +198,18 @@ void TypeParseStruct(struct ParseState *Parser, struct ValueType **Typ, int IsSt
         StructIdentifier = PlatformMakeTempName(pc, TempNameBuf);
     }
 
-    *Typ = TypeGetMatching(pc, Parser, &Parser->pc->UberType, IsStruct ? TypeStruct : TypeUnion, 0, StructIdentifier, Token != TokenLeftBrace);
+    *Typ = TypeGetMatching(pc, Parser, &Parser->pc->UberType, IsStruct ? TypeStruct : TypeUnion, 0, StructIdentifier, TRUE);
+    if (Token == TokenLeftBrace && (*Typ)->Members != NULL)
+        ProgramFail(Parser, "data type '%t' is already defined", *Typ);
 
     Token = LexGetToken(Parser, NULL, FALSE);
     if (Token != TokenLeftBrace)
     { 
         /* use the already defined structure */
+#if 0
         if ((*Typ)->Members == NULL)
             ProgramFail(Parser, "structure '%s' isn't defined", LexValue->Val->Identifier);
-            
+#endif            
         return;
     }
     
@@ -527,3 +530,14 @@ void TypeParse(struct ParseState *Parser, struct ValueType **Typ, char **Identif
     TypeParseIdentPart(Parser, BasicType, Typ, Identifier);
 }
 
+/* check if a type has been fully defined - otherwise it's just a forward declaration */
+int TypeIsForwardDeclared(struct ParseState *Parser, struct ValueType *Typ)
+{
+    if (Typ->Base == TypeArray)
+        return TypeIsForwardDeclared(Parser, Typ->FromType);
+    
+    if ( (Typ->Base == TypeStruct || Typ->Base == TypeUnion) && Typ->Members == NULL)
+        return TRUE;
+        
+    return FALSE;
+}

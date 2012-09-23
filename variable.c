@@ -185,6 +185,10 @@ struct Value *VariableDefineButIgnoreIdentical(struct ParseState *Parser, char *
     int DeclLine;
     int DeclColumn;
     
+    /* is the type a forward declaration? */
+    if (TypeIsForwardDeclared(Parser, Typ))
+        ProgramFail(Parser, "type '%t' isn't defined", Typ);
+
     if (IsStatic)
     {
         char MangledName[LINEBUFFER_MAX];
