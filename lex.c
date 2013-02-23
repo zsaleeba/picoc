@@ -107,7 +107,12 @@ void LexInit(Picoc *pc)
 /* deallocate */
 void LexCleanup(Picoc *pc)
 {
+    int Count;
+
     LexInteractiveClear(pc, NULL);
+
+    for (Count = 0; Count < sizeof(ReservedWords) / sizeof(struct ReservedWord); Count++)
+        TableDelete(pc, &pc->ReservedWordTable, TableStrRegister(pc, ReservedWords[Count].Word));
 }
 
 /* check if a word is a reserved word - used while scanning */
