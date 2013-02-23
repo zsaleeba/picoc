@@ -1,6 +1,6 @@
 #include "../interpreter.h"
 
-void MsvcSetupFunc()
+void MsvcSetupFunc(Picoc *pc)
 {    
 }
 
