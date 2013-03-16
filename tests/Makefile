@@ -52,7 +52,17 @@ TESTS=	00_assignment.test \
 	55_array_initialiser.test \
 	56_cross_structure.test \
 	57_macro_bug.test \
-	59_break_before_loop.test
+	58_return_outside.test \
+	59_break_before_loop.test \
+	60_local_vars.test \
+	61_initializers.test \
+	62_float.test \
+	63_typedef.test \
+	64_double_prefix_op.test \
+	65_typeless.test \
+
+
+include csmith/Makefile
 
 %.test: %.expect %.c
 	@echo Test: $*...
@@ -75,3 +85,7 @@ all: test
 
 test: $(TESTS)
 	@echo "test passed"
+
+csmith: $(CSMITH_TESTS)
+	@echo "CSmith test passed"
+
