@@ -51,6 +51,7 @@ TESTS=	00_assignment.test \
 	54_goto.test \
 	55_array_initialiser.test \
 	56_cross_structure.test \
+	57_macro_bug.test \
 	59_break_before_loop.test
 
 %.test: %.expect %.c

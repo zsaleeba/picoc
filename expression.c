@@ -8,6 +8,11 @@
 #define BRACKET_PRECEDENCE 20
 #define IS_TYPE_TOKEN(t) ((t) >= TokenIntType && (t) <= TokenUnsignedType)
 
+/* If the destination is not float, we can't assign a floating value to it, we need to convert it to integer instead */
+#define ASSIGN_FP_OR_INT(value) \
+        if (IS_FP(BottomValue)) { ResultFP = ExpressionAssignFP(Parser, BottomValue, value); } \
+        else { ResultInt = ExpressionAssignInt(Parser, BottomValue, (long)(value), FALSE); ResultIsInt = TRUE; } \
+
 #define DEEP_PRECEDENCE (BRACKET_PRECEDENCE*1000)
 
 #ifdef DEBUG_EXPRESSIONS
@@ -655,11 +660,11 @@ void ExpressionInfixOperator(struct ParseState *Parser, struct ExpressionStack *
 
         switch (Op)
         {
-            case TokenAssign:               ResultFP = ExpressionAssignFP(Parser, BottomValue, TopFP); break;
-            case TokenAddAssign:            ResultFP = ExpressionAssignFP(Parser, BottomValue, BottomFP + TopFP); break;
-            case TokenSubtractAssign:       ResultFP = ExpressionAssignFP(Parser, BottomValue, BottomFP - TopFP); break;
-            case TokenMultiplyAssign:       ResultFP = ExpressionAssignFP(Parser, BottomValue, BottomFP * TopFP); break;
-            case TokenDivideAssign:         ResultFP = ExpressionAssignFP(Parser, BottomValue, BottomFP / TopFP); break;
+            case TokenAssign:               ASSIGN_FP_OR_INT(TopFP); break;
+            case TokenAddAssign:            ASSIGN_FP_OR_INT(BottomFP + TopFP); break;
+            case TokenSubtractAssign:       ASSIGN_FP_OR_INT(BottomFP - TopFP); break;
+            case TokenMultiplyAssign:       ASSIGN_FP_OR_INT(BottomFP * TopFP); break;
+            case TokenDivideAssign:         ASSIGN_FP_OR_INT(BottomFP / TopFP); break;
             case TokenEqual:                ResultInt = BottomFP == TopFP; ResultIsInt = TRUE; break;
             case TokenNotEqual:             ResultInt = BottomFP != TopFP; ResultIsInt = TRUE; break;
             case TokenLessThan:             ResultInt = BottomFP < TopFP; ResultIsInt = TRUE; break;
