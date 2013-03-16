@@ -766,12 +766,16 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
         case TokenReturn:
             if (Parser->Mode == RunModeRun)
             {
-                if (Parser->pc->TopStackFrame->ReturnValue->Typ->Base != TypeVoid)
+                if (!Parser->pc->TopStackFrame || Parser->pc->TopStackFrame->ReturnValue->Typ->Base != TypeVoid)
                 {
                     if (!ExpressionParse(Parser, &CValue))
                         ProgramFail(Parser, "value required in return");
                     
-                    ExpressionAssign(Parser, Parser->pc->TopStackFrame->ReturnValue, CValue, TRUE, NULL, 0, FALSE);
+                    if (!Parser->pc->TopStackFrame) /* return from top-level program? */
+                        PlatformExit(Parser->pc, ExpressionCoerceInteger(CValue));
+                    else
+                        ExpressionAssign(Parser, Parser->pc->TopStackFrame->ReturnValue, CValue, TRUE, NULL, 0, FALSE);
+
                     VariableStackPop(Parser, CValue);
                 }
                 else
