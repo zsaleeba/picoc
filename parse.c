@@ -75,7 +75,7 @@ struct Value *ParseFunctionDefinition(struct ParseState *Parser, struct ValueTyp
     ParserCopy(&ParamParser, Parser);
     ParamCount = ParseCountParams(Parser);
     if (ParamCount > PARAMETER_MAX)
-        ProgramFail(Parser, "too many parameters");
+        ProgramFail(Parser, "too many parameters (%d allowed)", PARAMETER_MAX);
     
     FuncValue = VariableAllocValueAndData(pc, Parser, sizeof(struct FuncDef) + sizeof(struct ValueType *) * ParamCount + sizeof(const char *) * ParamCount, FALSE, NULL, TRUE);
     FuncValue->Typ = &pc->FunctionType;
