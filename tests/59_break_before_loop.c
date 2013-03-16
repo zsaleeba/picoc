@@ -43,5 +43,18 @@ int main()
         printf("a=%d\n",a);
  }
 
+ printf("\nTest 4\n");
+
+ a = 0; c = 0;
+ for (c=0;c<10;c++)
+ {
+    printf("c=%d\n",c);
+    foo();
+    continue;
+    for (a = 0; a < 2; a++)
+        printf("a=%d\n",a);
+    printf("bar\n");
+ }
+
  return 0;
 }

@@ -6,7 +6,6 @@
 /* whether evaluation is left to right for a given precedence level */
 #define IS_LEFT_TO_RIGHT(p) ((p) != 2 && (p) != 14)
 #define BRACKET_PRECEDENCE 20
-#define IS_TYPE_TOKEN(t) ((t) >= TokenIntType && (t) <= TokenUnsignedType)
 
 /* If the destination is not float, we can't assign a floating value to it, we need to convert it to integer instead */
 #define ASSIGN_FP_OR_INT(value) \
@@ -142,6 +141,26 @@ void ExpressionStackShow(struct ExpressionStack *StackTop)
 }
 #endif
 
+int IsTypeToken(struct ParseState * Parser, enum LexToken t, struct Value * LexValue)
+{
+    if (t >= TokenIntType && t <= TokenUnsignedType)
+        return 1; /* base type */
+    
+    /* typedef'ed type? */
+    if (t == TokenIdentifier) /* see TypeParseFront, case TokenIdentifier and ParseTypedef */
+    {
+        struct Value * VarValue;
+        if (VariableDefined(Parser->pc, LexValue->Val->Pointer))
+        {
+            VariableGet(Parser->pc, Parser, LexValue->Val->Pointer, &VarValue);
+            if (VarValue->Typ == &Parser->pc->TypeType)
+                return 1;
+        }
+    }
+    
+    return 0;
+}
+
 long ExpressionCoerceInteger(struct Value *Val)
 {
     switch (Val->Typ->Base)
@@ -153,6 +172,7 @@ long ExpressionCoerceInteger(struct Value *Val)
         case TypeUnsignedInt:     return (long)Val->Val->UnsignedInteger;
         case TypeUnsignedShort:   return (long)Val->Val->UnsignedShortInteger;
         case TypeUnsignedLong:    return (long)Val->Val->UnsignedLongInteger;
+        case TypeUnsignedChar:    return (long)Val->Val->UnsignedCharacter;
         case TypePointer:         return (long)Val->Val->Pointer;
 #ifndef NO_FP
         case TypeFP:              return (long)Val->Val->FP;
@@ -172,6 +192,7 @@ unsigned long ExpressionCoerceUnsignedInteger(struct Value *Val)
         case TypeUnsignedInt:     return (unsigned long)Val->Val->UnsignedInteger;
         case TypeUnsignedShort:   return (unsigned long)Val->Val->UnsignedShortInteger;
         case TypeUnsignedLong:    return (unsigned long)Val->Val->UnsignedLongInteger;
+        case TypeUnsignedChar:    return (unsigned long)Val->Val->UnsignedCharacter;
         case TypePointer:         return (unsigned long)Val->Val->Pointer;
 #ifndef NO_FP
         case TypeFP:              return (unsigned long)Val->Val->FP;
@@ -196,6 +217,7 @@ double ExpressionCoerceFP(struct Value *Val)
         case TypeUnsignedInt:     UnsignedVal = Val->Val->UnsignedInteger; return (double)UnsignedVal;
         case TypeUnsignedShort:   UnsignedVal = Val->Val->UnsignedShortInteger; return (double)UnsignedVal;
         case TypeUnsignedLong:    UnsignedVal = Val->Val->UnsignedLongInteger; return (double)UnsignedVal;
+        case TypeUnsignedChar:    UnsignedVal = Val->Val->UnsignedCharacter; return (double)UnsignedVal;
         case TypeFP:              return Val->Val->FP;
         default:                  return 0.0;
     }
@@ -209,6 +231,7 @@ double ExpressionCoerceFP(struct Value *Val)
         case TypeUnsignedInt:     return (double)Val->Val->UnsignedInteger;
         case TypeUnsignedShort:   return (double)Val->Val->UnsignedShortInteger;
         case TypeUnsignedLong:    return (double)Val->Val->UnsignedLongInteger;
+        case TypeUnsignedChar:    return (double)Val->Val->UnsignedCharacter;
         case TypeFP:              return (double)Val->Val->FP;
         default:                  return 0.0;
     }
@@ -233,11 +256,12 @@ long ExpressionAssignInt(struct ParseState *Parser, struct Value *DestValue, lon
     {
         case TypeInt:           DestValue->Val->Integer = FromInt; break;
         case TypeShort:         DestValue->Val->ShortInteger = (short)FromInt; break;
-        case TypeChar:          DestValue->Val->Character = (unsigned char)FromInt; break;
+        case TypeChar:          DestValue->Val->Character = (char)FromInt; break;
         case TypeLong:          DestValue->Val->LongInteger = (long)FromInt; break;
         case TypeUnsignedInt:   DestValue->Val->UnsignedInteger = (unsigned int)FromInt; break;
         case TypeUnsignedShort: DestValue->Val->UnsignedShortInteger = (unsigned short)FromInt; break;
         case TypeUnsignedLong:  DestValue->Val->UnsignedLongInteger = (unsigned long)FromInt; break;
+        case TypeUnsignedChar:  DestValue->Val->UnsignedCharacter = (unsigned char)FromInt; break;
         default: break;
     }
     return Result;
@@ -376,11 +400,12 @@ void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct
     {
         case TypeInt:           DestValue->Val->Integer = ExpressionCoerceInteger(SourceValue); break;
         case TypeShort:         DestValue->Val->ShortInteger = (short)ExpressionCoerceInteger(SourceValue); break;
-        case TypeChar:          DestValue->Val->Character = (unsigned char)ExpressionCoerceUnsignedInteger(SourceValue); break;
+        case TypeChar:          DestValue->Val->Character = (char)ExpressionCoerceInteger(SourceValue); break;
         case TypeLong:          DestValue->Val->LongInteger = ExpressionCoerceInteger(SourceValue); break;
         case TypeUnsignedInt:   DestValue->Val->UnsignedInteger = ExpressionCoerceUnsignedInteger(SourceValue); break;
         case TypeUnsignedShort: DestValue->Val->UnsignedShortInteger = (unsigned short)ExpressionCoerceUnsignedInteger(SourceValue); break;
         case TypeUnsignedLong:  DestValue->Val->UnsignedLongInteger = ExpressionCoerceUnsignedInteger(SourceValue); break;
+        case TypeUnsignedChar:  DestValue->Val->UnsignedCharacter = (unsigned char)ExpressionCoerceUnsignedInteger(SourceValue); break;
 
 #ifndef NO_FP
         case TypeFP:
@@ -407,6 +432,29 @@ void ExpressionAssign(struct ParseState *Parser, struct Value *DestValue, struct
                     DestValue->LValueFrom->Val = DestValue->Val;
                     DestValue->LValueFrom->AnyValOnHeap = DestValue->AnyValOnHeap;
                 }
+            }
+
+            /* char array = "abcd" */
+            if (DestValue->Typ->FromType->Base == TypeChar && SourceValue->Typ->Base == TypePointer && SourceValue->Typ->FromType->Base == TypeChar)
+            {
+                if (DestValue->Typ->ArraySize == 0) /* char x[] = "abcd", x is unsized */
+                {
+                    int Size = strlen(SourceValue->Val->Pointer) + 1;
+                    #ifdef DEBUG_ARRAY_INITIALIZER
+                    PRINT_SOURCE_POS;
+                    fprintf(stderr, "str size: %d\n", Size);
+                    #endif
+                    DestValue->Typ = TypeGetMatching(Parser->pc, Parser, DestValue->Typ->FromType, DestValue->Typ->Base, Size, DestValue->Typ->Identifier, TRUE);
+                    VariableRealloc(Parser, DestValue, TypeSizeValue(DestValue, FALSE));
+                }
+                /* else, it's char x[10] = "abcd" */
+
+                #ifdef DEBUG_ARRAY_INITIALIZER
+                PRINT_SOURCE_POS;
+                fprintf(stderr, "char[%d] from char* (len=%d)\n", DestValue->Typ->ArraySize, strlen(SourceValue->Val->Pointer));
+                #endif
+                memcpy((void *)DestValue->Val, SourceValue->Val->Pointer, TypeSizeValue(DestValue, FALSE));
+                break;
             }
 
             if (DestValue->Typ != SourceValue->Typ)
@@ -508,6 +556,9 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
                 {
                     case TokenPlus:         ResultFP = TopValue->Val->FP; break;
                     case TokenMinus:        ResultFP = -TopValue->Val->FP; break;
+                    case TokenIncrement:    ResultFP = ExpressionAssignFP(Parser, TopValue, TopValue->Val->FP+1); break;
+                    case TokenDecrement:    ResultFP = ExpressionAssignFP(Parser, TopValue, TopValue->Val->FP-1); break;
+                    case TokenUnaryNot:     ResultFP = !TopValue->Val->FP; break;
                     default:                ProgramFail(Parser, "invalid operation"); break;
                 }
                 
@@ -567,6 +618,23 @@ void ExpressionPrefixOperator(struct ParseState *Parser, struct ExpressionStack 
 void ExpressionPostfixOperator(struct ParseState *Parser, struct ExpressionStack **StackTop, enum LexToken Op, struct Value *TopValue)
 {
     debugf("ExpressionPostfixOperator()\n");
+#ifndef NO_FP
+    if (TopValue->Typ == &Parser->pc->FPType)
+    {
+        /* floating point prefix arithmetic */
+        double ResultFP = 0.0;
+        
+        switch (Op)
+        {
+            case TokenIncrement:    ResultFP = ExpressionAssignFP(Parser, TopValue, TopValue->Val->FP+1); break;
+            case TokenDecrement:    ResultFP = ExpressionAssignFP(Parser, TopValue, TopValue->Val->FP-1); break;
+            default:                ProgramFail(Parser, "invalid operation"); break;
+        }
+        
+        ExpressionPushFP(Parser, StackTop, ResultFP);
+    }
+    else 
+#endif
     if (IS_NUMERIC_COERCIBLE(TopValue))
     {
         long ResultInt = 0;
@@ -861,7 +929,7 @@ void ExpressionStackCollapse(struct ParseState *Parser, struct ExpressionStack *
                     *StackTop = TopOperatorNode->Next;
                     
                     /* do the prefix operation */
-                    if (Parser->Mode == RunModeRun && FoundPrecedence < *IgnorePrecedence)
+                    if (Parser->Mode == RunModeRun /* && FoundPrecedence < *IgnorePrecedence */)
                     {
                         /* run the operator */
                         ExpressionPrefixOperator(Parser, StackTop, TopOperatorNode->Op, TopValue);
@@ -884,7 +952,7 @@ void ExpressionStackCollapse(struct ParseState *Parser, struct ExpressionStack *
                     *StackTop = TopStackNode->Next->Next;
 
                     /* do the postfix operation */
-                    if (Parser->Mode == RunModeRun && FoundPrecedence < *IgnorePrecedence)
+                    if (Parser->Mode == RunModeRun /* && FoundPrecedence < *IgnorePrecedence */)
                     {
                         /* run the operator */
                         ExpressionPostfixOperator(Parser, StackTop, TopOperatorNode->Op, TopValue);
@@ -911,7 +979,7 @@ void ExpressionStackCollapse(struct ParseState *Parser, struct ExpressionStack *
                         *StackTop = TopOperatorNode->Next->Next;
                         
                         /* do the infix operation */
-                        if (Parser->Mode == RunModeRun && FoundPrecedence <= *IgnorePrecedence)
+                        if (Parser->Mode == RunModeRun /* && FoundPrecedence <= *IgnorePrecedence */)
                         {
                             /* run the operator */
                             ExpressionInfixOperator(Parser, StackTop, TopOperatorNode->Op, BottomValue, TopValue);
@@ -982,7 +1050,7 @@ void ExpressionGetStructElement(struct ParseState *Parser, struct ExpressionStac
         struct Value *StructVal = ParamVal;
         struct ValueType *StructType = ParamVal->Typ;
         char *DerefDataLoc = (char *)ParamVal->Val;
-        struct Value *MemberValue;
+        struct Value *MemberValue = NULL;
         struct Value *Result;
 
         /* if we're doing '->' dereference the struct pointer first */
@@ -1044,7 +1112,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                 { 
                     /* it's either a new bracket level or a cast */
                     enum LexToken BracketToken = LexGetToken(Parser, &LexValue, FALSE);
-                    if (IS_TYPE_TOKEN(BracketToken) && (StackTop == NULL || StackTop->Op != TokenSizeof) )
+                    if (IsTypeToken(Parser, BracketToken, LexValue) && (StackTop == NULL || StackTop->Op != TokenSizeof) )
                     {
                         /* it's a cast - get the new type */
                         struct ValueType *CastType;
@@ -1073,8 +1141,22 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                 else
                 { 
                     /* scan and collapse the stack to the precedence of this operator, then push */
+                    
+                    /* take some extra care for double prefix operators, e.g. x = - -5, or x = **y */
+                    int NextToken = LexGetToken(Parser, NULL, FALSE);
+                    int TempPrecedenceBoost = 0;
+                    if (NextToken > TokenComma && NextToken < TokenOpenBracket)
+                    {
+                        int NextPrecedence = OperatorPrecedence[(int)NextToken].PrefixPrecedence;
+                        
+                        /* two prefix operators with equal precedence? make sure the innermost one runs first */
+                        /* XXX - probably not correct, but can't find a test that fails at this */
+                        if (LocalPrecedence == NextPrecedence)
+                            TempPrecedenceBoost = -1;
+                    }
+
                     ExpressionStackCollapse(Parser, &StackTop, Precedence, &IgnorePrecedence);
-                    ExpressionStackPushOperator(Parser, &StackTop, OrderPrefix, Token, Precedence);
+                    ExpressionStackPushOperator(Parser, &StackTop, OrderPrefix, Token, Precedence + TempPrecedenceBoost);
                 }
             }
             else
@@ -1170,7 +1252,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
             }
             else
             {
-                if (Parser->Mode == RunModeRun && Precedence < IgnorePrecedence)
+                if (Parser->Mode == RunModeRun /* && Precedence < IgnorePrecedence */)
                 {
                     struct Value *VariableValue = NULL;
                     
@@ -1215,7 +1297,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
             PrefixState = FALSE;
             ExpressionStackPushValue(Parser, &StackTop, LexValue);
         }
-        else if (IS_TYPE_TOKEN(Token))
+        else if (IsTypeToken(Parser, Token, LexValue))
         {
             /* it's a type. push it on the stack like a value. this is used in sizeof() */
             struct ValueType *Typ;
@@ -1357,7 +1439,7 @@ void ExpressionParseMacroCall(struct ParseState *Parser, struct ExpressionStack 
 void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionStack **StackTop, const char *FuncName, int RunIt)
 {
     struct Value *ReturnValue = NULL;
-    struct Value *FuncValue;
+    struct Value *FuncValue = NULL;
     struct Value *Param;
     struct Value **ParamArray = NULL;
     int ArgCount;
@@ -1440,6 +1522,7 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
             /* run a user-defined function */
             struct ParseState FuncParser;
             int Count;
+            int OldScopeID = Parser->ScopeID;
             
             if (FuncValue->Val->FuncDef.Body.Pos == NULL)
                 ProgramFail(Parser, "'%s' is undefined", FuncName);
@@ -1448,12 +1531,18 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
             VariableStackFrameAdd(Parser, FuncName, FuncValue->Val->FuncDef.Intrinsic ? FuncValue->Val->FuncDef.NumParams : 0);
             Parser->pc->TopStackFrame->NumParams = ArgCount;
             Parser->pc->TopStackFrame->ReturnValue = ReturnValue;
+
+            /* Function parameters should not go out of scope */
+            Parser->ScopeID = -1;
+
             for (Count = 0; Count < FuncValue->Val->FuncDef.NumParams; Count++)
                 VariableDefine(Parser->pc, Parser, FuncValue->Val->FuncDef.ParamName[Count], ParamArray[Count], NULL, TRUE);
+
+            Parser->ScopeID = OldScopeID;
                 
             if (ParseStatement(&FuncParser, TRUE) != ParseResultOk)
                 ProgramFail(&FuncParser, "function body expected");
-        
+            
             if (RunIt)
             {
                 if (FuncParser.Mode == RunModeRun && FuncValue->Val->FuncDef.ReturnType != &Parser->pc->VoidType)

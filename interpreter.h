@@ -26,6 +26,10 @@
 
 #define GETS_BUF_MAX 256
 
+/* for debugging */
+#define PRINT_SOURCE_POS ({ PrintSourceTextErrorLine(Parser->pc->CStdOut, Parser->FileName, Parser->SourceText, Parser->Line, Parser->CharacterPos); PlatformPrintf(Parser->pc->CStdOut, "\n"); })
+#define PRINT_TYPE(typ) PlatformPrintf(Parser->pc->CStdOut, "%t\n", typ);
+
 /* small processors use a simplified FILE * for stdio, otherwise use the system FILE * */
 #ifdef BUILTIN_MINI_STDLIB
 typedef struct OutputStream IOFILE;
@@ -123,6 +127,7 @@ struct ParseState
     short int HashIfLevel;      /* how many "if"s we're nested down */
     short int HashIfEvaluateToLevel;    /* if we're not evaluating an if branch, what the last evaluated level was */
     char DebugMode;             /* debugging mode */
+    int ScopeID;                /* for keeping track of local variables (free them after they go out of scope) */
 };
 
 /* values */
@@ -131,10 +136,11 @@ enum BaseType
     TypeVoid,                   /* no type */
     TypeInt,                    /* integer */
     TypeShort,                  /* short integer */
-    TypeChar,                   /* a single character (unsigned) */
+    TypeChar,                   /* a single character (signed) */
     TypeLong,                   /* long integer */
     TypeUnsignedInt,            /* unsigned integer */
     TypeUnsignedShort,          /* unsigned short integer */
+    TypeUnsignedChar,           /* unsigned 8-bit number */ /* must be before unsigned long */
     TypeUnsignedLong,           /* unsigned long integer */
 #ifndef NO_FP
     TypeFP,                     /* floating point */
@@ -189,13 +195,14 @@ struct MacroDef
 /* values */
 union AnyValue
 {
-    unsigned char Character;
+    char Character;
     short ShortInteger;
     int Integer;
     long LongInteger;
     unsigned short UnsignedShortInteger;
     unsigned int UnsignedInteger;
     unsigned long UnsignedLongInteger;
+    unsigned char UnsignedCharacter;
     char *Identifier;
     char ArrayMem[2];               /* placeholder for where the data starts, doesn't point to it */
     struct ValueType *Typ;
@@ -216,6 +223,8 @@ struct Value
     char ValOnStack;                /* the AnyValue is on the stack along with this Value */
     char AnyValOnHeap;              /* the AnyValue is separately allocated from the Value on the heap */
     char IsLValue;                  /* is modifiable and is allocated somewhere we can usefully modify it */
+    int ScopeID;                    /* to know when it goes out of scope */
+    char OutOfScope;
 };
 
 /* hash table data structure */
@@ -414,6 +423,7 @@ struct Picoc_Struct
     struct ValueType UnsignedIntType;
     struct ValueType UnsignedShortType;
     struct ValueType UnsignedLongType;
+    struct ValueType UnsignedCharType;
     #ifndef NO_FP
     struct ValueType FPType;
     #endif
@@ -543,6 +553,7 @@ struct Value *VariableAllocValueShared(struct ParseState *Parser, struct Value *
 struct Value *VariableDefine(Picoc *pc, struct ParseState *Parser, char *Ident, struct Value *InitValue, struct ValueType *Typ, int MakeWritable);
 struct Value *VariableDefineButIgnoreIdentical(struct ParseState *Parser, char *Ident, struct ValueType *Typ, int IsStatic, int *FirstVisit);
 int VariableDefined(Picoc *pc, const char *Ident);
+int VariableDefinedAndOutOfScope(Picoc *pc, const char *Ident);
 void VariableRealloc(struct ParseState *Parser, struct Value *FromValue, int NewSize);
 void VariableGet(Picoc *pc, struct ParseState *Parser, const char *Ident, struct Value **LVal);
 void VariableDefinePlatformVar(Picoc *pc, struct ParseState *Parser, char *Ident, struct ValueType *Typ, union AnyValue *FromValue, int IsWritable);
@@ -551,6 +562,8 @@ void VariableStackFramePop(struct ParseState *Parser);
 struct Value *VariableStringLiteralGet(Picoc *pc, char *Ident);
 void VariableStringLiteralDefine(Picoc *pc, char *Ident, struct Value *Val);
 void *VariableDereferencePointer(struct ParseState *Parser, struct Value *PointerValue, struct Value **DerefVal, int *DerefOffset, struct ValueType **DerefType, int *DerefIsLValue);
+int VariableScopeBegin(struct ParseState * Parser, int* PrevScopeID);
+void VariableScopeEnd(struct ParseState * Parser, int ScopeID, int PrevScopeID);
 
 /* clibrary.c */
 void BasicIOInit(Picoc *pc);

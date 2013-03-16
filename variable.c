@@ -95,6 +95,10 @@ struct Value *VariableAllocValueAndData(Picoc *pc, struct ParseState *Parser, in
     NewValue->ValOnStack = !OnHeap;
     NewValue->IsLValue = IsLValue;
     NewValue->LValueFrom = LValueFrom;
+    if (Parser) 
+        NewValue->ScopeID = Parser->ScopeID;
+
+    NewValue->OutOfScope = 0;
     
     return NewValue;
 }
@@ -158,10 +162,109 @@ void VariableRealloc(struct ParseState *Parser, struct Value *FromValue, int New
     FromValue->AnyValOnHeap = TRUE;
 }
 
+int VariableScopeBegin(struct ParseState * Parser, int* OldScopeID)
+{
+    struct TableEntry *Entry;
+    struct TableEntry *NextEntry;
+    Picoc * pc = Parser->pc;
+    int Count;
+    #ifdef VAR_SCOPE_DEBUG
+    int FirstPrint = 0;
+    #endif
+    
+    struct Table * HashTable = (pc->TopStackFrame == NULL) ? &(pc->GlobalTable) : &(pc->TopStackFrame)->LocalTable;
+
+    if (Parser->ScopeID == -1) return -1;
+
+    /* XXX dumb hash, let's hope for no collisions... */
+    *OldScopeID = Parser->ScopeID;
+    Parser->ScopeID = (int)(intptr_t)(Parser->SourceText) * ((int)(intptr_t)(Parser->Pos) / sizeof(char*));
+    /* or maybe a more human-readable hash for debugging? */
+    /* Parser->ScopeID = Parser->Line * 0x10000 + Parser->CharacterPos; */
+    
+    for (Count = 0; Count < HashTable->Size; Count++)
+    {
+        for (Entry = HashTable->HashTable[Count]; Entry != NULL; Entry = NextEntry)
+        {
+            NextEntry = Entry->Next;
+            if (Entry->p.v.Val->ScopeID == Parser->ScopeID && Entry->p.v.Val->OutOfScope)
+            {
+                Entry->p.v.Val->OutOfScope = FALSE;
+                Entry->p.v.Key = (char*)((intptr_t)Entry->p.v.Key & ~1);
+                #ifdef VAR_SCOPE_DEBUG
+                if (!FirstPrint) { PRINT_SOURCE_POS; }
+                FirstPrint = 1;
+                printf(">>> back into scope: %s %x %d\n", Entry->p.v.Key, Entry->p.v.Val->ScopeID, Entry->p.v.Val->Val->Integer);
+                #endif
+            }
+        }
+    }
+
+    return Parser->ScopeID;
+}
+
+void VariableScopeEnd(struct ParseState * Parser, int ScopeID, int PrevScopeID)
+{
+    struct TableEntry *Entry;
+    struct TableEntry *NextEntry;
+    Picoc * pc = Parser->pc;
+    int Count;
+    #ifdef VAR_SCOPE_DEBUG
+    int FirstPrint = 0;
+    #endif
+
+    struct Table * HashTable = (pc->TopStackFrame == NULL) ? &(pc->GlobalTable) : &(pc->TopStackFrame)->LocalTable;
+
+    if (ScopeID == -1) return;
+
+    for (Count = 0; Count < HashTable->Size; Count++)
+    {
+        for (Entry = HashTable->HashTable[Count]; Entry != NULL; Entry = NextEntry)
+        {
+            NextEntry = Entry->Next;
+            if (Entry->p.v.Val->ScopeID == ScopeID && !Entry->p.v.Val->OutOfScope)
+            {
+                #ifdef VAR_SCOPE_DEBUG
+                if (!FirstPrint) { PRINT_SOURCE_POS; }
+                FirstPrint = 1;
+                printf(">>> out of scope: %s %x %d\n", Entry->p.v.Key, Entry->p.v.Val->ScopeID, Entry->p.v.Val->Val->Integer);
+                #endif
+                Entry->p.v.Val->OutOfScope = TRUE;
+                Entry->p.v.Key = (char*)((intptr_t)Entry->p.v.Key | 1); /* alter the key so it won't be found by normal searches */
+            }
+        }
+    }
+
+    Parser->ScopeID = PrevScopeID;
+}
+
+int VariableDefinedAndOutOfScope(Picoc * pc, const char* Ident)
+{
+    struct TableEntry *Entry;
+    int Count;
+
+    struct Table * HashTable = (pc->TopStackFrame == NULL) ? &(pc->GlobalTable) : &(pc->TopStackFrame)->LocalTable;
+    for (Count = 0; Count < HashTable->Size; Count++)
+    {
+        for (Entry = HashTable->HashTable[Count]; Entry != NULL; Entry = Entry->Next)
+        {
+            if (Entry->p.v.Val->OutOfScope && (char*)((intptr_t)Entry->p.v.Key & ~1) == Ident)
+                return TRUE;
+        }
+    }
+    return FALSE;
+}
+
 /* define a variable. Ident must be registered */
 struct Value *VariableDefine(Picoc *pc, struct ParseState *Parser, char *Ident, struct Value *InitValue, struct ValueType *Typ, int MakeWritable)
 {
-    struct Value *AssignValue;
+    struct Value * AssignValue;
+    struct Table * currentTable = (pc->TopStackFrame == NULL) ? &(pc->GlobalTable) : &(pc->TopStackFrame)->LocalTable;
+    
+    int ScopeID = Parser ? Parser->ScopeID : -1;
+#ifdef VAR_SCOPE_DEBUG
+    if (Parser) fprintf(stderr, "def %s %x (%s:%d:%d)\n", Ident, ScopeID, Parser->FileName, Parser->Line, Parser->CharacterPos);
+#endif
     
     if (InitValue != NULL)
         AssignValue = VariableAllocValueAndCopy(pc, Parser, InitValue, pc->TopStackFrame == NULL);
@@ -169,8 +272,10 @@ struct Value *VariableDefine(Picoc *pc, struct ParseState *Parser, char *Ident, 
         AssignValue = VariableAllocValueFromType(pc, Parser, Typ, MakeWritable, NULL, pc->TopStackFrame == NULL);
     
     AssignValue->IsLValue = MakeWritable;
-        
-    if (!TableSet(pc, (pc->TopStackFrame == NULL) ? &(pc->GlobalTable) : &(pc->TopStackFrame)->LocalTable, Ident, AssignValue, Parser ? ((char *)Parser->FileName) : NULL, Parser ? Parser->Line : 0, Parser ? Parser->CharacterPos : 0))
+    AssignValue->ScopeID = ScopeID;
+    AssignValue->OutOfScope = FALSE;
+
+    if (!TableSet(pc, currentTable, Ident, AssignValue, Parser ? ((char *)Parser->FileName) : NULL, Parser ? Parser->Line : 0, Parser ? Parser->CharacterPos : 0))
         ProgramFail(Parser, "'%s' is already defined", Ident);
     
     return AssignValue;
@@ -257,7 +362,12 @@ void VariableGet(Picoc *pc, struct ParseState *Parser, const char *Ident, struct
     if (pc->TopStackFrame == NULL || !TableGet(&pc->TopStackFrame->LocalTable, Ident, LVal, NULL, NULL, NULL))
     {
         if (!TableGet(&pc->GlobalTable, Ident, LVal, NULL, NULL, NULL))
-            ProgramFail(Parser, "'%s' is undefined", Ident);
+        {
+            if (VariableDefinedAndOutOfScope(pc, Ident))
+                ProgramFail(Parser, "'%s' is out of scope", Ident);
+            else
+                ProgramFail(Parser, "'%s' is undefined", Ident);
+        }
     }
 }
 

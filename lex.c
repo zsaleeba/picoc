@@ -129,12 +129,17 @@ enum LexToken LexCheckReservedWord(Picoc *pc, const char *Word)
 /* get a numeric literal - used while scanning */
 enum LexToken LexGetNumber(Picoc *pc, struct LexState *Lexer, struct Value *Value)
 {
-    int Result = 0;
-    int Base = 10;
+    long Result = 0;
+    long Base = 10;
     enum LexToken ResultToken;
 #ifndef NO_FP
     double FPResult;
     double FPDiv;
+#endif
+    /* long/unsigned flags */
+#if 0 /* unused for now */
+    char IsLong = 0;
+    char IsUnsigned = 0;
 #endif
     
     if (*Lexer->Pos == '0')
@@ -155,46 +160,57 @@ enum LexToken LexGetNumber(Picoc *pc, struct LexState *Lexer, struct Value *Valu
     /* get the value */
     for (; Lexer->Pos != Lexer->End && IS_BASE_DIGIT(*Lexer->Pos, Base); LEXER_INC(Lexer))
         Result = Result * Base + GET_BASE_DIGIT(*Lexer->Pos);
+
+    if (*Lexer->Pos == 'u' || *Lexer->Pos == 'U')
+    {
+        LEXER_INC(Lexer);
+        /* IsUnsigned = 1; */
+    }
+    if (*Lexer->Pos == 'l' || *Lexer->Pos == 'L')
+    {
+        LEXER_INC(Lexer);
+        /* IsLong = 1; */
+    }
     
-    if (Result >= 0 && Result <= MAX_CHAR_VALUE)
-    {
-        Value->Typ = &pc->CharType;
-        Value->Val->Character = Result;
-        ResultToken = TokenCharacterConstant;
-    }
-    else
-    {
-        Value->Typ = &pc->IntType;
-        Value->Val->Integer = Result;
-        ResultToken = TokenIntegerConstant;
-    }
+    Value->Typ = &pc->LongType; /* ignored? */
+    Value->Val->LongInteger = Result;
+
+    ResultToken = TokenIntegerConstant;
     
     if (Lexer->Pos == Lexer->End)
         return ResultToken;
         
-    if (*Lexer->Pos == 'l' || *Lexer->Pos == 'L')
+#ifndef NO_FP
+    if (Lexer->Pos == Lexer->End)
     {
-        LEXER_INC(Lexer);
         return ResultToken;
     }
-        
-#ifndef NO_FP
-    if (Lexer->Pos == Lexer->End || *Lexer->Pos != '.')
-        return ResultToken;
-
-    Value->Typ = &pc->FPType;
-    LEXER_INC(Lexer);
-    for (FPDiv = 1.0/Base, FPResult = (double)Result; Lexer->Pos != Lexer->End && IS_BASE_DIGIT(*Lexer->Pos, Base); LEXER_INC(Lexer), FPDiv /= (double)Base)
-        FPResult += GET_BASE_DIGIT(*Lexer->Pos) * FPDiv;
     
+    if (*Lexer->Pos != '.' && *Lexer->Pos != 'e' && *Lexer->Pos != 'E')
+    {
+        return ResultToken;
+    }
+    
+    Value->Typ = &pc->FPType;
+    FPResult = (double)Result;
+    
+    if (*Lexer->Pos == '.')
+    {
+        LEXER_INC(Lexer);
+        for (FPDiv = 1.0/Base; Lexer->Pos != Lexer->End && IS_BASE_DIGIT(*Lexer->Pos, Base); LEXER_INC(Lexer), FPDiv /= (double)Base)
+        {
+            FPResult += GET_BASE_DIGIT(*Lexer->Pos) * FPDiv;
+        }
+    }
+
     if (Lexer->Pos != Lexer->End && (*Lexer->Pos == 'e' || *Lexer->Pos == 'E'))
     {
-        double ExponentMultiplier = 1.0;
+        int ExponentSign = 1;
         
         LEXER_INC(Lexer);
         if (Lexer->Pos != Lexer->End && *Lexer->Pos == '-')
         {
-            ExponentMultiplier = -1.0;
+            ExponentSign = -1;
             LEXER_INC(Lexer);
         }
         
@@ -204,12 +220,15 @@ enum LexToken LexGetNumber(Picoc *pc, struct LexState *Lexer, struct Value *Valu
             Result = Result * Base + GET_BASE_DIGIT(*Lexer->Pos);
             LEXER_INC(Lexer);
         }
-            
-        FPResult *= pow((double)Base, (double)Result * ExponentMultiplier);
+
+        FPResult *= pow((double)Base, (double)Result * ExponentSign);
     }
     
     Value->Val->FP = FPResult;
-    
+
+    if (*Lexer->Pos == 'f' || *Lexer->Pos == 'F')
+        LEXER_INC(Lexer);
+
     return TokenFPConstant;
 #else
     return ResultToken;
@@ -496,7 +515,7 @@ int LexTokenSize(enum LexToken Token)
     switch (Token)
     {
         case TokenIdentifier: case TokenStringConstant: return sizeof(char *);
-        case TokenIntegerConstant: return sizeof(int);
+        case TokenIntegerConstant: return sizeof(long);
         case TokenCharacterConstant: return sizeof(unsigned char);
         case TokenFPConstant: return sizeof(double);
         default: return 0;
@@ -523,7 +542,7 @@ void *LexTokenise(Picoc *pc, struct LexState *Lexer, int *TokenLen)
     { 
         /* store the token at the end of the stack area */
         Token = LexScanGetToken(pc, Lexer, &GotValue);
-        
+
 #ifdef DEBUG_LEXER
         printf("Token: %02x\n", Token);
 #endif
@@ -699,7 +718,7 @@ enum LexToken LexGetRawToken(struct ParseState *Parser, struct Value **Value, in
             {
                 case TokenStringConstant:       pc->LexValue.Typ = pc->CharPtrType; break;
                 case TokenIdentifier:           pc->LexValue.Typ = NULL; break;
-                case TokenIntegerConstant:      pc->LexValue.Typ = &pc->IntType; break;
+                case TokenIntegerConstant:      pc->LexValue.Typ = &pc->LongType; break;
                 case TokenCharacterConstant:    pc->LexValue.Typ = &pc->CharType; break;
 #ifndef NO_FP
                 case TokenFPConstant:           pc->LexValue.Typ = &pc->FPType; break;
@@ -766,7 +785,7 @@ void LexHashIf(struct ParseState *Parser)
 {
     /* get symbol to check */
     struct Value *IdentValue;
-    struct Value *SavedValue;
+    struct Value *SavedValue = NULL;
     struct ParseState MacroParser;
     enum LexToken Token = LexGetRawToken(Parser, &IdentValue, TRUE);
 
@@ -783,7 +802,7 @@ void LexHashIf(struct ParseState *Parser)
         Token = LexGetRawToken(&MacroParser, &IdentValue, TRUE);
     }
     
-    if (Token != TokenCharacterConstant)
+    if (Token != TokenCharacterConstant && Token != TokenIntegerConstant)
         ProgramFail(Parser, "value expected");
     
     /* is the identifier defined? */
@@ -822,6 +841,43 @@ void LexHashEndif(struct ParseState *Parser)
     if (Parser->HashIfEvaluateToLevel > Parser->HashIfLevel)
         Parser->HashIfEvaluateToLevel = Parser->HashIfLevel;
 }
+
+#if 0 /* useful for debug */
+void LexPrintToken(enum LexToken Token)
+{
+    char* TokenNames[] = {
+        /* 0x00 */ "None", 
+        /* 0x01 */ "Comma",
+        /* 0x02 */ "Assign", "AddAssign", "SubtractAssign", "MultiplyAssign", "DivideAssign", "ModulusAssign",
+        /* 0x08 */ "ShiftLeftAssign", "ShiftRightAssign", "ArithmeticAndAssign", "ArithmeticOrAssign", "ArithmeticExorAssign",
+        /* 0x0d */ "QuestionMark", "Colon", 
+        /* 0x0f */ "LogicalOr", 
+        /* 0x10 */ "LogicalAnd", 
+        /* 0x11 */ "ArithmeticOr", 
+        /* 0x12 */ "ArithmeticExor", 
+        /* 0x13 */ "Ampersand", 
+        /* 0x14 */ "Equal", "NotEqual", 
+        /* 0x16 */ "LessThan", "GreaterThan", "LessEqual", "GreaterEqual",
+        /* 0x1a */ "ShiftLeft", "ShiftRight", 
+        /* 0x1c */ "Plus", "Minus", 
+        /* 0x1e */ "Asterisk", "Slash", "Modulus",
+        /* 0x21 */ "Increment", "Decrement", "UnaryNot", "UnaryExor", "Sizeof", "Cast",
+        /* 0x27 */ "LeftSquareBracket", "RightSquareBracket", "Dot", "Arrow", 
+        /* 0x2b */ "OpenBracket", "CloseBracket",
+        /* 0x2d */ "Identifier", "IntegerConstant", "FPConstant", "StringConstant", "CharacterConstant",
+        /* 0x32 */ "Semicolon", "Ellipsis",
+        /* 0x34 */ "LeftBrace", "RightBrace",
+        /* 0x36 */ "IntType", "CharType", "FloatType", "DoubleType", "VoidType", "EnumType",
+        /* 0x3c */ "LongType", "SignedType", "ShortType", "StaticType", "AutoType", "RegisterType", "ExternType", "StructType", "UnionType", "UnsignedType", "Typedef",
+        /* 0x46 */ "Continue", "Do", "Else", "For", "Goto", "If", "While", "Break", "Switch", "Case", "Default", "Return",
+        /* 0x52 */ "HashDefine", "HashInclude", "HashIf", "HashIfdef", "HashIfndef", "HashElse", "HashEndif",
+        /* 0x59 */ "New", "Delete",
+        /* 0x5b */ "OpenMacroBracket",
+        /* 0x5c */ "EOF", "EndOfLine", "EndOfFunction"
+    };
+    printf("{%s}", TokenNames[Token]);
+}
+#endif
 
 /* get the next token given a parser state, pre-processing as we go */
 enum LexToken LexGetToken(struct ParseState *Parser, struct Value **Value, int IncPos)

@@ -59,7 +59,7 @@ TESTS=	00_assignment.test \
 	62_float.test \
 	63_typedef.test \
 	64_double_prefix_op.test \
-	65_typeless.test \
+	#65_typeless.test \
 
 
 include csmith/Makefile

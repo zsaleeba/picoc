@@ -7,7 +7,7 @@
 #define MAX_FORMAT 80
 #define MAX_SCANF_ARGS 10
 
-static int ZeroValue = 0;
+static int Stdio_ZeroValue = 0;
 static int EOFValue = EOF;
 static int SEEK_SETValue = SEEK_SET;
 static int SEEK_CURValue = SEEK_CUR;
@@ -103,7 +103,7 @@ void StdioOutPuts(const char *Str, StdOutStream *Stream)
 }
 
 /* printf-style format of an int or other word-sized object */
-void StdioFprintfWord(StdOutStream *Stream, const char *Format, unsigned int Value)
+void StdioFprintfWord(StdOutStream *Stream, const char *Format, unsigned long Value)
 {
     if (Stream->FilePtr != NULL)
         Stream->CharCount += fprintf(Stream->FilePtr, Format, Value);
@@ -712,7 +712,7 @@ void StdioSetupFunc(Picoc *pc)
 
     /* define NULL, TRUE and FALSE */
     if (!VariableDefined(pc, TableStrRegister(pc, "NULL")))
-        VariableDefinePlatformVar(pc, NULL, "NULL", &pc->IntType, (union AnyValue *)&ZeroValue, FALSE);
+        VariableDefinePlatformVar(pc, NULL, "NULL", &pc->IntType, (union AnyValue *)&Stdio_ZeroValue, FALSE);
 }
 
 /* portability-related I/O calls */

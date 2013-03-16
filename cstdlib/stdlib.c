@@ -3,7 +3,7 @@
 
 #ifndef BUILTIN_MINI_STDLIB
 
-static int ZeroValue = 0;
+static int Stdlib_ZeroValue = 0;
 
 #ifndef NO_FP
 void StdlibAtof(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
@@ -168,7 +168,7 @@ void StdlibSetupFunc(Picoc *pc)
 {
     /* define NULL, TRUE and FALSE */
     if (!VariableDefined(pc, TableStrRegister(pc, "NULL")))
-        VariableDefinePlatformVar(pc, NULL, "NULL", &pc->IntType, (union AnyValue *)&ZeroValue, FALSE);
+        VariableDefinePlatformVar(pc, NULL, "NULL", &pc->IntType, (union AnyValue *)&Stdlib_ZeroValue, FALSE);
 }
 
 #endif /* !BUILTIN_MINI_STDLIB */

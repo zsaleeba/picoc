@@ -170,8 +170,9 @@ void AssignFail(struct ParseState *Parser, const char *Format, struct ValueType 
     
     if (FuncName != NULL)
         PlatformPrintf(Stream, " in argument %d of call to %s()", ParamNo, FuncName);
-        
-    ProgramFail(Parser, NULL, "");
+    
+    PlatformPrintf(Stream, "\n");
+    PlatformExit(Parser->pc, 1);
 }
 
 /* exit lexing with a message */

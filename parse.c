@@ -183,30 +183,86 @@ int ParseArrayInitialiser(struct ParseState *Parser, struct Value *NewVariable, 
         
         ParserCopy(&CountParser, Parser);
         NumElements = ParseArrayInitialiser(&CountParser, NewVariable, FALSE);
+
+        if (NewVariable->Typ->Base != TypeArray)
+            AssignFail(Parser, "%t from array initializer", NewVariable->Typ, NULL, 0, 0, NULL, 0);
+
         if (NewVariable->Typ->ArraySize == 0)
-            VariableRealloc(Parser, NewVariable, NumElements);
-        
-        else if (NewVariable->Typ->ArraySize != NumElements)
-            AssignFail(Parser, "from an array of size %d to one of size %d", NULL, NULL, NumElements, NewVariable->Typ->ArraySize, NULL, 0);
+        {
+            NewVariable->Typ = TypeGetMatching(Parser->pc, Parser, NewVariable->Typ->FromType, NewVariable->Typ->Base, NumElements, NewVariable->Typ->Identifier, TRUE);
+            VariableRealloc(Parser, NewVariable, TypeSizeValue(NewVariable, FALSE));
+        }
+        #ifdef DEBUG_ARRAY_INITIALIZER
+        PRINT_SOURCE_POS;
+        printf("array size: %d \n", NewVariable->Typ->ArraySize);
+        #endif
     }
     
     /* parse the array initialiser */
     Token = LexGetToken(Parser, NULL, FALSE);
     while (Token != TokenRightBrace)
     {
-        struct Value *ArrayElement = NULL;
-        
-        if (Parser->Mode == RunModeRun && DoAssignment)
-            ArrayElement = VariableAllocValueFromExistingData(Parser, NewVariable->Typ->FromType, (union AnyValue *)(&NewVariable->Val->ArrayMem[0] + TypeSize(NewVariable->Typ->FromType, 0, TRUE) * ArrayIndex), TRUE, NewVariable);
-            
-        if (!ExpressionParse(Parser, &CValue))
-            ProgramFail(Parser, "expression expected");
-            
-        if (Parser->Mode == RunModeRun && DoAssignment)
+        if (LexGetToken(Parser, NULL, FALSE) == TokenLeftBrace)
         {
-            ExpressionAssign(Parser, ArrayElement, CValue, FALSE, NULL, 0, FALSE);
-            VariableStackPop(Parser, CValue);
-            VariableStackPop(Parser, ArrayElement);
+            /* this is a sub-array initialiser */
+            int SubArraySize = 0;
+            struct Value *SubArray = NewVariable; 
+            if (Parser->Mode == RunModeRun && DoAssignment)
+            {
+                SubArraySize = TypeSize(NewVariable->Typ->FromType, NewVariable->Typ->FromType->ArraySize, TRUE);
+                SubArray = VariableAllocValueFromExistingData(Parser, NewVariable->Typ->FromType, (union AnyValue *)(&NewVariable->Val->ArrayMem[0] + SubArraySize * ArrayIndex), TRUE, NewVariable);
+                #ifdef DEBUG_ARRAY_INITIALIZER
+                int FullArraySize = TypeSize(NewVariable->Typ, NewVariable->Typ->ArraySize, TRUE);
+                PRINT_SOURCE_POS;
+                PRINT_TYPE(NewVariable->Typ)
+                printf("[%d] subarray size: %d (full: %d,%d) \n", ArrayIndex, SubArraySize, FullArraySize, NewVariable->Typ->ArraySize);
+                #endif
+                if (ArrayIndex >= NewVariable->Typ->ArraySize)
+                    ProgramFail(Parser, "too many array elements");
+            }
+            LexGetToken(Parser, NULL, TRUE);
+            ParseArrayInitialiser(Parser, SubArray, DoAssignment);
+        }
+        else
+        {
+            struct Value *ArrayElement = NULL;
+        
+            if (Parser->Mode == RunModeRun && DoAssignment)
+            {
+                struct ValueType * ElementType = NewVariable->Typ;
+                int TotalSize = 1;
+                int ElementSize = 0;
+                
+                /* int x[3][3] = {1,2,3,4} => handle it just like int x[9] = {1,2,3,4} */
+                while (ElementType->Base == TypeArray)
+                {
+                    TotalSize *= ElementType->ArraySize;
+                    ElementType = ElementType->FromType;
+                    
+                    /* char x[10][10] = {"abc", "def"} => assign "abc" to x[0], "def" to x[1] etc */
+                    if (LexGetToken(Parser, NULL, FALSE) == TokenStringConstant && ElementType->FromType->Base == TypeChar)
+                        break;
+                }
+                ElementSize = TypeSize(ElementType, ElementType->ArraySize, TRUE);
+                #ifdef DEBUG_ARRAY_INITIALIZER
+                PRINT_SOURCE_POS;
+                printf("[%d/%d] element size: %d (x%d) \n", ArrayIndex, TotalSize, ElementSize, ElementType->ArraySize);
+                #endif
+                if (ArrayIndex >= TotalSize)
+                    ProgramFail(Parser, "too many array elements");
+                ArrayElement = VariableAllocValueFromExistingData(Parser, ElementType, (union AnyValue *)(&NewVariable->Val->ArrayMem[0] + ElementSize * ArrayIndex), TRUE, NewVariable);
+            }
+
+            /* this is a normal expression initialiser */
+            if (!ExpressionParse(Parser, &CValue))
+                ProgramFail(Parser, "expression expected");
+
+            if (Parser->Mode == RunModeRun && DoAssignment)
+            {
+                ExpressionAssign(Parser, ArrayElement, CValue, FALSE, NULL, 0, FALSE);
+                VariableStackPop(Parser, CValue);
+                VariableStackPop(Parser, ArrayElement);
+            }
         }
         
         ArrayIndex++;
@@ -393,8 +449,11 @@ void ParseFor(struct ParseState *Parser)
     struct ParseState PreIncrement;
     struct ParseState PreStatement;
     struct ParseState After;
+    
     enum RunMode OldMode = Parser->Mode;
     
+    int PrevScopeID = 0, ScopeID = VariableScopeBegin(Parser, &PrevScopeID);
+
     if (LexGetToken(Parser, NULL, TRUE) != TokenOpenBracket)
         ProgramFail(Parser, "'(' expected");
                         
@@ -420,7 +479,7 @@ void ParseFor(struct ParseState *Parser)
     if (ParseStatementMaybeRun(Parser, Condition, TRUE) != ParseResultOk)
         ProgramFail(Parser, "statement expected");
     
-    if (Parser->Mode == RunModeContinue)
+    if (Parser->Mode == RunModeContinue && OldMode == RunModeRun)
         Parser->Mode = RunModeRun;
         
     ParserCopyPos(&After, Parser);
@@ -448,16 +507,20 @@ void ParseFor(struct ParseState *Parser)
     
     if (Parser->Mode == RunModeBreak && OldMode == RunModeRun)
         Parser->Mode = RunModeRun;
-        
+
+    VariableScopeEnd(Parser, ScopeID, PrevScopeID);
+
     ParserCopyPos(Parser, &After);
 }
 
 /* parse a block of code and return what mode it returned in */
 enum RunMode ParseBlock(struct ParseState *Parser, int AbsorbOpenBrace, int Condition)
 {
+    int PrevScopeID = 0, ScopeID = VariableScopeBegin(Parser, &PrevScopeID);
+
     if (AbsorbOpenBrace && LexGetToken(Parser, NULL, TRUE) != TokenLeftBrace)
         ProgramFail(Parser, "'{' expected");
-    
+
     if (Parser->Mode == RunModeSkip || !Condition)
     { 
         /* condition failed - skip this block instead */
@@ -476,7 +539,9 @@ enum RunMode ParseBlock(struct ParseState *Parser, int AbsorbOpenBrace, int Cond
     
     if (LexGetToken(Parser, NULL, TRUE) != TokenRightBrace)
         ProgramFail(Parser, "'}' expected");
-        
+
+    VariableScopeEnd(Parser, ScopeID, PrevScopeID);
+
     return Parser->Mode;
 }
 
@@ -548,6 +613,33 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
                     CheckTrailingSemicolon = FALSE;
                     break;
                 }
+#ifdef FEATURE_AUTO_DECLARE_VARIABLES
+                else /* new_identifier = something */
+                {    /* try to guess type and declare the variable based on assigned value */
+                    if (NextToken == TokenAssign && !VariableDefinedAndOutOfScope(Parser->pc, LexerValue->Val->Identifier))
+                    {
+                        if (Parser->Mode == RunModeRun)
+                        {
+                            struct Value *CValue;
+                            char* Identifier = LexerValue->Val->Identifier;
+
+                            LexGetToken(Parser, NULL, TRUE);
+                            if (!ExpressionParse(Parser, &CValue))
+                            {
+                                ProgramFail(Parser, "expected: expression");
+                            }
+                            
+                            #if 0
+                            PRINT_SOURCE_POS;
+                            PlatformPrintf(Parser->pc->CStdOut, "%t %s = %d;\n", CValue->Typ, Identifier, CValue->Val->Integer);
+                            printf("%d\n", VariableDefined(Parser->pc, Identifier));
+                            #endif
+                            VariableDefine(Parser->pc, Parser, Identifier, CValue, CValue->Typ, TRUE);
+                            break;
+                        }
+                    }
+                }
+#endif
             }
             /* else fallthrough to expression */
 	    /* no break */
@@ -652,13 +744,9 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
             break;
                 
         case TokenFor:
-        {
-            enum RunMode OldMode = Parser->Mode;
             ParseFor(Parser);
-            Parser->Mode = OldMode;
             CheckTrailingSemicolon = FALSE;
             break;
-        }
 
         case TokenSemicolon: 
             CheckTrailingSemicolon = FALSE; 

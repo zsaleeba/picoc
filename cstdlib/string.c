@@ -3,7 +3,7 @@
 
 #ifndef BUILTIN_MINI_STDLIB
 
-static int ZeroValue = 0;
+static int String_ZeroValue = 0;
 
 void StringStrcpy(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
@@ -180,7 +180,7 @@ void StringSetupFunc(Picoc *pc)
 {
     /* define NULL */
     if (!VariableDefined(pc, TableStrRegister(pc, "NULL")))
-        VariableDefinePlatformVar(pc, NULL, "NULL", &pc->IntType, (union AnyValue *)&ZeroValue, FALSE);
+        VariableDefinePlatformVar(pc, NULL, "NULL", &pc->IntType, (union AnyValue *)&String_ZeroValue, FALSE);
 }
 
 #endif /* !BUILTIN_MINI_STDLIB */
