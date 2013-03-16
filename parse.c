@@ -652,9 +652,13 @@ enum ParseResult ParseStatement(struct ParseState *Parser, int CheckTrailingSemi
             break;
                 
         case TokenFor:
+        {
+            enum RunMode OldMode = Parser->Mode;
             ParseFor(Parser);
+            Parser->Mode = OldMode;
             CheckTrailingSemicolon = FALSE;
             break;
+        }
 
         case TokenSemicolon: 
             CheckTrailingSemicolon = FALSE; 
