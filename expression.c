@@ -79,9 +79,9 @@ void ExpressionParseFunctionCall(struct ParseState *Parser, struct ExpressionSta
 
 #ifdef DEBUG_EXPRESSIONS
 /* show the contents of the expression stack */
-void ExpressionStackShow(struct ExpressionStack *StackTop)
+void ExpressionStackShow(Picoc *pc, struct ExpressionStack *StackTop)
 {
-    printf("Expression stack [0x%lx,0x%lx]: ", (long)HeapStackTop, (long)StackTop);
+    printf("Expression stack [0x%lx,0x%lx]: ", (long)pc->HeapStackTop, (long)StackTop);
     
     while (StackTop != NULL)
     {
@@ -99,10 +99,10 @@ void ExpressionStackShow(struct ExpressionStack *StackTop)
                 case TypeInt:       printf("%d:int", StackTop->Val->Val->Integer); break;
                 case TypeShort:     printf("%d:short", StackTop->Val->Val->ShortInteger); break;
                 case TypeChar:      printf("%d:char", StackTop->Val->Val->Character); break;
-                case TypeLong:      printf("%d:long", StackTop->Val->Val->LongInteger); break;
+                case TypeLong:      printf("%ld:long", StackTop->Val->Val->LongInteger); break;
                 case TypeUnsignedShort: printf("%d:unsigned short", StackTop->Val->Val->UnsignedShortInteger); break;
                 case TypeUnsignedInt: printf("%d:unsigned int", StackTop->Val->Val->UnsignedInteger); break;
-                case TypeUnsignedLong: printf("%d:unsigned long", StackTop->Val->Val->UnsignedLongInteger); break;
+                case TypeUnsignedLong: printf("%ld:unsigned long", StackTop->Val->Val->UnsignedLongInteger); break;
                 case TypeFP:        printf("%f:fp", StackTop->Val->Val->FP); break;
                 case TypeFunction:  printf("%s:function", StackTop->Val->Val->Identifier); break;
                 case TypeMacro:     printf("%s:macro", StackTop->Val->Val->Identifier); break;
@@ -118,7 +118,7 @@ void ExpressionStackShow(struct ExpressionStack *StackTop)
                 case TypeStruct:    printf("%s:struct", StackTop->Val->Val->Identifier); break;
                 case TypeUnion:     printf("%s:union", StackTop->Val->Val->Identifier); break;
                 case TypeEnum:      printf("%s:enum", StackTop->Val->Val->Identifier); break;
-                case Type_Type:     PrintType(StackTop->Val->Val->Typ, CStdOut); printf(":type"); break;
+                case Type_Type:     PrintType(StackTop->Val->Val->Typ, pc->CStdOut); printf(":type"); break;
                 default:            printf("unknown"); break;
             }
             printf("[0x%lx,0x%lx]", (long)StackTop, (long)StackTop->Val);
@@ -291,7 +291,7 @@ void ExpressionStackPushValueNode(struct ParseState *Parser, struct ExpressionSt
     StackNode->CharacterPos = Parser->CharacterPos;
 #endif
 #ifdef DEBUG_EXPRESSIONS
-    ExpressionStackShow(*StackTop);
+    ExpressionStackShow(Parser->pc, *StackTop);
 #endif
 }
 
@@ -900,7 +900,7 @@ void ExpressionStackCollapse(struct ParseState *Parser, struct ExpressionStack *
     
     debugf("ExpressionStackCollapse(%d):\n", Precedence);
 #ifdef DEBUG_EXPRESSIONS
-    ExpressionStackShow(*StackTop);
+    ExpressionStackShow(Parser->pc, *StackTop);
 #endif
     while (TopStackNode != NULL && TopStackNode->Next != NULL && FoundPrecedence >= Precedence)
     {
@@ -1005,13 +1005,13 @@ void ExpressionStackCollapse(struct ParseState *Parser, struct ExpressionStack *
                 *IgnorePrecedence = DEEP_PRECEDENCE;
         }
 #ifdef DEBUG_EXPRESSIONS
-        ExpressionStackShow(*StackTop);
+        ExpressionStackShow(Parser->pc, *StackTop);
 #endif
         TopStackNode = *StackTop;
     }
     debugf("ExpressionStackCollapse() finished\n");
 #ifdef DEBUG_EXPRESSIONS
-    ExpressionStackShow(*StackTop);
+    ExpressionStackShow(Parser->pc, *StackTop);
 #endif
 }
 
@@ -1030,7 +1030,7 @@ void ExpressionStackPushOperator(struct ParseState *Parser, struct ExpressionSta
     StackNode->CharacterPos = Parser->CharacterPos;
 #endif
 #ifdef DEBUG_EXPRESSIONS
-    ExpressionStackShow(*StackTop);
+    ExpressionStackShow(Parser->pc, *StackTop);
 #endif
 }
 
@@ -1348,7 +1348,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
     
     debugf("ExpressionParse() done\n\n");
 #ifdef DEBUG_EXPRESSIONS
-    ExpressionStackShow(StackTop);
+    ExpressionStackShow(Parser->pc, StackTop);
 #endif
     return StackTop != NULL;
 }
