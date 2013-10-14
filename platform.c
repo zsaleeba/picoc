@@ -126,7 +126,7 @@ void PrintSourceTextErrorLine(IOFILE *Stream, const char *FileName, const char *
         for (CCount = 0; CCount < CharacterPos + (int)strlen(INTERACTIVE_PROMPT_STATEMENT); CCount++)
             PrintCh(' ', Stream);
     }
-    PlatformPrintf(Stream, "^\n%s:%d: ", FileName, Line, CharacterPos);
+    PlatformPrintf(Stream, "^\n%s:%d:%d ", FileName, Line, CharacterPos);
     
 }
 
