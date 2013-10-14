@@ -46,9 +46,9 @@ char *PlatformGetLine(char *Buf, int MaxLen, const char *Prompt)
         if (InLine == NULL)
             return NULL;
     
-        Buf[MaxLen] = '\0';
-        strncpy(Buf, InLine, MaxLen-1);
-        strncat(Buf, "\n", MaxLen-1);
+        Buf[MaxLen-1] = '\0';
+        strncpy(Buf, InLine, MaxLen-2);
+        strncat(Buf, "\n", MaxLen-2);
         
         if (InLine[0] != '\0')
             add_history(InLine);
