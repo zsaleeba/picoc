@@ -60,6 +60,7 @@ TESTS=	00_assignment.test \
 	63_typedef.test \
 	64_double_prefix_op.test \
 	66_printf_undefined.test \
+	67_macro_crash.test \
 
 
 include csmith/Makefile

@@ -1264,6 +1264,7 @@ int ExpressionParse(struct ParseState *Parser, struct Value **Result)
                         struct Value *MacroResult;
                         
                         ParserCopy(&MacroParser, &VariableValue->Val->MacroDef.Body);
+                        MacroParser.Mode = Parser->Mode;
                         if (VariableValue->Val->MacroDef.NumParams != 0)
                             ProgramFail(&MacroParser, "macro arguments missing");
                             
@@ -1422,6 +1423,7 @@ void ExpressionParseMacroCall(struct ParseState *Parser, struct ExpressionStack 
             ProgramFail(Parser, "'%s' is undefined", MacroName);
         
         ParserCopy(&MacroParser, &MDef->Body);
+        MacroParser.Mode = Parser->Mode;
         VariableStackFrameAdd(Parser, MacroName, 0);
         Parser->pc->TopStackFrame->NumParams = ArgCount;
         Parser->pc->TopStackFrame->ReturnValue = ReturnValue;
