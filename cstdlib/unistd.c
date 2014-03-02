@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <limits.h>
+#include <fcntl.h>
 #include "../interpreter.h"
 
 #ifndef BUILTIN_MINI_STDLIB
@@ -82,7 +83,12 @@ void UnistdFchdir(struct ParseState *Parser, struct Value *ReturnValue, struct V
 
 void UnistdFdatasync(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
 {
+#ifndef F_FULLSYNC
     ReturnValue->Val->Integer = fdatasync(Param[0]->Val->Integer);
+#else
+    /* Mac OS X equivalent */
+    ReturnValue->Val->Integer = fcntl(Param[0]->Val->Integer, F_FULLFSYNC);
+#endif
 }
 
 void UnistdFork(struct ParseState *Parser, struct Value *ReturnValue, struct Value **Param, int NumArgs)
